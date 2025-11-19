@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { BrokerMode, OandaConfig } from '../types';
-import { X, Save, ShieldCheck, Globe, Activity, CheckCircle, AlertCircle, Loader2, Trash2 } from 'lucide-react';
+import { X, Save, ShieldCheck, Globe, Activity, CheckCircle, AlertCircle, Loader2, Trash2, ExternalLink } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -113,7 +113,12 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, currentMode, oandaCon
              
              <div className="space-y-3">
                 <div>
-                    <label className="text-[10px] text-ios-gray ml-1 block mb-1">Personal Access Token</label>
+                    <div className="flex justify-between items-baseline mb-1">
+                         <label className="text-[10px] text-ios-gray ml-1 block">Personal Access Token</label>
+                         <a href="https://www.oanda.com/demo-account/tpa/personal_token" target="_blank" rel="noreferrer" className="text-[10px] text-ios-blue flex items-center gap-0.5 hover:underline">
+                            Get Key <ExternalLink size={8} />
+                         </a>
+                    </div>
                     <input 
                         type="password" 
                         value={apiKey}

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -8,6 +9,12 @@
     <meta name="theme-color" content="#000000" />
     <title>QuantBot Mobile</title>
     <link rel="manifest" href="/manifest.json" />
+    
+    <!-- POLYFILL: Define process.env to prevent blank screen crash on Vercel/Browser -->
+    <script>
+      window.process = window.process || { env: {} };
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {

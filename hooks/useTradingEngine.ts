@@ -7,8 +7,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { GoogleGenAI, Type } from "@google/genai";
 import { OandaService } from '../services/oanda';
 
-// Initialize Gemini API
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Helper to safely get AI Client without crashing on "process is not defined"
+const getAiClient = () => {
+  const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
+  return new GoogleGenAI({ apiKey });
+};
 
 export const useTradingEngine = () => {
   // --- Settings State with Persistence ---
@@ -122,6 +125,7 @@ export const useTradingEngine = () => {
   // --- Helper: Consult Gemini ---
   const consultGemini = async (symbol: AssetSymbol, price: number, history: number[], rsi: number, ema: number, volatility: number, trend: string) => {
     try {
+      const ai = getAiClient(); // Lazy init
       const trendText = trend === 'UP' ? "BULLISH (Price > EMA200)" : "BEARISH (Price < EMA200)";
       
       const response = await ai.models.generateContent({
