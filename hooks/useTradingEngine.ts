@@ -33,11 +33,17 @@ export const useTradingEngine = () => {
 
   const oandaServiceRef = useRef<OandaService | null>(null);
 
-  // --- Account State ---
-  const [account, setAccount] = useState<AccountState>({
-    balance: INITIAL_BALANCE,
-    equity: INITIAL_BALANCE,
-    dayPnL: 0,
+  // --- Account State with Persistence ---
+  const [account, setAccount] = useState<AccountState>(() => {
+    if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('paper_account_v2');
+        if (saved) return JSON.parse(saved);
+    }
+    return {
+        balance: INITIAL_BALANCE,
+        equity: INITIAL_BALANCE,
+        dayPnL: 0,
+    };
   });
 
   const initialAssets: Record<AssetSymbol, AssetData> = {
@@ -48,7 +54,15 @@ export const useTradingEngine = () => {
   };
 
   const [assets, setAssets] = useState<Record<AssetSymbol, AssetData>>(initialAssets);
-  const [trades, setTrades] = useState<Trade[]>([]);
+  
+  // --- Trades State with Persistence ---
+  const [trades, setTrades] = useState<Trade[]>(() => {
+      if (typeof window !== 'undefined') {
+          const saved = localStorage.getItem('paper_trades_v2');
+          if (saved) return JSON.parse(saved);
+      }
+      return [];
+  });
 
   // Refs
   const assetsRef = useRef(assets);
@@ -62,6 +76,20 @@ export const useTradingEngine = () => {
   useEffect(() => { tradesRef.current = trades; }, [trades]);
   useEffect(() => { accountRef.current = account; }, [account]);
   useEffect(() => { brokerModeRef.current = brokerMode; }, [brokerMode]);
+
+  // --- Persistence Effects ---
+  useEffect(() => {
+      if (typeof window !== 'undefined') {
+          localStorage.setItem('paper_account_v2', JSON.stringify(account));
+      }
+  }, [account]);
+
+  useEffect(() => {
+      if (typeof window !== 'undefined') {
+          localStorage.setItem('paper_trades_v2', JSON.stringify(trades));
+      }
+  }, [trades]);
+
 
   // Initialize Oanda Service when config changes
   useEffect(() => {
@@ -524,6 +552,10 @@ export const useTradingEngine = () => {
   const resetAccount = useCallback(() => {
      setAccount({ balance: INITIAL_BALANCE, equity: INITIAL_BALANCE, dayPnL: 0 });
      setTrades([]);
+     if (typeof window !== 'undefined') {
+        localStorage.removeItem('paper_account_v2');
+        localStorage.removeItem('paper_trades_v2');
+     }
   }, []);
 
   const configureOanda = useCallback(async (mode: BrokerMode, config: OandaConfig): Promise<boolean> => {
