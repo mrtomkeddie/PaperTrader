@@ -1,15 +1,18 @@
 
 export enum AssetSymbol {
-  BTCUSD = 'BTC/USD',
-  ETHUSD = 'ETH/USD',
   XAUUSD = 'XAU/USD',
   NAS100 = 'NAS100'
 }
 
 export enum StrategyType {
-  MOMENTUM = 'MOMENTUM', 
-  SWING = 'SWING',
-  AI_AGENT = 'AI_AGENT'
+  // Basic / Trend
+  TREND_FOLLOW = 'TREND_FOLLOW',
+  AI_AGENT = 'AI_AGENT',
+  
+  // Institutional Strategies
+  LONDON_SWEEP = 'LONDON_SWEEP', 
+  LONDON_CONTINUATION = 'LONDON_CONTINUATION',
+  NY_ORB = 'NY_ORB'
 }
 
 export enum TradeType {
@@ -18,9 +21,10 @@ export enum TradeType {
 }
 
 export enum BrokerMode {
-  SIMULATION_CRYPTO = 'SIMULATION_CRYPTO', // Uses Binance WS
-  OANDA_PAPER = 'OANDA_PAPER' // Uses Oanda API
+  REMOTE_SERVER = 'REMOTE_SERVER'
 }
+
+export type TimeFilter = 'TODAY' | 'WEEK' | 'MONTH' | 'ALL';
 
 export interface OandaConfig {
   apiKey: string;
@@ -63,6 +67,16 @@ export interface Trade {
   entryReason?: string; // Why the trade was taken
   closeReason?: 'TAKE_PROFIT' | 'STOP_LOSS' | 'MANUAL' | 'PARTIAL_CLOSE'; // Why it closed
   brokerId?: string; // ID from Oanda if applicable
+}
+
+export interface Candle {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  isClosed: boolean;
 }
 
 export interface PricePoint {

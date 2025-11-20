@@ -4,8 +4,8 @@ import { useTradingEngine } from './hooks/useTradingEngine';
 import AssetCard from './components/AssetCard';
 import TradeHistory from './components/TradeHistory';
 import SettingsModal from './components/SettingsModal';
-import { Wallet, BarChart2, Clock, RefreshCw, ArrowUpRight, ArrowDownRight, Settings } from 'lucide-react';
-import { AssetSymbol, BrokerMode } from './types';
+import { Wallet, BarChart2, Clock, RefreshCw, ArrowUpRight, ArrowDownRight, Settings, Server } from 'lucide-react';
+import { AssetSymbol } from './types';
 
 const App: React.FC = () => {
   const { assets, account, trades, toggleBot, setStrategy, resetAccount, brokerMode, oandaConfig, configureOanda } = useTradingEngine();
@@ -14,10 +14,8 @@ const App: React.FC = () => {
 
   const isPositiveDay = account.dayPnL >= 0;
 
-  // Decide which assets to show based on Broker Mode
-  const visibleAssets = brokerMode === BrokerMode.SIMULATION_CRYPTO 
-     ? [AssetSymbol.BTCUSD, AssetSymbol.ETHUSD]
-     : [AssetSymbol.XAUUSD, AssetSymbol.NAS100];
+  // Fixed Assets: Gold and Nasdaq only
+  const visibleAssets = [AssetSymbol.XAUUSD, AssetSymbol.NAS100];
 
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-ios-blue/30">
@@ -36,7 +34,10 @@ const App: React.FC = () => {
         {/* Premium Header */}
         <header className="mb-8">
           <div className="flex justify-between items-start mb-2">
-             <span className="text-sm font-semibold text-ios-gray uppercase tracking-wide">Total Equity</span>
+             <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-ios-green animate-pulse" />
+                <span className="text-sm font-semibold text-ios-gray uppercase tracking-wide">Remote Dashboard</span>
+             </div>
              <div className="flex gap-3">
                 <button onClick={resetAccount} className="text-ios-blue hover:opacity-80 active:scale-95 transition-transform">
                     <RefreshCw size={20} />
@@ -65,24 +66,17 @@ const App: React.FC = () => {
              {/* Available Margin Mini-Stat */}
              <div className="flex items-center justify-between bg-ios-card px-4 py-3 rounded-2xl border border-white/5">
                 <div className="flex items-center gap-2 text-ios-gray text-sm font-medium">
-                    <Wallet size={16} />
-                    <span>Free Margin</span>
+                    <Server size={16} />
+                    <span>Bot Connection</span>
                 </div>
-                <span className="text-white font-bold tabular-nums">
-                    £{account.balance.toLocaleString('en-GB', { minimumFractionDigits: 0 })}
+                <span className="text-ios-green font-bold text-xs uppercase tracking-wider">
+                    ONLINE
                 </span>
              </div>
             
-             {/* Broker Status Banner (Only if Oanda) */}
-             {brokerMode === BrokerMode.OANDA_PAPER && (
-                <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-3 text-center">
-                    <p className="text-xs text-orange-400 font-semibold">Broker: OANDA Paper Trading</p>
-                </div>
-             )}
-
              <div>
                 <h2 className="text-xl font-bold text-white mb-4">
-                    {brokerMode === BrokerMode.SIMULATION_CRYPTO ? 'Live Crypto Markets' : 'Forex / CFDs'}
+                    Live Markets
                 </h2>
                 
                 {visibleAssets.map(symbol => (
@@ -122,7 +116,7 @@ const App: React.FC = () => {
       </div>
       
       {/* Background Ambience */}
-      <div className="fixed top-0 left-0 right-0 h-96 bg-gradient-to-b from-indigo-900/20 to-transparent pointer-events-none -z-10" />
+      <div className="fixed top-0 left-0 right-0 h-96 bg-gradient-to-b from-yellow-900/10 to-transparent pointer-events-none -z-10" />
     </div>
   );
 };

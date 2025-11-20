@@ -80,6 +80,22 @@ export class OandaService {
     }
   }
 
+  async getOpenTrades() {
+    try {
+      const response = await fetch(`${this.baseUrl}/accounts/${this.accountId}/openTrades`, {
+        headers: this.getHeaders()
+      });
+      
+      if (!response.ok) return [];
+      
+      const data = await response.json();
+      return data.trades; // Returns array of Oanda Trade objects
+    } catch (error) {
+      console.error('Oanda Open Trades Error:', error);
+      return [];
+    }
+  }
+
   async placeOrder(symbol: AssetSymbol, units: number, side: TradeType, stopLossPrice: number, takeProfitPrice: number) {
     try {
       const oandaSymbol = OANDA_CONFIG.symbolMap[symbol];
@@ -90,7 +106,7 @@ export class OandaService {
       // XAU/USD uses 2 decimals. NAS100 uses 1 or 2 depending on broker settings, usually 1.
       const precision = symbol === AssetSymbol.NAS100 ? 1 : 2;
 
-      const body = {
+      const body: any = {
         order: {
           units: adjustedUnits,
           instrument: oandaSymbol,
@@ -98,10 +114,13 @@ export class OandaService {
           type: "MARKET",
           positionFill: "DEFAULT",
           stopLossOnFill: { price: stopLossPrice.toFixed(precision) }
-          // NOTE: We do NOT set a hard Take Profit on the order itself anymore 
-          // because we are managing partial TPs locally in the bot engine.
         }
       };
+
+      // SAFETY NET: Attach Hard Take Profit if provided
+      if (takeProfitPrice > 0) {
+          body.order.takeProfitOnFill = { price: takeProfitPrice.toFixed(precision) };
+      }
 
       console.log("Sending Order to Oanda:", JSON.stringify(body));
 

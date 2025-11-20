@@ -3,7 +3,7 @@ import React from 'react';
 import { AssetData, StrategyType, AssetSymbol } from '../types';
 import { ASSET_CONFIG } from '../constants';
 import { AreaChart, Area, YAxis, ResponsiveContainer } from 'recharts';
-import { Bitcoin, TrendingUp, TrendingDown, Sparkles, BrainCircuit, ChevronUp, ChevronDown, Gem, CircleDollarSign, Activity, Repeat, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, Sparkles, BrainCircuit, ChevronUp, ChevronDown, CircleDollarSign, Activity, Landmark, Clock } from 'lucide-react';
 import IndicatorBadge from './IndicatorBadge';
 
 interface Props {
@@ -30,8 +30,6 @@ const AssetCard: React.FC<Props> = ({ asset, toggleBot, setStrategy }) => {
 
   const getIcon = () => {
      switch (asset.symbol) {
-         case AssetSymbol.BTCUSD: return <Bitcoin size={24} strokeWidth={2} />;
-         case AssetSymbol.ETHUSD: return <Gem size={24} strokeWidth={2} />;
          case AssetSymbol.XAUUSD: return <CircleDollarSign size={24} strokeWidth={2} />;
          case AssetSymbol.NAS100: return <Activity size={24} strokeWidth={2} />;
          default: return <Activity size={24} />;
@@ -40,8 +38,6 @@ const AssetCard: React.FC<Props> = ({ asset, toggleBot, setStrategy }) => {
 
   const getIconColor = () => {
     switch (asset.symbol) {
-         case AssetSymbol.BTCUSD: return 'bg-orange-500/20 text-orange-400';
-         case AssetSymbol.ETHUSD: return 'bg-indigo-500/20 text-indigo-400';
          case AssetSymbol.XAUUSD: return 'bg-yellow-500/20 text-yellow-400';
          case AssetSymbol.NAS100: return 'bg-blue-500/20 text-blue-400';
          default: return 'bg-gray-500/20 text-gray-400';
@@ -51,10 +47,12 @@ const AssetCard: React.FC<Props> = ({ asset, toggleBot, setStrategy }) => {
   // Determine optimal strategies per asset
   const getAvailableStrategies = (symbol: AssetSymbol) => {
     if (symbol === AssetSymbol.XAUUSD) {
-        return [StrategyType.SWING, StrategyType.AI_AGENT];
+        return [StrategyType.LONDON_SWEEP, StrategyType.AI_AGENT];
     }
-    // BTC, ETH, and NAS100 work best with Momentum
-    return [StrategyType.MOMENTUM, StrategyType.AI_AGENT];
+    if (symbol === AssetSymbol.NAS100) {
+        return [StrategyType.NY_ORB, StrategyType.AI_AGENT];
+    }
+    return [StrategyType.AI_AGENT];
   };
 
   const availableStrategies = getAvailableStrategies(asset.symbol);
@@ -139,23 +137,26 @@ const AssetCard: React.FC<Props> = ({ asset, toggleBot, setStrategy }) => {
       <div className="space-y-4">
         {/* Strategy Segmented Control */}
         <div>
-            <label className="text-[11px] font-semibold text-ios-gray uppercase tracking-wider ml-1 mb-2 block">Strategy</label>
-            <div className="bg-black/40 p-1 rounded-xl flex relative">
+            <label className="text-[11px] font-semibold text-ios-gray uppercase tracking-wider ml-1 mb-2 block">Active Strategy</label>
+            <div className="bg-black/40 p-1 rounded-xl flex relative overflow-x-auto">
                 {availableStrategies.map((strat) => {
                     const isActive = asset.strategy === strat;
                     let label: string = strat;
                     if (strat === StrategyType.AI_AGENT) label = 'Gemini AI';
+                    if (strat === StrategyType.LONDON_SWEEP) label = 'Ldn Sweep';
+                    if (strat === StrategyType.LONDON_CONTINUATION) label = 'Ldn Cont.';
+                    if (strat === StrategyType.NY_ORB) label = 'NY ORB';
                     
                     return (
                         <button 
                             key={strat}
                             onClick={() => setStrategy(asset.symbol, strat)}
-                            className={`flex-1 py-2 rounded-[9px] text-[10px] font-bold transition-all duration-300 relative z-10 flex items-center justify-center gap-1
+                            className={`flex-1 py-2 px-2 min-w-[80px] rounded-[9px] text-[10px] font-bold transition-all duration-300 relative z-10 flex items-center justify-center gap-1
                                 ${isActive ? 'text-white shadow-lg bg-[#636366]' : 'text-neutral-500 hover:text-neutral-300'}`}
                         >
                             {strat === StrategyType.AI_AGENT && <Sparkles size={10} className={isActive ? 'text-purple-300' : ''} />}
-                            {strat === StrategyType.SWING && <Repeat size={10} className={isActive ? 'text-cyan-300' : ''} />}
-                            {strat === StrategyType.MOMENTUM && <Zap size={10} className={isActive ? 'text-orange-300' : ''} />}
+                            {(strat === StrategyType.LONDON_SWEEP || strat === StrategyType.LONDON_CONTINUATION) && <Landmark size={10} className={isActive ? 'text-yellow-300' : ''} />}
+                            {strat === StrategyType.NY_ORB && <Clock size={10} className={isActive ? 'text-blue-300' : ''} />}
                             {label}
                         </button>
                     );
