@@ -6,6 +6,8 @@ import { WebSocket } from 'ws';
 import http from 'http';
 import { GoogleGenAI } from "@google/genai";
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 
 // Load .env file from root
 dotenv.config();
@@ -62,6 +64,36 @@ let account = {
 
 let trades = [];
 
+// --- PERSISTENCE ---
+const DATA_DIR = path.join(process.cwd(), 'data');
+const STATE_FILE = path.join(DATA_DIR, 'state.json');
+
+function loadState() {
+    try {
+        if (fs.existsSync(STATE_FILE)) {
+            const raw = fs.readFileSync(STATE_FILE, 'utf8');
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.account && Array.isArray(parsed.trades)) {
+                account = parsed.account;
+                trades = parsed.trades;
+                console.log(`[SYSTEM] Loaded persisted state: ${trades.length} trades, balance £${account.balance.toFixed(2)}`);
+            }
+        }
+    } catch (e) {
+        console.warn('[SYSTEM] Failed to load state:', e.message);
+    }
+}
+
+function saveState() {
+    try {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+        const payload = JSON.stringify({ account, trades }, null, 2);
+        fs.writeFileSync(STATE_FILE, payload, 'utf8');
+    } catch (e) {
+        console.warn('[SYSTEM] Failed to save state:', e.message);
+    }
+}
+
 // CANDLE STORAGE (Symbol -> M5 Candles [])
 let candlesM5 = {
     'XAU/USD': [], 'NAS100': []
@@ -97,6 +129,10 @@ function createAsset(symbol, defaultStrategies) {
         isThinking: false
     };
 }
+
+// Load persisted state (if any) before connecting streams
+loadState();
+saveState();
 
 // --- INDICATORS MATH ---
 const calculateEMA = (currentPrice, prevEMA, period) => {
@@ -305,8 +341,9 @@ function executeTrade(symbol, type, price, strategy, risk) {
          ],
          openTime: Date.now(), status: 'OPEN', strategy, pnl: 0, entryReason: `${strategy} Signal`
      };
-     trades.unshift(trade);
-     console.log(`[BOT] Executed ${type} on ${symbol} @ ${price} via ${strategy}`);
+    trades.unshift(trade);
+    console.log(`[BOT] Executed ${type} on ${symbol} @ ${price} via ${strategy}`);
+    saveState();
 }
 
 function processTicks(symbol) {
@@ -379,6 +416,7 @@ function processTicks(symbol) {
     }
     account.dayPnL += closedPnL;
     account.equity = account.balance;
+    if (closedPnL !== 0) saveState();
 
     // 2. Run Strategies (Only if no open trade)
     if (!asset.botActive) return;
@@ -490,6 +528,7 @@ app.post('/strategy/:symbol', (req, res) => {
 app.post('/reset', (req, res) => {
     account = { balance: INITIAL_BALANCE, equity: INITIAL_BALANCE, dayPnL: 0 };
     trades = [];
+    saveState();
     res.sendStatus(200);
 });
 
