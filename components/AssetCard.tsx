@@ -1,32 +1,32 @@
 
-import React from 'react';
-import { AssetData, StrategyType, AssetSymbol } from '../types';
+import React, { useMemo } from 'react';
+import { AssetData, StrategyType, AssetSymbol, Trade } from '../types';
 import { ASSET_CONFIG } from '../constants';
-import { AreaChart, Area, YAxis, ResponsiveContainer } from 'recharts';
 import { TrendingUp, TrendingDown, Sparkles, BrainCircuit, ChevronUp, ChevronDown, CircleDollarSign, Activity, Landmark, Clock } from 'lucide-react';
-import IndicatorBadge from './IndicatorBadge';
 
 interface Props {
   asset: AssetData;
+  trades: Trade[];
   toggleBot: (s: AssetSymbol) => void;
-  setStrategy: (s: AssetSymbol, st: StrategyType) => void;
+  setStrategy: (s: AssetSymbol, st: StrategyType) => void; // This maps to toggleStrategy in hook
 }
 
-const AssetCard: React.FC<Props> = ({ asset, toggleBot, setStrategy }) => {
+const AssetCard: React.FC<Props> = ({ asset, trades, toggleBot, setStrategy }) => {
   const config = ASSET_CONFIG[asset.symbol];
   const isUp = asset.history.length > 1 && asset.history[asset.history.length - 1].value >= asset.history[asset.history.length - 2].value;
   
-  const rsiStatus = asset.rsi < 30 ? 'buy' : asset.rsi > 70 ? 'sell' : 'neutral';
-  const macdDiff = asset.macd.macdLine - asset.macd.signalLine;
-  const macdStatus = macdDiff > 0 ? 'buy' : 'sell';
-  const distToLower = asset.currentPrice - asset.bollinger.lower;
-  const distToUpper = asset.bollinger.upper - asset.currentPrice;
-  let bandStatus: 'neutral' | 'buy' | 'sell' = 'neutral';
-  if (distToLower < 1) bandStatus = 'buy';
-  if (distToUpper < 1) bandStatus = 'sell';
-  
-  const strokeColor = isUp ? '#30D158' : '#FF453A'; // iOS Green / Red
   const trendIsBullish = asset.trend === 'UP';
+
+  // --- Performance Calculations ---
+  const stats = useMemo(() => {
+      const closedTrades = trades.filter(t => t.status === 'CLOSED');
+      const totalTrades = closedTrades.length;
+      const wins = closedTrades.filter(t => t.pnl > 0).length;
+      const losses = totalTrades - wins;
+      const totalPnL = closedTrades.reduce((acc, t) => acc + t.pnl, 0);
+      const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
+      return { totalPnL, winRate, wins, losses, totalTrades };
+  }, [trades]);
 
   const getIcon = () => {
      switch (asset.symbol) {
@@ -44,18 +44,18 @@ const AssetCard: React.FC<Props> = ({ asset, toggleBot, setStrategy }) => {
      }
   };
 
-  // Determine optimal strategies per asset
   const getAvailableStrategies = (symbol: AssetSymbol) => {
     if (symbol === AssetSymbol.XAUUSD) {
-        return [StrategyType.LONDON_SWEEP, StrategyType.AI_AGENT];
+        return [StrategyType.LONDON_SWEEP, StrategyType.TREND_FOLLOW, StrategyType.AI_AGENT];
     }
     if (symbol === AssetSymbol.NAS100) {
-        return [StrategyType.NY_ORB, StrategyType.AI_AGENT];
+        return [StrategyType.NY_ORB, StrategyType.TREND_FOLLOW, StrategyType.AI_AGENT];
     }
     return [StrategyType.AI_AGENT];
   };
 
   const availableStrategies = getAvailableStrategies(asset.symbol);
+  const pnlIsPositive = stats.totalPnL >= 0;
 
   return (
     <div className="bg-ios-card rounded-[22px] p-5 mb-6 relative overflow-hidden shadow-2xl shadow-black/50 border border-white/5">
@@ -71,7 +71,7 @@ const AssetCard: React.FC<Props> = ({ asset, toggleBot, setStrategy }) => {
       )}
 
       {/* Header Row */}
-      <div className="flex justify-between items-start mb-6 pt-5">
+      <div className="flex justify-between items-start mb-6 pt-2">
         <div className="flex items-center gap-4">
           <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getIconColor()}`}>
              {getIcon()}
@@ -94,7 +94,7 @@ const AssetCard: React.FC<Props> = ({ asset, toggleBot, setStrategy }) => {
                 </span>
             </div>
             
-            {/* Big Picture Trend Badge */}
+            {/* Macro Trend Badge */}
             <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${trendIsBullish ? 'border-ios-green/30 text-ios-green' : 'border-ios-red/30 text-ios-red'}`}>
                 <span>Macro:</span>
                 {trendIsBullish ? <ChevronUp size={10} strokeWidth={4} /> : <ChevronDown size={10} strokeWidth={4} />}
@@ -103,60 +103,64 @@ const AssetCard: React.FC<Props> = ({ asset, toggleBot, setStrategy }) => {
         </div>
       </div>
 
-      {/* Chart Area */}
-      <div className="h-28 mb-6 -mx-5">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={asset.history}>
-            <defs>
-              <linearGradient id={`grad${asset.symbol}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={strokeColor} stopOpacity={0.25}/>
-                <stop offset="100%" stopColor={strokeColor} stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <YAxis domain={['dataMin', 'dataMax']} hide />
-            <Area 
-              type="monotone" 
-              dataKey="value" 
-              stroke={strokeColor} 
-              strokeWidth={2.5}
-              fill={`url(#grad${asset.symbol})`} 
-              isAnimationActive={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Live Indicators */}
+      {/* Performance Stats Grid (Replaces Chart & Indicators) */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-         <IndicatorBadge label="RSI (14)" value={asset.rsi.toFixed(0)} status={rsiStatus} />
-         <IndicatorBadge label="MACD" value={macdDiff > 0 ? 'BULL' : 'BEAR'} status={macdStatus} />
-         <IndicatorBadge label="BANDS" value={bandStatus === 'buy' ? 'LOW' : bandStatus === 'sell' ? 'HIGH' : 'MID'} status={bandStatus} />
+          {/* PnL */}
+          <div className="bg-white/5 rounded-xl p-3 border border-white/5 flex flex-col justify-center">
+             <span className="text-[9px] text-ios-gray uppercase font-bold mb-1">Net P&L</span>
+             <span className={`text-sm font-bold tabular-nums ${pnlIsPositive ? 'text-ios-green' : 'text-ios-red'}`}>
+                {pnlIsPositive ? '+' : ''}{stats.totalPnL.toFixed(2)}
+             </span>
+          </div>
+
+          {/* Win Rate */}
+          <div className="bg-white/5 rounded-xl p-3 border border-white/5 flex flex-col justify-center">
+             <span className="text-[9px] text-ios-gray uppercase font-bold mb-1">Win Rate</span>
+             <div className="flex items-baseline gap-0.5">
+                <span className="text-sm font-bold text-white tabular-nums">{stats.winRate.toFixed(0)}</span>
+                <span className="text-[10px] text-ios-gray">%</span>
+             </div>
+          </div>
+
+          {/* W/L Count */}
+          <div className="bg-white/5 rounded-xl p-3 border border-white/5 flex flex-col justify-center">
+             <span className="text-[9px] text-ios-gray uppercase font-bold mb-1">W / L</span>
+             <div className="flex items-center gap-1 text-xs font-bold">
+                <span className="text-ios-green">{stats.wins}</span>
+                <span className="text-white/20">/</span>
+                <span className="text-ios-red">{stats.losses}</span>
+             </div>
+          </div>
       </div>
 
       {/* Controls Section */}
       <div className="space-y-4">
-        {/* Strategy Segmented Control */}
+        {/* Strategy Segmented Control - Now Multi-Select */}
         <div>
-            <label className="text-[11px] font-semibold text-ios-gray uppercase tracking-wider ml-1 mb-2 block">Active Strategy</label>
-            <div className="bg-black/40 p-1 rounded-xl flex relative overflow-x-auto">
+            <label className="text-[11px] font-semibold text-ios-gray uppercase tracking-wider ml-1 mb-2 block">Active Strategies</label>
+            <div className="bg-black/40 p-1 rounded-xl flex flex-wrap gap-1">
                 {availableStrategies.map((strat) => {
-                    const isActive = asset.strategy === strat;
+                    const isActive = asset.activeStrategies.includes(strat);
                     let label: string = strat;
                     if (strat === StrategyType.AI_AGENT) label = 'Gemini AI';
                     if (strat === StrategyType.LONDON_SWEEP) label = 'Ldn Sweep';
                     if (strat === StrategyType.LONDON_CONTINUATION) label = 'Ldn Cont.';
                     if (strat === StrategyType.NY_ORB) label = 'NY ORB';
+                    if (strat === StrategyType.TREND_FOLLOW) label = 'Trend Follow';
                     
                     return (
                         <button 
                             key={strat}
                             onClick={() => setStrategy(asset.symbol, strat)}
-                            className={`flex-1 py-2 px-2 min-w-[80px] rounded-[9px] text-[10px] font-bold transition-all duration-300 relative z-10 flex items-center justify-center gap-1
-                                ${isActive ? 'text-white shadow-lg bg-[#636366]' : 'text-neutral-500 hover:text-neutral-300'}`}
+                            className={`flex-1 py-2 px-2 min-w-[80px] rounded-[9px] text-[10px] font-bold transition-all duration-300 flex items-center justify-center gap-1 border
+                                ${isActive 
+                                    ? 'bg-[#3A3A3C] text-white border-white/20 shadow-md' 
+                                    : 'bg-transparent text-neutral-500 border-transparent hover:bg-white/5'}`}
                         >
                             {strat === StrategyType.AI_AGENT && <Sparkles size={10} className={isActive ? 'text-purple-300' : ''} />}
                             {(strat === StrategyType.LONDON_SWEEP || strat === StrategyType.LONDON_CONTINUATION) && <Landmark size={10} className={isActive ? 'text-yellow-300' : ''} />}
                             {strat === StrategyType.NY_ORB && <Clock size={10} className={isActive ? 'text-blue-300' : ''} />}
+                            {strat === StrategyType.TREND_FOLLOW && <TrendingUp size={10} className={isActive ? 'text-orange-300' : ''} />}
                             {label}
                         </button>
                     );

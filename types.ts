@@ -100,7 +100,7 @@ export interface AssetData {
   bollinger: { upper: number; middle: number; lower: number };
   
   botActive: boolean;
-  strategy: StrategyType;
+  activeStrategies: StrategyType[]; // CHANGED: Array of strategies
   isThinking?: boolean; // UI state for when AI is querying
   isLive?: boolean; // Connected to WebSocket or API
 }
@@ -116,6 +116,6 @@ export interface MarketContextType {
   account: AccountState;
   trades: Trade[];
   toggleBot: (symbol: AssetSymbol) => void;
-  setStrategy: (symbol: AssetSymbol, strategy: StrategyType) => void;
+  toggleStrategy: (symbol: AssetSymbol, strategy: StrategyType) => void; // CHANGED: Renamed to toggle
   resetAccount: () => void;
 }

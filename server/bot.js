@@ -9,6 +9,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Cloud Request Logger
+app.use((req, res, next) => {
+    console.log(`[REQUEST] ${req.method} ${req.path}`);
+    next();
+});
+
 const PORT = process.env.PORT || 3001;
 
 // --- TYPES & CONFIG ---
@@ -34,11 +40,11 @@ let candlesM5 = {
 };
 
 let assets = {
-    'XAU/USD': createAsset('XAU/USD', 'LONDON_SWEEP'), 
-    'NAS100': createAsset('NAS100', 'NY_ORB')
+    'XAU/USD': createAsset('XAU/USD', ['LONDON_SWEEP']), 
+    'NAS100': createAsset('NAS100', ['NY_ORB'])
 };
 
-function createAsset(symbol, defaultStrategy) {
+function createAsset(symbol, defaultStrategies) {
     return {
         symbol,
         currentPrice: ASSET_CONFIG[symbol].startPrice,
@@ -51,7 +57,7 @@ function createAsset(symbol, defaultStrategy) {
         bollinger: { upper: 0, middle: 0, lower: 0 },
         slope: 0,
         botActive: true,
-        strategy: defaultStrategy,
+        activeStrategies: defaultStrategies, // Array of strings
         isLive: false
     };
 }
@@ -224,18 +230,19 @@ function processTicks() {
     for (const symbol of Object.keys(assets)) {
         const asset = assets[symbol];
         if (!asset.botActive) continue;
-        if (openTrades.some(t => t.symbol === symbol)) continue; // Max 1 trade
+        if (openTrades.some(t => t.symbol === symbol)) continue; // Max 1 trade per asset for safety
 
         // A. TREND FOLLOW
-        if (asset.strategy === 'TREND_FOLLOW') {
+        if (asset.activeStrategies.includes('TREND_FOLLOW')) {
              const isTrendUp = asset.currentPrice > asset.ema200;
              const pullback = isTrendUp ? asset.currentPrice <= asset.ema : asset.currentPrice >= asset.ema;
              const confirm = isTrendUp ? asset.slope > 0.1 : asset.slope < -0.1;
              if (isTrendUp && pullback && confirm) executeTrade(symbol, 'BUY', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE');
              else if (!isTrendUp && pullback && confirm) executeTrade(symbol, 'SELL', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE');
         }
+        
         // B. LONDON SWEEP (GOLD)
-        else if (asset.strategy === 'LONDON_SWEEP' && symbol === 'XAU/USD') {
+        if (asset.activeStrategies.includes('LONDON_SWEEP') && symbol === 'XAU/USD') {
              const candles = candlesM5[symbol];
              if (candles.length > 10) {
                  const lowest = Math.min(...candles.slice(-10, -1).map(c => c.low));
@@ -245,8 +252,9 @@ function processTicks() {
                  }
              }
         }
+        
         // C. NY ORB (NAS100)
-        else if (asset.strategy === 'NY_ORB' && symbol === 'NAS100') {
+        if (asset.activeStrategies.includes('NY_ORB') && symbol === 'NAS100') {
              const volExpansion = asset.bollinger.upper - asset.bollinger.lower > asset.currentPrice * 0.002;
              if (volExpansion && asset.trend === 'UP' && asset.currentPrice > asset.bollinger.upper) {
                  executeTrade(symbol, 'BUY', asset.currentPrice, 'NY_ORB', 'AGGRESSIVE');
@@ -268,8 +276,17 @@ app.post('/toggle/:symbol', (req, res) => {
 
 app.post('/strategy/:symbol', (req, res) => {
     const { symbol } = req.params;
-    const { strategy } = req.body;
-    if (assets[symbol]) assets[symbol].strategy = strategy;
+    const { strategy } = req.body; // Strategy to toggle
+    if (assets[symbol]) {
+        const list = assets[symbol].activeStrategies;
+        if (list.includes(strategy)) {
+            // Remove
+            assets[symbol].activeStrategies = list.filter(s => s !== strategy);
+        } else {
+            // Add
+            assets[symbol].activeStrategies.push(strategy);
+        }
+    }
     res.sendStatus(200);
 });
 
