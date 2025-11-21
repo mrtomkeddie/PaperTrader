@@ -691,6 +691,26 @@ app.post('/reset', (req, res) => {
     res.sendStatus(200);
 });
 
+app.post('/import', (req, res) => {
+  try {
+    const secret = process.env.IMPORT_SECRET || null;
+    const header = req.headers['x-import-secret'];
+    if (secret && header !== secret) return res.status(403).json({ error: 'forbidden' });
+    const body = req.body || {};
+    const newAccount = body.account;
+    const newTrades = body.trades;
+    if (!newAccount || typeof newAccount.balance !== 'number' || !Array.isArray(newTrades)) {
+      return res.status(400).json({ error: 'invalid' });
+    }
+    account = { ...account, ...newAccount };
+    trades = newTrades;
+    saveState();
+    res.sendStatus(200);
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'error' });
+  }
+});
+
 app.post('/push/subscribe', (req, res) => {
     try {
         const sub = req.body;
