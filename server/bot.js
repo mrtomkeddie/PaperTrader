@@ -356,7 +356,7 @@ function connectOanda() {
                         asset.ema200 = calculateEMA(asset.currentPrice, asset.ema200, 200);
                         asset.slope = calculateSlope(asset.history.map(h => h.value), 10);
                         asset.rsi = calculateRSI(asset.history.map(h => h.value));
-                        asset.trend = price > asset.ema200 ? 'UP' : 'DOWN';
+                        asset.trend = asset.currentPrice > asset.ema200 ? 'UP' : 'DOWN';
                         const sma = asset.ema;
                         const stdDev = asset.currentPrice * 0.002;
                         asset.bollinger = { upper: sma + stdDev*2, middle: sma, lower: sma - stdDev*2 };
