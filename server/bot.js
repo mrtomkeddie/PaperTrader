@@ -417,15 +417,13 @@ function updateCandles(symbol, price) {
 function executeTrade(symbol, type, price, strategy, risk) {
      const lotSize = ASSET_CONFIG[symbol].lotSize;
      const isBuy = type === 'BUY';
-     const slPct = 0.005; 
-     const tpPct = 0.01; 
 
      const { bid, ask } = market[symbol];
      const fillPrice = isBuy ? ask : bid;
-     const sl = isBuy ? fillPrice * (1 - slPct) : fillPrice * (1 + slPct);
-     const tp1 = isBuy ? price * (1 + tpPct*0.6) : price * (1 - tpPct*0.6);
-     const tp2 = isBuy ? price * (1 + tpPct) : price * (1 - tpPct);
-     const tp3 = isBuy ? price * (1 + tpPct*3) : price * (1 - tpPct*3);
+     const sl = isBuy ? fillPrice * (1 - 0.005) : fillPrice * (1 + 0.005);
+     const tp1 = isBuy ? fillPrice * (1 + 0.006) : fillPrice * (1 - 0.006);
+     const tp2 = isBuy ? fillPrice * (1 + 0.01) : fillPrice * (1 - 0.01);
+     const tp3 = isBuy ? fillPrice * (1 + 0.03) : fillPrice * (1 - 0.03);
 
      const trade = {
          id: uuidv4(), symbol, type, entryPrice: fillPrice, initialSize: lotSize, currentSize: lotSize,
@@ -741,10 +739,20 @@ async function cloudLoadState() {
     const snap = await db.doc('pt2/state').get();
     if (snap.exists) {
       const data = snap.data() || {};
-      account = data.account || account;
-      trades = Array.isArray(data.trades) ? data.trades : trades;
-      pushSubscriptions = Array.isArray(data.pushSubscriptions) ? data.pushSubscriptions : pushSubscriptions;
-      console.log(`[SYSTEM] Cloud state loaded: ${trades.length} trades`);
+      const cloudTrades = Array.isArray(data.trades) ? data.trades : [];
+      const mergedById = new Map();
+      for (const t of trades) mergedById.set(t.id, t);
+      for (const t of cloudTrades) if (t && t.id && !mergedById.has(t.id)) mergedById.set(t.id, t);
+      trades = Array.from(mergedById.values());
+
+      const cloudSubs = Array.isArray(data.pushSubscriptions) ? data.pushSubscriptions : [];
+      const subsByEndpoint = new Map();
+      for (const s of pushSubscriptions) if (s && s.endpoint) subsByEndpoint.set(s.endpoint, s);
+      for (const s of cloudSubs) if (s && s.endpoint && !subsByEndpoint.has(s.endpoint)) subsByEndpoint.set(s.endpoint, s);
+      pushSubscriptions = Array.from(subsByEndpoint.values());
+
+      console.log(`[SYSTEM] Cloud state merged: ${trades.length} trades`);
+      saveState();
     }
   } catch {}
 }
