@@ -578,7 +578,19 @@ function processTicks(symbol) {
 }
 
 // --- API ---
-app.get('/state', (req, res) => res.json({ account, trades, assets }));
+app.get('/state', (req, res) => {
+  try {
+    for (const t of trades) {
+      if (t.status === 'OPEN' && market[t.symbol]) {
+        const { bid, ask } = market[t.symbol];
+        const isBuy = t.type === 'BUY';
+        const exit = isBuy ? bid : ask;
+        t.floatingPnl = (isBuy ? exit - t.entryPrice : t.entryPrice - exit) * t.currentSize;
+      }
+    }
+  } catch {}
+  res.json({ account, trades, assets });
+});
 
 app.get('/export/json', (req, res) => {
   const status = (req.query.status || 'closed').toString().toUpperCase();
