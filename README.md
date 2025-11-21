@@ -12,14 +12,21 @@ Open a terminal in this folder and run:
 npm install
 ```
 
-### 2. Start the Trading Bot (The Brain)
+### 2. Configure Environment
+Open the `.env` file in the root directory and paste your Google Gemini API key:
+```properties
+API_KEY=your_actual_api_key_here
+```
+*If you don't have one, get it for free at [aistudio.google.com](https://aistudio.google.com)*
+
+### 3. Start the Trading Bot (The Brain)
 This must run in the background for trades to happen.
 ```bash
 npm run scheduler
 ```
 *You will see a message: "Scheduler running on http://localhost:3001"*
 
-### 3. Start the App (The UI)
+### 4. Start the App (The UI)
 Open a **new** terminal window (keep the first one running) and run:
 ```bash
 npm run dev
@@ -31,3 +38,4 @@ The bot is currently configured for:
 - **Gold (XAU/USD):** London Liquidity Sweep Strategy
 - **Nasdaq (NAS100):** NY Opening Range Breakout
 - **Trend Follow:** EMA Pullback Logic
+- **AI Agent:** Uses Gemini Flash 2.5 to analyze market sentiment

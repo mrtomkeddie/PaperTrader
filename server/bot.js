@@ -7,6 +7,7 @@ import http from 'http';
 import { GoogleGenAI } from "@google/genai";
 import dotenv from 'dotenv';
 
+// Load .env file from root
 dotenv.config();
 
 const app = express();
@@ -24,15 +25,24 @@ const API_KEY = process.env.API_KEY;
 
 // --- GOOGLE GENAI SETUP ---
 let aiClient = null;
+
+console.log("[SYSTEM] Initializing Bot Server...");
+
 if (API_KEY) {
     try {
         aiClient = new GoogleGenAI({ apiKey: API_KEY });
-        console.log("[SYSTEM] Gemini AI Client Initialized");
+        console.log("[SYSTEM] Gemini AI Client Initialized Successfully");
+        console.log("[SYSTEM] Key found: " + API_KEY.substring(0, 8) + "...");
     } catch (e) {
         console.error("[SYSTEM] Failed to initialize Gemini Client:", e);
     }
 } else {
-    console.warn("[SYSTEM] No API_KEY found. AI strategies will run in Simulation Mode.");
+    console.warn("-----------------------------------------------------------");
+    console.warn("[SYSTEM] WARNING: No API_KEY found in environment variables.");
+    console.warn("[SYSTEM] 1. Ensure a file named '.env' exists in the root folder.");
+    console.warn("[SYSTEM] 2. Ensure it contains the line: API_KEY=your_key_here");
+    console.warn("[SYSTEM] AI strategies will default to Simulation Mode (Random Walk).");
+    console.warn("-----------------------------------------------------------");
 }
 
 // --- TYPES & CONFIG ---

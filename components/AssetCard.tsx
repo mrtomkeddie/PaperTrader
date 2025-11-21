@@ -138,7 +138,7 @@ const AssetCard: React.FC<Props> = ({ asset, trades, toggleBot, setStrategy }) =
         {/* Strategy Segmented Control - Now Multi-Select */}
         <div>
             <label className="text-[11px] font-semibold text-ios-gray uppercase tracking-wider ml-1 mb-2 block">Active Strategies</label>
-            <div className="bg-black/40 p-1 rounded-xl flex flex-wrap gap-1">
+            <div className="bg-black/40 p-1.5 rounded-xl flex flex-wrap gap-2">
                 {availableStrategies.map((strat) => {
                     const isActive = asset.activeStrategies.includes(strat);
                     let label: string = strat;
@@ -170,7 +170,7 @@ const AssetCard: React.FC<Props> = ({ asset, trades, toggleBot, setStrategy }) =
                             key={strat}
                             type="button"
                             onClick={() => setStrategy(asset.symbol, strat)}
-                            className={`flex-1 py-2 px-2 min-w-[80px] rounded-[9px] text-[10px] font-bold transition-all duration-200 flex items-center justify-center gap-1 border
+                            className={`flex-1 py-2 px-3 min-w-[80px] rounded-[9px] text-[10px] font-bold transition-all duration-200 flex items-center justify-center gap-1.5 border
                                 ${isActive 
                                     ? `${activeColor} ${textColor} border-white/10 shadow-md scale-[1.02]` 
                                     : 'bg-[#1C1C1E] text-neutral-500 border-transparent hover:bg-white/5'}`}
