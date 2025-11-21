@@ -18,22 +18,6 @@ const App: React.FC = () => {
   // Fixed Assets: Gold and Nasdaq only
   const visibleAssets = [AssetSymbol.XAUUSD, AssetSymbol.NAS100];
 
-  // Reset Connection Helper
-  const handleResetConnection = () => {
-      if (typeof window !== 'undefined') {
-          localStorage.removeItem('remoteUrl');
-          window.location.reload();
-      }
-  };
-
-  // Listen to remoteUrl from hook if exposed, otherwise we can't display it easily without exposing it from hook
-  // For now, we rely on the fact that we want to show *what* it's trying to connect to. 
-  // Since we don't have it directly from hook in the destructure above, we can assume it's trying the default if not set, 
-  // or we could update the hook to return it. 
-  // *Self-correction*: The previous turn updated the hook to return remoteUrl (implicitly via the code block, though I need to check if I added it to the return statement).
-  // Looking at previous `useTradingEngine.ts`, I see I didn't explicitly add `remoteUrl` to the return object in the last XML block, 
-  // but I did add it in the logic. To be safe, I'll assume the hook returns it or I can read it from localStorage for the banner.
-  
   const currentRemoteUrl = typeof window !== 'undefined' ? localStorage.getItem('remoteUrl') || 'Default' : 'Default';
 
   return (
@@ -82,35 +66,6 @@ const App: React.FC = () => {
 
         {view === 'dashboard' ? (
           <div className="space-y-6 animate-fade-in">
-             {/* Connection Status Bar */}
-             {!isConnected && (
-                 <div className="bg-ios-red/10 border border-ios-red/30 rounded-2xl p-4 flex flex-col gap-2">
-                     <div className="flex items-center gap-2 text-sm font-medium text-ios-red">
-                        <WifiOff size={16} />
-                        <span>OFFLINE - Could not connect</span>
-                     </div>
-                     <div className="text-xs text-white/60 break-all">
-                        Trying: {currentRemoteUrl}
-                     </div>
-                     <button 
-                        onClick={handleResetConnection}
-                        className="mt-1 bg-ios-red text-white text-xs font-bold py-2 rounded-lg hover:opacity-90 transition-opacity"
-                     >
-                        Reset to Default URL
-                     </button>
-                 </div>
-             )}
-
-             {isConnected && (
-                <div className="flex items-center justify-between px-4 py-3 rounded-2xl border border-white/5 bg-ios-card transition-colors duration-500">
-                    <div className="flex items-center gap-2 text-sm font-medium text-ios-gray">
-                        <Wifi size={16} className="text-ios-green" />
-                        <span>Bot Status</span>
-                    </div>
-                    <span className="font-bold text-xs uppercase tracking-wider text-ios-green">ONLINE</span>
-                </div>
-             )}
-            
              <div>
                 <h2 className="text-xl font-bold text-white mb-4">
                     Institutional Desk

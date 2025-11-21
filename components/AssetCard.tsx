@@ -142,25 +142,43 @@ const AssetCard: React.FC<Props> = ({ asset, trades, toggleBot, setStrategy }) =
                 {availableStrategies.map((strat) => {
                     const isActive = asset.activeStrategies.includes(strat);
                     let label: string = strat;
-                    if (strat === StrategyType.AI_AGENT) label = 'Gemini AI';
-                    if (strat === StrategyType.LONDON_SWEEP) label = 'Ldn Sweep';
-                    if (strat === StrategyType.LONDON_CONTINUATION) label = 'Ldn Cont.';
-                    if (strat === StrategyType.NY_ORB) label = 'NY ORB';
-                    if (strat === StrategyType.TREND_FOLLOW) label = 'Trend Follow';
+                    let activeColor = 'bg-[#3A3A3C]';
+                    let textColor = 'text-white';
+
+                    if (strat === StrategyType.AI_AGENT) {
+                        label = 'Gemini AI';
+                        activeColor = 'bg-purple-600/80';
+                    }
+                    if (strat === StrategyType.LONDON_SWEEP) {
+                        label = 'Ldn Sweep';
+                        activeColor = 'bg-yellow-600/80';
+                    }
+                    if (strat === StrategyType.LONDON_CONTINUATION) {
+                        label = 'Ldn Cont.';
+                    }
+                    if (strat === StrategyType.NY_ORB) {
+                        label = 'NY ORB';
+                        activeColor = 'bg-blue-600/80';
+                    }
+                    if (strat === StrategyType.TREND_FOLLOW) {
+                        label = 'Trend Follow';
+                        activeColor = 'bg-orange-600/80';
+                    }
                     
                     return (
                         <button 
                             key={strat}
+                            type="button"
                             onClick={() => setStrategy(asset.symbol, strat)}
-                            className={`flex-1 py-2 px-2 min-w-[80px] rounded-[9px] text-[10px] font-bold transition-all duration-300 flex items-center justify-center gap-1 border
+                            className={`flex-1 py-2 px-2 min-w-[80px] rounded-[9px] text-[10px] font-bold transition-all duration-200 flex items-center justify-center gap-1 border
                                 ${isActive 
-                                    ? 'bg-[#3A3A3C] text-white border-white/20 shadow-md' 
-                                    : 'bg-transparent text-neutral-500 border-transparent hover:bg-white/5'}`}
+                                    ? `${activeColor} ${textColor} border-white/10 shadow-md scale-[1.02]` 
+                                    : 'bg-[#1C1C1E] text-neutral-500 border-transparent hover:bg-white/5'}`}
                         >
-                            {strat === StrategyType.AI_AGENT && <Sparkles size={10} className={isActive ? 'text-purple-300' : ''} />}
-                            {(strat === StrategyType.LONDON_SWEEP || strat === StrategyType.LONDON_CONTINUATION) && <Landmark size={10} className={isActive ? 'text-yellow-300' : ''} />}
-                            {strat === StrategyType.NY_ORB && <Clock size={10} className={isActive ? 'text-blue-300' : ''} />}
-                            {strat === StrategyType.TREND_FOLLOW && <TrendingUp size={10} className={isActive ? 'text-orange-300' : ''} />}
+                            {strat === StrategyType.AI_AGENT && <Sparkles size={10} className={isActive ? 'text-white' : ''} />}
+                            {(strat === StrategyType.LONDON_SWEEP || strat === StrategyType.LONDON_CONTINUATION) && <Landmark size={10} className={isActive ? 'text-white' : ''} />}
+                            {strat === StrategyType.NY_ORB && <Clock size={10} className={isActive ? 'text-white' : ''} />}
+                            {strat === StrategyType.TREND_FOLLOW && <TrendingUp size={10} className={isActive ? 'text-white' : ''} />}
                             {label}
                         </button>
                     );
@@ -177,6 +195,7 @@ const AssetCard: React.FC<Props> = ({ asset, trades, toggleBot, setStrategy }) =
                 </span>
             </div>
             <button 
+                type="button"
                 onClick={() => toggleBot(asset.symbol)}
                 className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 ease-in-out ${asset.botActive ? 'bg-ios-green' : 'bg-neutral-700'}`}
             >

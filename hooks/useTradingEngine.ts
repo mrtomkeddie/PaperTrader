@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AssetSymbol, StrategyType, Trade, AssetData, AccountState, BrokerMode, OandaConfig } from '../types';
 import { INITIAL_BALANCE, TICK_RATE_MS, ASSET_CONFIG, DEFAULT_REMOTE_URL } from '../constants';
@@ -66,7 +65,30 @@ export const useTradingEngine = () => {
 
   const toggleStrategy = useCallback(async (symbol: AssetSymbol, s: StrategyType) => {
       const cleanUrl = remoteUrl.trim().replace(/\/$/, "");
-      try { await fetch(`${cleanUrl}/strategy/${encodeURIComponent(symbol)}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ strategy: s }) }); } catch (e) {}
+      
+      // Optimistic UI Update: Update local state instantly
+      setAssets(prev => {
+        const asset = prev[symbol];
+        const list = asset.activeStrategies;
+        const newList = list.includes(s) 
+            ? list.filter(strat => strat !== s)
+            : [...list, s];
+        
+        return {
+            ...prev,
+            [symbol]: { ...asset, activeStrategies: newList }
+        };
+      });
+
+      try { 
+          await fetch(`${cleanUrl}/strategy/${encodeURIComponent(symbol)}`, { 
+              method: 'POST', 
+              headers: {'Content-Type': 'application/json'}, 
+              body: JSON.stringify({ strategy: s }) 
+          }); 
+      } catch (e) {
+          // Revert logic could go here if needed, but next poll will sync anyway
+      }
   }, [remoteUrl]);
 
   const resetAccount = useCallback(async () => {
@@ -93,6 +115,11 @@ export const useTradingEngine = () => {
 };
 
 function createInitialAsset(symbol: AssetSymbol): AssetData {
+    // Default strategies match server/bot.js defaults
+    const defaultStrategies = symbol === AssetSymbol.XAUUSD 
+        ? [StrategyType.LONDON_SWEEP, StrategyType.TREND_FOLLOW]
+        : [StrategyType.NY_ORB, StrategyType.TREND_FOLLOW];
+
     return {
       symbol,
       currentPrice: ASSET_CONFIG[symbol].startPrice,
@@ -102,7 +129,7 @@ function createInitialAsset(symbol: AssetSymbol): AssetData {
       bollinger: { upper: 0, middle: 0, lower: 0 },
       slope: 0,
       botActive: true,
-      activeStrategies: symbol === AssetSymbol.XAUUSD ? [StrategyType.LONDON_SWEEP] : [StrategyType.NY_ORB],
+      activeStrategies: defaultStrategies,
       isThinking: false, isLive: false,
     };
 }
