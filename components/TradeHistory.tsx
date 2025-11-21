@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Trade, TradeType, StrategyType, AssetSymbol } from '../types';
 import { DEFAULT_REMOTE_URL } from '../constants';
-import { Clock, ChevronRight } from 'lucide-react';
+import { Clock, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import TradeDetailModal from './TradeDetailModal';
 import PerformanceSummary from './PerformanceSummary';
 
@@ -88,6 +88,8 @@ const TradeHistory: React.FC<Props> = ({ trades }) => {
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [symbolFilter, setSymbolFilter] = useState<'ALL' | AssetSymbol>('ALL');
   const [strategyFilter, setStrategyFilter] = useState<'ALL' | StrategyType>('ALL');
+  const [activeOpen, setActiveOpen] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(true);
 
   const filteredTrades = trades.filter(t => {
     const symbolOk = symbolFilter === 'ALL' ? true : t.symbol === symbolFilter;
@@ -145,23 +147,39 @@ const TradeHistory: React.FC<Props> = ({ trades }) => {
         {/* Active Trades Section */}
         {activeTrades.length > 0 && (
             <div className="mb-6">
-                <h3 className="text-sm font-bold text-ios-gray uppercase tracking-wider mb-2 px-2">Active Positions</h3>
-                <div className="bg-ios-card rounded-[20px] overflow-hidden border border-white/5">
-                    {activeTrades.map(trade => <TradeRow key={trade.id} trade={trade} onSelect={setSelectedTrade} />)}
+                <div className="flex items-center justify-between mb-2 px-2">
+                    <h3 className="text-sm font-bold text-ios-gray uppercase tracking-wider">Active Positions</h3>
+                    <button onClick={() => setActiveOpen(!activeOpen)} className="text-xs text-ios-gray hover:text-white flex items-center gap-1 px-2 py-1 rounded">
+                        {activeOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        {activeOpen ? 'Hide' : 'Show'}
+                    </button>
                 </div>
+                {activeOpen && (
+                    <div className="bg-ios-card rounded-[20px] overflow-hidden border border-white/5">
+                        {activeTrades.map(trade => <TradeRow key={trade.id} trade={trade} onSelect={setSelectedTrade} />)}
+                    </div>
+                )}
             </div>
         )}
 
         {/* History Section */}
         <div>
-            <h3 className="text-sm font-bold text-ios-gray uppercase tracking-wider mb-2 px-2">Past Trades</h3>
-            <div className="bg-ios-card rounded-[20px] overflow-hidden border border-white/5">
-                {closedTrades.length > 0 ? (
-                    closedTrades.map(trade => <TradeRow key={trade.id} trade={trade} onSelect={setSelectedTrade} />)
-                ) : (
-                    <div className="p-6 text-center text-xs text-ios-gray">No closed history</div>
-                )}
+            <div className="flex items-center justify-between mb-2 px-2">
+                <h3 className="text-sm font-bold text-ios-gray uppercase tracking-wider">Past Trades</h3>
+                <button onClick={() => setHistoryOpen(!historyOpen)} className="text-xs text-ios-gray hover:text-white flex items-center gap-1 px-2 py-1 rounded">
+                    {historyOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    {historyOpen ? 'Hide' : 'Show'}
+                </button>
             </div>
+            {historyOpen && (
+                <div className="bg-ios-card rounded-[20px] overflow-hidden border border-white/5">
+                    {closedTrades.length > 0 ? (
+                        closedTrades.map(trade => <TradeRow key={trade.id} trade={trade} onSelect={setSelectedTrade} />)
+                    ) : (
+                        <div className="p-6 text-center text-xs text-ios-gray">No closed history</div>
+                    )}
+                </div>
+            )}
         </div>
       </div>
 
