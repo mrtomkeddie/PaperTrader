@@ -51,7 +51,7 @@ const ASSET_CONFIG = {
     'NAS100': { startPrice: 18500, volatility: 0.0015, decimals: 1, lotSize: 1 }
 };
 
-const INITIAL_BALANCE = 10000;
+const INITIAL_BALANCE = 500;
 
 // --- STATE ---
 let account = {
@@ -378,6 +378,7 @@ function processTicks(symbol) {
         }
     }
     account.dayPnL += closedPnL;
+    account.equity = account.balance;
 
     // 2. Run Strategies (Only if no open trade)
     if (!asset.botActive) return;

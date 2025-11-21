@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trade, TradeType, StrategyType } from '../types';
+import { Trade, TradeType, StrategyType, AssetSymbol } from '../types';
 import { Clock, ChevronRight } from 'lucide-react';
 import TradeDetailModal from './TradeDetailModal';
 import PerformanceSummary from './PerformanceSummary';
@@ -85,9 +85,11 @@ const TradeRow: React.FC<TradeRowProps> = ({ trade, onSelect }) => {
 
 const TradeHistory: React.FC<Props> = ({ trades }) => {
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const [symbolFilter, setSymbolFilter] = useState<'ALL' | AssetSymbol>('ALL');
 
-  const activeTrades = trades.filter(t => t.status === 'OPEN');
-  const closedTrades = trades.filter(t => t.status === 'CLOSED');
+  const filteredTrades = trades.filter(t => symbolFilter === 'ALL' ? true : t.symbol === symbolFilter);
+  const activeTrades = filteredTrades.filter(t => t.status === 'OPEN');
+  const closedTrades = filteredTrades.filter(t => t.status === 'CLOSED');
 
   if (trades.length === 0) {
     return (
@@ -101,6 +103,21 @@ const TradeHistory: React.FC<Props> = ({ trades }) => {
   return (
     <>
       <div className="pb-24">
+        {/* Symbol Filter */}
+        <div className="mb-3 px-2 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-ios-gray uppercase tracking-wider">Filter</h3>
+          <div className="flex gap-2">
+            {(['ALL', AssetSymbol.XAUUSD, AssetSymbol.NAS100] as const).map(opt => (
+              <button
+                key={opt}
+                onClick={() => setSymbolFilter(opt)}
+                className={`px-2.5 py-1 text-[10px] font-bold rounded-[6px] transition-all ${symbolFilter === opt ? 'bg-[#636366] text-white shadow' : 'text-neutral-500 hover:text-neutral-300'}`}
+              >
+                {opt === 'ALL' ? 'Both' : opt === AssetSymbol.XAUUSD ? 'Gold' : 'NAS100'}
+              </button>
+            ))}
+          </div>
+        </div>
         {/* Analytics */}
         <PerformanceSummary trades={closedTrades} />
 
