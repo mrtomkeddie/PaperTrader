@@ -4,11 +4,11 @@ import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
 import { WebSocket } from 'ws';
 import http from 'http';
-import https from 'https';
 import { GoogleGenAI } from "@google/genai";
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import https from 'https';
 
 // Load .env file from root
 dotenv.config();
@@ -29,6 +29,36 @@ const OANDA_TOKEN = process.env.OANDA_API_KEY;
 const OANDA_ACCOUNT_ID = process.env.OANDA_ACCOUNT_ID;
 const OANDA_ENV = process.env.OANDA_ENV || 'practice';
 const USE_OANDA = !!(OANDA_TOKEN && OANDA_ACCOUNT_ID);
+
+// --- NOTIFICATIONS (Twilio SMS) ---
+const TWILIO_SID = process.env.TWILIO_ACCOUNT_SID;
+const TWILIO_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+const TWILIO_FROM = process.env.TWILIO_FROM;
+const TWILIO_TO = process.env.TWILIO_TO;
+
+function sendSms(body) {
+    try {
+        if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM || !TWILIO_TO) return;
+        const auth = Buffer.from(`${TWILIO_SID}:${TWILIO_TOKEN}`).toString('base64');
+        const postData = new URLSearchParams({ From: TWILIO_FROM, To: TWILIO_TO, Body: body }).toString();
+        const options = {
+            hostname: 'api.twilio.com',
+            path: `/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`,
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
+        const req = https.request(options, (res) => {
+            res.on('data', () => {});
+        });
+        req.on('error', () => {});
+        req.write(postData);
+        req.end();
+    } catch {}
+}
 
 // --- GOOGLE GENAI SETUP ---
 let aiClient = null;
@@ -104,6 +134,20 @@ let candlesM5 = {
     'XAU/USD': [], 'NAS100': []
 };
 
+// MARKET STATE (bid/ask/mid per symbol)
+const SPREAD_PCT = { 'XAU/USD': 0.0002, 'NAS100': 0.0005 };
+let market = {
+    'XAU/USD': { bid: ASSET_CONFIG['XAU/USD'].startPrice * (1 - SPREAD_PCT['XAU/USD']/2), ask: ASSET_CONFIG['XAU/USD'].startPrice * (1 + SPREAD_PCT['XAU/USD']/2), mid: ASSET_CONFIG['XAU/USD'].startPrice },
+    'NAS100': { bid: ASSET_CONFIG['NAS100'].startPrice * (1 - SPREAD_PCT['NAS100']/2), ask: ASSET_CONFIG['NAS100'].startPrice * (1 + SPREAD_PCT['NAS100']/2), mid: ASSET_CONFIG['NAS100'].startPrice }
+};
+
+function updateMarketFromMid(symbol, mid) {
+    const sp = SPREAD_PCT[symbol] || 0.0002;
+    const bid = mid * (1 - sp/2);
+    const ask = mid * (1 + sp/2);
+    market[symbol] = { bid, ask, mid };
+}
+
 // AI CACHE (To prevent spamming API)
 let aiState = {
     'XAU/USD': { lastCheck: 0, sentiment: 'NEUTRAL', confidence: 0, reason: '' },
@@ -138,6 +182,7 @@ function createAsset(symbol, defaultStrategies) {
 // Load persisted state (if any) before connecting streams
 loadState();
 saveState();
+console.log(USE_OANDA ? '[SYSTEM] Using OANDA pricing stream' : '[SYSTEM] Using Binance pricing stream (fallback)');
 
 // --- INDICATORS MATH ---
 const calculateEMA = (currentPrice, prevEMA, period) => {
@@ -246,20 +291,21 @@ function connectBinance() {
             const symbol = isGold ? 'XAU/USD' : isNas ? 'NAS100' : null;
             if (symbol && event.k) {
                 const price = isNas ? parseFloat(event.k.c) / 5 : parseFloat(event.k.c);
+                updateMarketFromMid(symbol, price);
                 const asset = assets[symbol];
-                asset.currentPrice = price;
+                asset.currentPrice = market[symbol].mid;
                 asset.isLive = true;
-                asset.history.push({ time: new Date().toLocaleTimeString(), value: price });
+                asset.history.push({ time: new Date().toLocaleTimeString(), value: market[symbol].mid });
                 if (asset.history.length > 300) asset.history.shift();
-                asset.ema = calculateEMA(price, asset.ema, 20);
-                asset.ema200 = calculateEMA(price, asset.ema200, 200);
+                asset.ema = calculateEMA(asset.currentPrice, asset.ema, 20);
+                asset.ema200 = calculateEMA(asset.currentPrice, asset.ema200, 200);
                 asset.slope = calculateSlope(asset.history.map(h => h.value), 10);
                 asset.rsi = calculateRSI(asset.history.map(h => h.value));
                 asset.trend = price > asset.ema200 ? 'UP' : 'DOWN';
                 const sma = asset.ema;
                 const stdDev = asset.currentPrice * 0.002;
                 asset.bollinger = { upper: sma + stdDev*2, middle: sma, lower: sma - stdDev*2 };
-                updateCandles(symbol, price);
+                updateCandles(symbol, asset.currentPrice);
                 processTicks(symbol);
             }
         } catch {}
@@ -294,21 +340,21 @@ function connectOanda() {
                         const mid = ask && bid ? (ask + bid) / 2 : (parseFloat(evt.price || '0'));
                         const symbol = inst === 'XAU_USD' ? 'XAU/USD' : inst === 'NAS100_USD' ? 'NAS100' : null;
                         if (!symbol || !mid) continue;
-                        const price = mid;
+                        market[symbol] = { bid, ask, mid };
                         const asset = assets[symbol];
-                        asset.currentPrice = price;
+                        asset.currentPrice = market[symbol].mid;
                         asset.isLive = true;
-                        asset.history.push({ time: new Date().toLocaleTimeString(), value: price });
+                        asset.history.push({ time: new Date().toLocaleTimeString(), value: market[symbol].mid });
                         if (asset.history.length > 300) asset.history.shift();
-                        asset.ema = calculateEMA(price, asset.ema, 20);
-                        asset.ema200 = calculateEMA(price, asset.ema200, 200);
+                        asset.ema = calculateEMA(asset.currentPrice, asset.ema, 20);
+                        asset.ema200 = calculateEMA(asset.currentPrice, asset.ema200, 200);
                         asset.slope = calculateSlope(asset.history.map(h => h.value), 10);
                         asset.rsi = calculateRSI(asset.history.map(h => h.value));
                         asset.trend = price > asset.ema200 ? 'UP' : 'DOWN';
                         const sma = asset.ema;
                         const stdDev = asset.currentPrice * 0.002;
                         asset.bollinger = { upper: sma + stdDev*2, middle: sma, lower: sma - stdDev*2 };
-                        updateCandles(symbol, price);
+                        updateCandles(symbol, asset.currentPrice);
                         processTicks(symbol);
                     }
                 } catch {}
@@ -362,13 +408,15 @@ function executeTrade(symbol, type, price, strategy, risk) {
      const slPct = 0.005; 
      const tpPct = 0.01; 
 
-     const sl = isBuy ? price * (1 - slPct) : price * (1 + slPct);
+     const { bid, ask } = market[symbol];
+     const fillPrice = isBuy ? ask : bid;
+     const sl = isBuy ? fillPrice * (1 - slPct) : fillPrice * (1 + slPct);
      const tp1 = isBuy ? price * (1 + tpPct*0.6) : price * (1 - tpPct*0.6);
      const tp2 = isBuy ? price * (1 + tpPct) : price * (1 - tpPct);
      const tp3 = isBuy ? price * (1 + tpPct*3) : price * (1 - tpPct*3);
 
      const trade = {
-         id: uuidv4(), symbol, type, entryPrice: price, initialSize: lotSize, currentSize: lotSize,
+         id: uuidv4(), symbol, type, entryPrice: fillPrice, initialSize: lotSize, currentSize: lotSize,
          stopLoss: sl, tpLevels: [
              { id: 1, price: tp1, percentage: 0.4, hit: false },
              { id: 2, price: tp2, percentage: 0.4, hit: false },
@@ -378,6 +426,7 @@ function executeTrade(symbol, type, price, strategy, risk) {
      };
     trades.unshift(trade);
     console.log(`[BOT] Executed ${type} on ${symbol} @ ${price} via ${strategy}`);
+    sendSms(`OPEN ${symbol} ${type} @ ${fillPrice.toFixed(2)} (${strategy})`);
     saveState();
 }
 
@@ -385,7 +434,8 @@ function processTicks(symbol) {
     let closedPnL = 0;
     const openTrades = trades.filter(t => t.status === 'OPEN' && t.symbol === symbol);
     const asset = assets[symbol];
-    const price = asset.currentPrice;
+    const { bid, ask, mid } = market[symbol];
+    const price = mid;
 
     // 1. Manage Trades (TP/SL + AI GUARDIAN + TRAILING)
     for (const trade of openTrades) {
@@ -400,6 +450,7 @@ function processTicks(symbol) {
                 console.log(`[AI GUARDIAN] Panic Closed ${symbol} Trade due to Strong Bearish Sentiment`);
                 const pnl = (price - trade.entryPrice) * trade.currentSize;
                 trade.pnl += pnl; account.balance += pnl; closedPnL += pnl;
+                sendSms(`CLOSE ${symbol} ${trade.type} @ ${price.toFixed(2)} (AI_GUARDIAN) PnL ${pnl.toFixed(2)}`);
                 continue; // Next trade
             }
             // If Short and Sentiment is Bullish -> Close
@@ -408,30 +459,32 @@ function processTicks(symbol) {
                 console.log(`[AI GUARDIAN] Panic Closed ${symbol} Trade due to Strong Bullish Sentiment`);
                 const pnl = (trade.entryPrice - price) * trade.currentSize;
                 trade.pnl += pnl; account.balance += pnl; closedPnL += pnl;
+                sendSms(`CLOSE ${symbol} ${trade.type} @ ${price.toFixed(2)} (AI_GUARDIAN) PnL ${pnl.toFixed(2)}`);
                 continue;
             }
         }
 
         // B. TRAILING STOP
         // If profit > 0.2%, move SL to Breakeven + Trail
-        const currentProfitPct = isBuy ? (price - trade.entryPrice)/trade.entryPrice : (trade.entryPrice - price)/trade.entryPrice;
+        const currentProfitPct = isBuy ? (bid - trade.entryPrice)/trade.entryPrice : (trade.entryPrice - ask)/trade.entryPrice;
         if (currentProfitPct > 0.002) {
              if (isBuy) {
-                 const newSL = price * 0.999; // Trail 0.1% behind
-                 if (newSL > trade.stopLoss) trade.stopLoss = newSL;
+                const newSL = bid * 0.999;
+                if (newSL > trade.stopLoss) trade.stopLoss = newSL;
              } else {
-                 const newSL = price * 1.001;
-                 if (newSL < trade.stopLoss) trade.stopLoss = newSL;
+                const newSL = ask * 1.001;
+                if (newSL < trade.stopLoss) trade.stopLoss = newSL;
              }
         }
 
         // C. STANDARD TP CHECKS
         for (const level of trade.tpLevels) {
             if (!level.hit) {
-                const hit = isBuy ? price >= level.price : price <= level.price;
+                const hit = isBuy ? bid >= level.price : ask <= level.price;
                 if (hit) {
                     const closeAmt = trade.initialSize * level.percentage;
-                    const pnl = (isBuy ? level.price - trade.entryPrice : trade.entryPrice - level.price) * closeAmt;
+                    const exit = isBuy ? bid : ask;
+                    const pnl = (isBuy ? exit - trade.entryPrice : trade.entryPrice - exit) * closeAmt;
                     trade.currentSize -= closeAmt;
                     trade.pnl += pnl;
                     level.hit = true;
@@ -443,11 +496,18 @@ function processTicks(symbol) {
         }
 
         // D. STANDARD SL CHECK
-        if (isBuy ? price <= trade.stopLoss : price >= trade.stopLoss) {
+        if (isBuy ? bid <= trade.stopLoss : ask >= trade.stopLoss) {
             trade.status = 'CLOSED'; trade.closeReason = 'STOP_LOSS'; trade.closeTime = Date.now(); trade.closePrice = price;
-            const pnl = (isBuy ? price - trade.entryPrice : trade.entryPrice - price) * trade.currentSize;
+            const exit = isBuy ? bid : ask;
+            const pnl = (isBuy ? exit - trade.entryPrice : trade.entryPrice - exit) * trade.currentSize;
             trade.pnl += pnl; account.balance += pnl; closedPnL += pnl;
+            sendSms(`CLOSE ${symbol} ${trade.type} @ ${exit.toFixed(2)} (STOP_LOSS) PnL ${pnl.toFixed(2)}`);
         }
+    }
+    for (const t of openTrades) {
+        const isBuy = t.type === 'BUY';
+        const exit = isBuy ? bid : ask;
+        t.floatingPnl = (isBuy ? exit - t.entryPrice : t.entryPrice - exit) * t.currentSize;
     }
     account.dayPnL += closedPnL;
     account.equity = account.balance;
