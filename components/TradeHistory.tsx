@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Trade, TradeType, StrategyType, AssetSymbol } from '../types';
+import { DEFAULT_REMOTE_URL } from '../constants';
 import { Clock, ChevronRight } from 'lucide-react';
 import TradeDetailModal from './TradeDetailModal';
 import PerformanceSummary from './PerformanceSummary';
@@ -86,6 +87,7 @@ const TradeRow: React.FC<TradeRowProps> = ({ trade, onSelect }) => {
 const TradeHistory: React.FC<Props> = ({ trades }) => {
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [symbolFilter, setSymbolFilter] = useState<'ALL' | AssetSymbol>('ALL');
+  const remoteUrl = typeof window !== 'undefined' ? (localStorage.getItem('remoteUrl') || DEFAULT_REMOTE_URL) : DEFAULT_REMOTE_URL;
 
   const filteredTrades = trades.filter(t => symbolFilter === 'ALL' ? true : t.symbol === symbolFilter);
   const activeTrades = filteredTrades.filter(t => t.status === 'OPEN');
@@ -119,6 +121,16 @@ const TradeHistory: React.FC<Props> = ({ trades }) => {
           </div>
         </div>
         {/* Analytics */}
+        <div className="mb-3 px-2 flex justify-end">
+          <a
+            href={`${remoteUrl}/export/csv?status=closed`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-2.5 py-1 text-[10px] font-bold rounded-[6px] bg-white/10 border border-white/10 hover:bg-white/20"
+          >
+            Export CSV
+          </a>
+        </div>
         <PerformanceSummary trades={closedTrades} />
 
         {/* Active Trades Section */}

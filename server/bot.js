@@ -431,6 +431,37 @@ function processTicks(symbol) {
 // --- API ---
 app.get('/state', (req, res) => res.json({ account, trades, assets }));
 
+app.get('/export/json', (req, res) => {
+  const status = (req.query.status || 'closed').toString().toUpperCase();
+  const data = status === 'ALL' ? trades : trades.filter(t => t.status === 'CLOSED');
+  res.json(data);
+});
+
+app.get('/export/csv', (req, res) => {
+  const status = (req.query.status || 'closed').toString().toUpperCase();
+  const list = status === 'ALL' ? trades : trades.filter(t => t.status === 'CLOSED');
+  const headers = ['id','symbol','type','entryPrice','initialSize','currentSize','stopLoss','openTime','closeTime','closePrice','pnl','status','strategy'];
+  const rows = list.map(t => [
+    t.id,
+    t.symbol,
+    t.type,
+    t.entryPrice,
+    t.initialSize,
+    t.currentSize,
+    t.stopLoss,
+    t.openTime,
+    t.closeTime || '',
+    t.closePrice || '',
+    t.pnl || 0,
+    t.status,
+    t.strategy
+  ].join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="trades.csv"');
+  res.send(csv);
+});
+
 app.get('/health', (req, res) => res.send('OK')); // Cloud Health Check
 
 app.post('/toggle/:symbol', (req, res) => {
