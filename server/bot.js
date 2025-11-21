@@ -85,11 +85,12 @@ if (API_KEY) {
 
 // --- TYPES & CONFIG ---
 const ASSET_CONFIG = {
-    'XAU/USD': { startPrice: 2350, volatility: 0.001, decimals: 2, lotSize: 10 },
-    'NAS100': { startPrice: 18500, volatility: 0.0015, decimals: 1, lotSize: 1 }
+    'XAU/USD': { startPrice: 2350, volatility: 0.001, decimals: 2, lotSize: 10, valuePerPoint: 1, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
+    'NAS100': { startPrice: 18500, volatility: 0.0015, decimals: 1, lotSize: 1, valuePerPoint: 1, minLot: 0.01, maxLot: 100, lotStep: 0.01 }
 };
 
 const INITIAL_BALANCE = 500;
+const RISK_PER_TRADE = 0.01;
 
 // --- STATE ---
 let account = {
@@ -415,15 +416,22 @@ function updateCandles(symbol, price) {
 
 // --- STRATEGY & TRADE LOGIC ---
 function executeTrade(symbol, type, price, strategy, risk) {
-     const lotSize = ASSET_CONFIG[symbol].lotSize;
      const isBuy = type === 'BUY';
 
      const { bid, ask } = market[symbol];
      const fillPrice = isBuy ? ask : bid;
-     const sl = isBuy ? fillPrice * (1 - 0.005) : fillPrice * (1 + 0.005);
+     const sl = isBuy ? fillPrice * (1 - 0.0015) : fillPrice * (1 + 0.0015);
      const tp1 = isBuy ? fillPrice * (1 + 0.006) : fillPrice * (1 - 0.006);
      const tp2 = isBuy ? fillPrice * (1 + 0.01) : fillPrice * (1 - 0.01);
      const tp3 = isBuy ? fillPrice * (1 + 0.03) : fillPrice * (1 - 0.03);
+
+     const cfg = ASSET_CONFIG[symbol] || { minLot: 0.01, maxLot: 100, lotStep: 0.01 };
+     const monetaryRisk = Math.abs(account.balance) * RISK_PER_TRADE;
+     const slDistance = Math.abs(fillPrice - sl);
+     const rawLotSize = slDistance > 0 ? (monetaryRisk / (slDistance * (cfg.valuePerPoint || 1))) : cfg.minLot;
+     let lotSize = Math.max(cfg.minLot, Math.min(rawLotSize, cfg.maxLot));
+     lotSize = Math.round(lotSize / cfg.lotStep) * cfg.lotStep;
+     lotSize = Math.max(cfg.minLot, Math.min(lotSize, cfg.maxLot));
 
      const trade = {
          id: uuidv4(), symbol, type, entryPrice: fillPrice, initialSize: lotSize, currentSize: lotSize,
