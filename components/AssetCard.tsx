@@ -20,12 +20,13 @@ const AssetCard: React.FC<Props> = ({ asset, trades, toggleBot, setStrategy }) =
   // --- Performance Calculations ---
   const stats = useMemo(() => {
       const closedTrades = trades.filter(t => t.status === 'CLOSED');
+      const openCount = trades.filter(t => t.status === 'OPEN').length;
       const totalTrades = closedTrades.length;
       const wins = closedTrades.filter(t => t.pnl > 0).length;
       const losses = totalTrades - wins;
       const totalPnL = closedTrades.reduce((acc, t) => acc + t.pnl, 0);
       const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
-      return { totalPnL, winRate, wins, losses, totalTrades };
+      return { totalPnL, winRate, wins, losses, totalTrades, openCount };
   }, [trades]);
 
   const getIcon = () => {
@@ -122,10 +123,12 @@ const AssetCard: React.FC<Props> = ({ asset, trades, toggleBot, setStrategy }) =
              </div>
           </div>
 
-          {/* W/L Count */}
+          {/* O/W/L Count */}
           <div className="bg-white/5 rounded-xl p-3 border border-white/5 flex flex-col justify-center">
-             <span className="text-[9px] text-ios-gray uppercase font-bold mb-1">W / L</span>
+             <span className="text-[9px] text-ios-gray uppercase font-bold mb-1">O / W / L</span>
              <div className="flex items-center gap-1 text-xs font-bold">
+                <span className="text-white">{stats.openCount}</span>
+                <span className="text-white/20">/</span>
                 <span className="text-ios-green">{stats.wins}</span>
                 <span className="text-white/20">/</span>
                 <span className="text-ios-red">{stats.losses}</span>
