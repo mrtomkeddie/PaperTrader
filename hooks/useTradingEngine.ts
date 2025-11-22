@@ -7,12 +7,15 @@ export const useTradingEngine = () => {
   // Always default to Remote Server
   const brokerMode = BrokerMode.REMOTE_SERVER;
 
+  const isDev = (import.meta as any)?.env?.DEV;
   const [remoteUrl, setRemoteUrl] = useState(() => {
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('remoteUrl');
-        return saved || DEFAULT_REMOTE_URL;
+        if (saved) return saved;
+        if (isDev) return '/api';
+        return DEFAULT_REMOTE_URL;
       }
-      return DEFAULT_REMOTE_URL;
+      return isDev ? '/api' : DEFAULT_REMOTE_URL;
   });
 
   const [oandaConfig, setOandaConfig] = useState<OandaConfig>({ apiKey: '', accountId: '', environment: 'practice' });
@@ -148,6 +151,7 @@ export const useTradingEngine = () => {
       try {
         const saved = typeof window !== 'undefined' ? localStorage.getItem('remoteUrl') : null;
         const candidates = [
+          ...(isDev ? ['/api'] : []),
           DEFAULT_REMOTE_URL,
           ...(saved ? [saved] : []),
           'http://localhost:3001',
