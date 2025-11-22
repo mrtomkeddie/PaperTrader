@@ -103,6 +103,8 @@ let trades = [];
 
 let pushSubscriptions = [];
 
+const sseClients = new Set();
+
 // --- PERSISTENCE ---
 const DATA_DIR = path.join(process.cwd(), 'data');
 const STATE_FILE = path.join(DATA_DIR, 'state.json');
@@ -604,6 +606,17 @@ app.get('/state', (req, res) => {
   res.json({ account, trades, assets });
 });
 
+app.get('/events', (req, res) => {
+  try {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Connection', 'keep-alive');
+  } catch {}
+  try { res.write(`retry: 3000\n\n`); } catch {}
+  sseClients.add(res);
+  req.on('close', () => { try { sseClients.delete(res); } catch {} });
+});
+
 app.get('/export/json', (req, res) => {
   const status = (req.query.status || 'closed').toString().toUpperCase();
   const data = status === 'ALL' ? trades : trades.filter(t => t.status === 'CLOSED');
@@ -740,6 +753,17 @@ setInterval(() => {
         http.get(`http://localhost:${PORT}/health`);
     } catch (e) {}
 }, 14 * 60 * 1000); // Every 14 mins
+
+function sseBroadcast() {
+  try {
+    const payload = JSON.stringify({ account, trades, assets });
+    for (const client of sseClients) {
+      try { client.write(`data: ${payload}\n\n`); } catch {}
+    }
+  } catch {}
+}
+
+setInterval(() => { try { sseBroadcast(); } catch {} }, 3000);
 let webpushClient = null;
 (async () => {
     try {

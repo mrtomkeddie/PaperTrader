@@ -28,9 +28,65 @@ export const useTradingEngine = () => {
     [AssetSymbol.NAS100]: createInitialAsset(AssetSymbol.NAS100)
   };
   const [assets, setAssets] = useState<Record<AssetSymbol, AssetData>>(initialAssets);
+  const esRef = useRef<EventSource | null>(null);
+  const lastUpdateRef = useRef<number>(0);
   
   // --- MAIN ENGINE LOOP (POLLING ONLY) ---
   useEffect(() => {
+    try {
+      const cleanUrl = remoteUrl.trim().replace(/\/$/, "");
+      const es = new EventSource(`${cleanUrl}/events?ts=${Date.now()}`);
+      esRef.current = es;
+      es.onmessage = (ev) => {
+        try {
+          const state = JSON.parse(ev.data);
+          if (state.assets && state.account && state.trades) {
+            setAssets(state.assets);
+            setAccount(state.account);
+            setTrades(state.trades);
+            setIsConnected(true);
+            lastUpdateRef.current = Date.now();
+          }
+        } catch {}
+      };
+      es.onerror = () => {
+        try { es.close(); } catch {}
+        esRef.current = null;
+        setIsConnected(false);
+      };
+      const watchdog = setInterval(() => {
+        const stale = Date.now() - (lastUpdateRef.current || 0) > 12000;
+        if (stale) {
+          try { es.close(); } catch {}
+          esRef.current = null;
+          setIsConnected(false);
+          try {
+            const alt = DEFAULT_REMOTE_URL.trim().replace(/\/$/, "");
+            if (alt && alt !== remoteUrl) {
+              const es2 = new EventSource(`${alt}/events?ts=${Date.now()}`);
+              esRef.current = es2;
+              es2.onmessage = (ev2) => {
+                try {
+                  const s2 = JSON.parse(ev2.data);
+                  if (s2.assets && s2.account && s2.trades) {
+                    if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', alt);
+                    setRemoteUrl(alt);
+                    setAssets(s2.assets);
+                    setAccount(s2.account);
+                    setTrades(s2.trades);
+                    setIsConnected(true);
+                    lastUpdateRef.current = Date.now();
+                  }
+                } catch {}
+              };
+              es2.onerror = () => { try { es2.close(); } catch {}; esRef.current = null; };
+            }
+          } catch {}
+        }
+      }, 5000);
+      return () => { try { clearInterval(watchdog); } catch {}; try { es.close(); } catch {}; esRef.current = null; };
+    } catch {}
+  }, [remoteUrl]);
     const interval = setInterval(async () => {
       
       // --- REMOTE SERVER POLL ---
