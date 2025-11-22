@@ -103,10 +103,7 @@ export const useTradingEngine = () => {
       try {
           // Auto-fix dirty URLs from iPhone copy-paste
           const cleanUrl = remoteUrl.trim().replace(/\/$/, "");
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 5000);
-          const res = await fetch(`${cleanUrl}/state?ts=${Date.now()}`, { cache: 'no-store', signal: controller.signal });
-          clearTimeout(timeout);
+          const res = await fetch(`${cleanUrl}/state?ts=${Date.now()}`, { cache: 'no-store' });
           if (res.ok) {
               const state = await res.json();
               // We only update if we got valid data back
@@ -124,10 +121,7 @@ export const useTradingEngine = () => {
           try {
               const alt = DEFAULT_REMOTE_URL.trim().replace(/\/$/, "");
               if (alt && alt !== remoteUrl) {
-                  const controller2 = new AbortController();
-                  const timeout2 = setTimeout(() => controller2.abort(), 4000);
-                  const res2 = await fetch(`${alt}/state?ts=${Date.now()}`, { cache: 'no-store', signal: controller2.signal });
-                  clearTimeout(timeout2);
+                  const res2 = await fetch(`${alt}/state?ts=${Date.now()}`, { cache: 'no-store' });
                   if (res2.ok) {
                       const state2 = await res2.json();
                       if (state2.assets && state2.account && state2.trades) {
@@ -161,10 +155,7 @@ export const useTradingEngine = () => {
         ];
         for (const base of candidates) {
           try {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 4000);
-            const res = await fetch(`${base.replace(/\/$/, '')}/state?ts=${Date.now()}`, { method: 'GET', cache: 'no-store', signal: controller.signal });
-            clearTimeout(timeout);
+            const res = await fetch(`${base.replace(/\/$/, '')}/state?ts=${Date.now()}`, { method: 'GET', cache: 'no-store' });
             if (res.ok) {
               const clean = base.replace(/\/$/, '');
               if (typeof window !== 'undefined') {
