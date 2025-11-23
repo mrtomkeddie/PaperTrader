@@ -147,7 +147,7 @@ const App: React.FC = () => {
       <main className="pb-28 px-5 max-w-lg mx-auto" style={{ paddingTop: 'calc(max(56px, env(safe-area-inset-top)) + 8px)' }}>
 
         {/* Premium Header */}
-        <header className="mb-8">
+        <header className="mb-8 relative z-20">
           <div className="flex justify-between items-start mb-2">
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full animate-pulse ${((view === 'crypto' || view === 'cryptoHistory') ? (cConnected || Object.keys(cAssets || {}).length > 0) : (isConnected || visibleAssets.some(s => !!assets[s]))) ? 'bg-ios-green' : 'bg-ios-red'}`} />
