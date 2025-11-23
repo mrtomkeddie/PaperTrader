@@ -57,21 +57,29 @@ export const useCryptoEngine = () => {
 
   useEffect(() => {
     const base = remoteUrl.trim().replace(/\/$/, '');
-    const es = new EventSource(`${base}/events?ts=${Date.now()}`);
-    esRef.current = es;
-    es.onopen = () => { try { setIsConnected(true); } catch {} };
-    es.onmessage = (ev) => {
-      try {
-        const s = JSON.parse(ev.data);
-        if (s.assets && s.account && s.trades) {
-          setAssets(s.assets);
-          setAccount(s.account);
-          setTrades(s.trades);
-          setIsConnected(true);
-        }
-      } catch {}
+    const open = () => {
+      const stream = new EventSource(`${base}/events?ts=${Date.now()}`);
+      esRef.current = stream;
+      stream.onopen = () => { try { setIsConnected(true); } catch {} };
+      stream.onmessage = (ev) => {
+        try {
+          const s = JSON.parse(ev.data);
+          if (s.assets && s.account && s.trades) {
+            setAssets(s.assets);
+            setAccount(s.account);
+            setTrades(s.trades);
+            setIsConnected(true);
+          }
+        } catch {}
+      };
+      stream.onerror = () => {
+        try { stream.close(); } catch {};
+        esRef.current = null;
+        setIsConnected(false);
+        setTimeout(() => { try { open(); } catch {} }, 2000);
+      };
     };
-    es.onerror = () => { try { es.close(); } catch {}; esRef.current = null; setIsConnected(false); };
+    open();
     (async () => {
       try {
         const res = await fetch(`${base}/state?ts=${Date.now()}`, { cache: 'no-store' });
@@ -100,7 +108,7 @@ export const useCryptoEngine = () => {
         }
       } catch {}
     }, 1500);
-    return () => { try { clearInterval(interval); } catch {}; try { es.close(); } catch {}; esRef.current = null; };
+    return () => { try { clearInterval(interval); } catch {}; try { esRef.current?.close(); } catch {}; esRef.current = null; };
   }, [remoteUrl]);
 
   const toggleBot = async (symbol: string) => {
