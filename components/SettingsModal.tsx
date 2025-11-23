@@ -61,8 +61,17 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, oandaConfig, onSave }
       const existing = await reg.pushManager.getSubscription();
       const sub = existing || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapid) });
       const base = (remoteUrl || DEFAULT_REMOTE_URL).replace(/\/$/, "");
-      const res = await fetch(`${base}/push/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
-      if (res.ok) setPushStatus('enabled'); else setPushStatus('error');
+      const cryptoBase = (() => {
+        try {
+          const ls = typeof window !== 'undefined' ? localStorage.getItem('cryptoRemoteUrl') : null;
+          const envUrl = (import.meta as any)?.env?.VITE_CRYPTO_REMOTE_URL;
+          const fallback = `${DEFAULT_REMOTE_URL.replace(/\/$/, '')}/crypto`;
+          return (ls || envUrl || fallback).replace(/\/$/, '');
+        } catch { return `${DEFAULT_REMOTE_URL.replace(/\/$/, '')}/crypto`; }
+      })();
+      const r1 = await fetch(`${base}/push/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
+      const r2 = await fetch(`${cryptoBase}/push/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
+      if (r1.ok || r2.ok) setPushStatus('enabled'); else setPushStatus('error');
     } catch { setPushStatus('error'); }
   };
 
