@@ -1,9 +1,35 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { spawn } from 'child_process';
 
 // https://vitejs.dev/config/
+const runCryptoBot = () => {
+  let proc: any;
+  return {
+    name: 'run-crypto-bot',
+    configureServer(server) {
+      if (proc) return;
+      const cmd = process.platform === 'win32' ? 'npm' : 'npm';
+      proc = spawn(cmd, ['run', 'crypto-bot'], { stdio: 'inherit', shell: true });
+      const stop = () => { try { proc.kill(); } catch {} proc = undefined; };
+      server.httpServer?.once('close', stop);
+      if (proc && typeof proc.on === 'function') {
+        proc.on('exit', () => {
+          proc = undefined;
+          setTimeout(() => {
+            if (!proc && server.httpServer) {
+              proc = spawn(cmd, ['run', 'crypto-bot'], { stdio: 'inherit', shell: true });
+              if (proc && typeof proc.on === 'function') proc.on('exit', () => { proc = undefined; });
+            }
+          }, 2000);
+        });
+      }
+    }
+  };
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), runCryptoBot()],
   server: {
     proxy: {
       '/api': {
