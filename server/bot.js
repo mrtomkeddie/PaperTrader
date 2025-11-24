@@ -371,7 +371,8 @@ function connectOanda() {
                         if (asset.history.length > 300) asset.history.shift();
                         asset.ema = calculateEMA(asset.currentPrice, asset.ema, 20);
                         asset.ema200 = calculateEMA(asset.currentPrice, asset.ema200, 200);
-                        asset.slope = calculateSlope(asset.history.map(h => h.value), 10);
+                        const closedCloses2 = candlesM5[symbol].filter(c => c.isClosed).map(c => c.close);
+                        asset.slope = calculateSlope(closedCloses2, 10);
                         asset.rsi = calculateRSI(asset.history.map(h => h.value));
                         asset.trend = asset.currentPrice > asset.ema200 ? 'UP' : 'DOWN';
                         const sma = asset.ema;
