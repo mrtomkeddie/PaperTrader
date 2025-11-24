@@ -117,8 +117,6 @@ function evaluateVWAPMeanReversion(symbol: string) {
   const st = state[symbol];
   if (!st.botActive || !st.activeStrategies.includes('VWAP')) return;
   if (st.closes15m.length < 60) return;
-  const now = new Date(st.last15m!.time);
-  if (!isWeekendUTC(now)) return;
   if (hasOpen(symbol, 'VWAP_MEAN_REV')) return;
   const close = st.closes15m[st.closes15m.length - 1];
   const prevClose = st.closes15m[st.closes15m.length - 2];

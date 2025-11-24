@@ -40,14 +40,16 @@ export function rsi(series: number[], period: number = 14): number {
   return 100 - (100 / (1 + rs));
 }
 
-export interface VWAPState { pv: number; v: number; vwap: number; }
+export interface VWAPState { pv: number; v: number; vwap: number; day?: number; }
 export function updateVWAP(state: VWAPState, price: number, volume: number, ts: number): VWAPState {
   const now = new Date(ts);
-  const weekend = isWeekendUTC(now);
+  const dayKey = now.getUTCFullYear() * 10000 + (now.getUTCMonth() + 1) * 100 + now.getUTCDate();
   let pv = state.pv, v = state.v, vwap = state.vwap;
-  if (weekend && now.getUTCDay() === 6 && now.getUTCHours() === 0 && now.getUTCMinutes() === 0) { pv = 0; v = 0; vwap = price; }
-  if (weekend) { pv += price * volume; v += volume; vwap = v > 0 ? pv / v : price; }
-  return { pv, v, vwap };
+  if (state.day !== dayKey) { pv = 0; v = 0; vwap = price; }
+  pv += price * volume;
+  v += volume;
+  vwap = v > 0 ? pv / v : price;
+  return { pv, v, vwap, day: dayKey };
 }
 
 export interface RangeState { high: number | null; low: number | null; frozen: boolean; brokeAbove: boolean; brokeBelow: boolean; }
