@@ -10,7 +10,7 @@ import { WebSocket } from 'ws';
 
 dotenv.config();
 
-type StrategyId = 'VWAP_MEAN_REV' | 'BTC_RANGE_RETEST';
+type StrategyId = 'VWAP_MEAN_REV' | 'BTC_RANGE_RETEST' | 'AI_AGENT';
 type Side = 'BUY' | 'SELL';
 type Status = 'OPEN' | 'CLOSED';
 
@@ -88,8 +88,8 @@ function manageTrades(symbol: string, bid: number, ask: number, sma20: number, l
     const exit = isBuy ? bid : ask;
     if (state[symbol].activeStrategies.includes('AI_AGENT') && aiState[symbol].confidence > 80) {
       const snt = aiState[symbol].sentiment;
-      if (isBuy && snt === 'BEARISH') { t.status = 'CLOSED'; t.closeTime = Date.now(); t.closePrice = exit; const pnl = (exit - t.entryPrice) * t.currentSize; t.pnl += pnl; account.balance += pnl; closed += pnl; continue; }
-      if (!isBuy && snt === 'BULLISH') { t.status = 'CLOSED'; t.closeTime = Date.now(); t.closePrice = exit; const pnl = (t.entryPrice - exit) * t.currentSize; t.pnl += pnl; account.balance += pnl; closed += pnl; continue; }
+      if (isBuy && snt === 'BEARISH' && t.strategy === 'AI_AGENT') { t.status = 'CLOSED'; t.closeTime = Date.now(); t.closePrice = exit; const pnl = (exit - t.entryPrice) * t.currentSize; t.pnl += pnl; account.balance += pnl; closed += pnl; continue; }
+      if (!isBuy && snt === 'BULLISH' && t.strategy === 'AI_AGENT') { t.status = 'CLOSED'; t.closeTime = Date.now(); t.closePrice = exit; const pnl = (t.entryPrice - exit) * t.currentSize; t.pnl += pnl; account.balance += pnl; closed += pnl; continue; }
     }
     if (isBuy && exit <= t.stopLoss) { t.status = 'CLOSED'; t.closeTime = Date.now(); t.closePrice = exit; const pnl = (exit - t.entryPrice) * t.currentSize; t.pnl += pnl; account.balance += pnl; closed += pnl; continue; }
     if (!isBuy && exit >= t.stopLoss) { t.status = 'CLOSED'; t.closeTime = Date.now(); t.closePrice = exit; const pnl = (t.entryPrice - exit) * t.currentSize; t.pnl += pnl; account.balance += pnl; closed += pnl; continue; }
@@ -99,7 +99,7 @@ function manageTrades(symbol: string, bid: number, ask: number, sma20: number, l
     }
     if (t.tp1Hit && !t.tp2Hit) {
       const hit = isBuy ? exit >= t.tp2 : exit <= t.tp2;
-      if (hit) { const qty = t.initialSize * 0.4; const pnl = (isBuy ? t.tp2 - t.entryPrice : t.entryPrice - t.tp2) * qty; t.pnl += pnl; account.balance += pnl; closed += pnl; t.currentSize -= qty; t.tp2Hit = true; if (t.strategy === 'VWAP_MEAN_REV') { if (isBuy) t.stopLoss = Math.max(t.stopLoss, sma20 * 0.999); else t.stopLoss = Math.min(t.stopLoss, sma20 * 1.001); } else if (t.strategy === 'BTC_RANGE_RETEST' && last1h) { if (isBuy) t.stopLoss = Math.max(t.stopLoss, last1h.low * 0.999); else t.stopLoss = Math.min(t.stopLoss, last1h.high * 1.001); } notifyAll('TP2 Hit', `${t.symbol} ${t.type} PnL ${pnl.toFixed(2)}`); }
+      if (hit) { const qty = t.initialSize * 0.4; const pnl = (isBuy ? t.tp2 - t.entryPrice : t.entryPrice - t.tp2) * qty; t.pnl += pnl; account.balance += pnl; closed += pnl; t.currentSize -= qty; t.tp2Hit = true; if (t.strategy === 'VWAP_MEAN_REV' || t.strategy === 'AI_AGENT') { if (isBuy) t.stopLoss = Math.max(t.stopLoss, sma20 * 0.999); else t.stopLoss = Math.min(t.stopLoss, sma20 * 1.001); } else if (t.strategy === 'BTC_RANGE_RETEST' && last1h) { if (isBuy) t.stopLoss = Math.max(t.stopLoss, last1h.low * 0.999); else t.stopLoss = Math.min(t.stopLoss, last1h.high * 1.001); } notifyAll('TP2 Hit', `${t.symbol} ${t.type} PnL ${pnl.toFixed(2)}`); }
     }
     if (t.tp2Hit && !t.tp3Hit) {
       const hit = isBuy ? exit >= t.tp3 : exit <= t.tp3;
@@ -350,7 +350,24 @@ async function consultGemini(symbol: string) {
   const st = state[symbol];
   if (!st.activeStrategies.includes('AI_AGENT')) return;
   const price = st.last15m ? st.last15m.close : 0;
-  const prompt = `{"price":${price},"trend":"${price > st.sma50 ? 'UP' : 'DOWN'}","rsi":${st.rsi14.toFixed(2)}}`;
+  const prompt = `
+  You are a disciplined Crypto Swing Trader.
+  Your Goal: Identify strong trend continuation setups and ignore temporary chop.
+
+  Market Data for ${symbol}:
+  - Price: ${price}
+  - Trend (Price vs SMA50): ${price > st.sma50 ? 'UP' : 'DOWN'}
+  - Momentum (RSI 14): ${st.rsi14.toFixed(2)}
+
+  CRITICAL RULES:
+  1. RESPECT THE TREND: If Trend is 'UP' (Price > SMA50), you are looking for BUYS. A temporary dip in RSI is likely a buying opportunity, NOT a reversal. Rate it as NEUTRAL.
+  2. GUARDIAN LOGIC: Only switch to "BEARISH" in an Uptrend if there is a massive breakdown structure. Otherwise, maintain a NEUTRAL/BULLISH bias.
+  3. CONFIDENCE SCORING:
+     - High (>80): Strong alignment (e.g. Price > SMA50 AND RSI > 50 and rising).
+     - Low (<50): Conflicting signals (e.g. Price > SMA50 but RSI is overbought/diverging).
+
+  Respond ONLY with a JSON object:
+  { "sentiment": "BULLISH" | "BEARISH" | "NEUTRAL", "confidence": number (0-100), "reason": "concise rationale" }`;
   try {
     const resp = await aiClient.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt, config: { responseMimeType: 'application/json' } });
     const text = (resp as any).text || '';
@@ -375,13 +392,13 @@ function evaluateAIAgent(symbol: string) {
     const tp1 = price * 1.006;
     const tp2 = price * 1.012;
     const tp3 = price * 1.03;
-    placeTrade(symbol, 'VWAP_MEAN_REV', 'BUY', price, sl, tp1, tp2, tp3);
+    placeTrade(symbol, 'AI_AGENT', 'BUY', price, sl, tp1, tp2, tp3);
   } else if (info.sentiment === 'BEARISH' && !isUp) {
     const sl = price * 1.008;
     const tp1 = price * 0.994;
     const tp2 = price * 0.988;
     const tp3 = price * 0.97;
-    placeTrade(symbol, 'VWAP_MEAN_REV', 'SELL', price, sl, tp1, tp2, tp3);
+    placeTrade(symbol, 'AI_AGENT', 'SELL', price, sl, tp1, tp2, tp3);
   }
 }
 

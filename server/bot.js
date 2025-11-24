@@ -260,17 +260,26 @@ async function consultGemini(symbol, asset) {
         console.log(`[AI] Consulting Gemini for ${symbol}...`);
         
         const prompt = `
-            You are a senior algorithmic trader. Analyze this market data for ${symbol}:
-            - Price: ${asset.currentPrice}
-            - Trend (200 EMA): ${asset.trend}
-            - RSI (14): ${asset.rsi.toFixed(2)}
-            - Slope: ${asset.slope.toFixed(4)}
-            - Volatility Band Width: ${(asset.bollinger.upper - asset.bollinger.lower).toFixed(2)}
+You are a seasoned Trend Following Swing Trader. You do not panic during noise.
+Your Goal: Identify valid entries in the direction of the trend and ignore temporary pullbacks.
 
-            Determine the immediate market sentiment.
-            Respond ONLY with a JSON object in this format:
-            { "sentiment": "BULLISH" | "BEARISH" | "NEUTRAL", "confidence": number (0-100), "reason": "short explanation" }
-        `;
+Market Data for ${symbol}:
+- Price: ${asset.currentPrice}
+- Primary Trend (200 EMA): ${asset.trend}
+- Momentum (RSI 14): ${asset.rsi.toFixed(2)}
+- Immediate Slope: ${asset.slope.toFixed(4)}
+- Volatility (Band Width): ${(asset.bollinger.upper - asset.bollinger.lower).toFixed(2)}
+
+CRITICAL RULES:
+1. RESPECT THE TREND: If Trend is 'UP', you are looking for BUYS. A negative Slope here is likely a "healthy pullback", NOT a reversal. Rate it as NEUTRAL, not BEARISH.
+2. THE GUARDIAN CHECK: Only output "BEARISH" in an Uptrend if there is a catastrophic reversal signal (e.g. Price crashing). Otherwise, hold the bias.
+3. CONFIDENCE SCORING:
+   - High Confidence (>80): Perfect alignment (e.g. Uptrend + Positive Slope + RSI rising from 40).
+   - Low Confidence (<50): Conflicting signals (e.g. Uptrend + Negative Slope).
+
+Determine the market sentiment based on specific Trend Following logic.
+Respond ONLY with a JSON object in this format:
+{ "sentiment": "BULLISH" | "BEARISH" | "NEUTRAL", "confidence": number (0-100), "reason": "concise trade rationale" }`;
 
         const response = await aiClient.models.generateContent({
             model: 'gemini-2.5-flash',
