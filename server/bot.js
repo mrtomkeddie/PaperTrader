@@ -143,6 +143,9 @@ function saveState() {
 let candlesM5 = {
     'XAU/USD': [], 'NAS100': []
 };
+let candlesH1 = {
+    'XAU/USD': [], 'NAS100': []
+};
 
 // MARKET STATE (bid/ask/mid per symbol)
 const SPREAD_PCT = { 'XAU/USD': 0.0002, 'NAS100': 0.0005 };
@@ -191,6 +194,8 @@ function createAsset(symbol, defaultStrategies) {
         rsi: 50,
         ema: ASSET_CONFIG[symbol].startPrice,
         ema200: ASSET_CONFIG[symbol].startPrice,
+        ema200H1: ASSET_CONFIG[symbol].startPrice,
+        htfTrend: 'UP',
         trend: 'UP',
         macd: { macdLine: 0, signalLine: 0, histogram: 0 },
         bollinger: { upper: 0, middle: 0, lower: 0 },
@@ -240,6 +245,23 @@ const calculateRSI = (prices, period = 14) => {
     return 100 - (100 / (1 + rs));
 };
 
+const calculateEMAFromSeries = (prices, period = 200) => {
+    if (!Array.isArray(prices) || prices.length === 0) return 0;
+    const k = 2 / (period + 1);
+    let ema;
+    if (prices.length >= period) {
+        const firstSlice = prices.slice(0, period);
+        const sma = firstSlice.reduce((a, b) => a + b, 0) / firstSlice.length;
+        ema = sma;
+        for (let i = period; i < prices.length; i++) {
+            ema = prices[i] * k + ema * (1 - k);
+        }
+    } else {
+        ema = prices.reduce((a, b) => a + b, 0) / prices.length;
+    }
+    return ema;
+};
+
 // --- REAL AI INTEGRATION ---
 async function consultGemini(symbol, asset) {
     // 1. Check Rate Limit (Max once every 5 mins per asset)
@@ -266,11 +288,13 @@ Your Goal: Identify valid entries in the direction of the trend and ignore tempo
 Market Data for ${symbol}:
 - Price: ${asset.currentPrice}
 - Primary Trend (200 EMA): ${asset.trend}
+- Higher Timeframe Trend (1H 200 EMA): ${asset.htfTrend}
 - Momentum (RSI 14): ${asset.rsi.toFixed(2)}
 - Immediate Slope: ${asset.slope.toFixed(4)}
 - Volatility (Band Width): ${(asset.bollinger.upper - asset.bollinger.lower).toFixed(2)}
 
 CRITICAL RULES:
+CONTEXT: The Higher Timeframe (1H) Trend is the 'King'. If 1H Trend is UP, you should view 5m dips as 'Buying Opportunities'. Do not bet against the 1H Trend unless there is a crash.
 1. RESPECT THE TREND: If Trend is 'UP', you are looking for BUYS. A negative Slope here is likely a "healthy pullback", NOT a reversal. Rate it as NEUTRAL, not BEARISH.
 2. THE GUARDIAN CHECK: Only output "BEARISH" in an Uptrend if there is a catastrophic reversal signal (e.g. Price crashing). Otherwise, hold the bias.
 3. CONFIDENCE SCORING:
@@ -338,6 +362,7 @@ function connectBinance() {
                 const stdDev = asset.currentPrice * 0.002;
                 asset.bollinger = { upper: sma + stdDev*2, middle: sma, lower: sma - stdDev*2 };
                 updateCandles(symbol, asset.currentPrice);
+                updateCandlesH1(symbol, asset.currentPrice);
                 processTicks(symbol);
             }
         } catch {}
@@ -388,6 +413,7 @@ function connectOanda() {
                         const stdDev = asset.currentPrice * 0.002;
                         asset.bollinger = { upper: sma + stdDev*2, middle: sma, lower: sma - stdDev*2 };
                         updateCandles(symbol, asset.currentPrice);
+                        updateCandlesH1(symbol, asset.currentPrice);
                         processTicks(symbol);
                     }
                 } catch {}
@@ -404,6 +430,58 @@ function connectLiveFeed() {
 }
 
 connectLiveFeed();
+
+(async () => {
+    try {
+        if (!USE_OANDA) return;
+        const host = OANDA_ENV === 'live' ? 'api-fxtrade.oanda.com' : 'api-fxpractice.oanda.com';
+        const map = { 'XAU/USD': 'XAU_USD', 'NAS100': 'NAS100_USD' };
+        for (const symbol of Object.keys(assets)) {
+            const inst = map[symbol];
+            if (!inst) continue;
+            const options = {
+                hostname: host,
+                path: `/v3/instruments/${encodeURIComponent(inst)}/candles?granularity=H1&price=M&count=200`,
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${OANDA_TOKEN}` }
+            };
+            await new Promise((resolve) => {
+                const req = https.request(options, (res) => {
+                    let buf = '';
+                    res.on('data', (chunk) => { buf += chunk.toString(); });
+                    res.on('end', () => {
+                        try {
+                            const j = JSON.parse(buf);
+                            const arr = Array.isArray(j.candles) ? j.candles : [];
+                            const list = [];
+                            for (const c of arr) {
+                                if (!c || c.complete === false) continue;
+                                const o = parseFloat(c.mid?.o || c.open || c.close || '0');
+                                const h = parseFloat(c.mid?.h || c.high || '0');
+                                const l = parseFloat(c.mid?.l || c.low || '0');
+                                const cl = parseFloat(c.mid?.c || c.close || '0');
+                                const t = new Date(c.time).getTime();
+                                if (isFinite(cl) && cl > 0) list.push({ open: o || cl, high: h || cl, low: l || cl, close: cl, time: t, isClosed: true });
+                            }
+                            candlesH1[symbol] = list.slice(-200);
+                            const closes = candlesH1[symbol].map(e => e.close);
+                            if (closes.length > 0) {
+                                const emaH1 = calculateEMAFromSeries(closes, 200);
+                                assets[symbol].ema200H1 = emaH1;
+                                const price = assets[symbol].currentPrice;
+                                assets[symbol].htfTrend = (price > emaH1) ? 'UP' : 'DOWN';
+                            }
+                        } catch {}
+                        resolve(null);
+                    });
+                });
+                req.on('error', () => resolve(null));
+                req.end();
+            });
+        }
+        console.log('[SYSTEM] Initialized 1H history and EMA200 for Indices/Gold');
+    } catch {}
+})();
 
 function notifyAll(title, body) {
     if (!webpushClient || !process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
@@ -436,9 +514,37 @@ function updateCandles(symbol, price) {
         lastCandle.isClosed = true;
         // Candle Close Event - Good time to check AI
         consultGemini(symbol, assets[symbol]);
-        
+
         currentCandles.push({ open: price, high: price, low: price, close: price, time: now, isClosed: false });
         if (currentCandles.length > 200) currentCandles.shift(); 
+    }
+}
+
+function updateCandlesH1(symbol, price) {
+    const timeframeMs = 60 * 60 * 1000;
+    const now = Date.now();
+    const list = candlesH1[symbol];
+    if (list.length === 0) {
+        list.push({ open: price, high: price, low: price, close: price, time: now, isClosed: false });
+        return;
+    }
+    const last = list[list.length - 1];
+    const elapsed = now - last.time;
+    if (elapsed < timeframeMs) {
+        last.high = Math.max(last.high, price);
+        last.low = Math.min(last.low, price);
+        last.close = price;
+    } else {
+        last.isClosed = true;
+        list.push({ open: price, high: price, low: price, close: price, time: now, isClosed: false });
+        if (list.length > 200) list.shift();
+        const closes = list.filter(c => c.isClosed).map(c => c.close);
+        if (closes.length > 0) {
+            const emaH1 = calculateEMAFromSeries(closes, 200);
+            assets[symbol].ema200H1 = emaH1;
+            const p = assets[symbol].currentPrice;
+            assets[symbol].htfTrend = (p > emaH1) ? 'UP' : 'DOWN';
+        }
     }
 }
 
@@ -567,6 +673,10 @@ function processTicks(symbol) {
     // 2. Run Strategies (Only if no open trade)
     if (!asset.botActive) return;
     if (openTrades.length > 0) return; // Max 1 trade per asset
+    const nowUtc = new Date();
+    const dow = nowUtc.getUTCDay();
+    const hour = nowUtc.getUTCHours();
+    if ((dow === 5 && hour >= 21) || dow === 6 || dow === 0) return;
 
     // A. TREND FOLLOW (24/7)
     if (asset.activeStrategies.includes('TREND_FOLLOW')) {
@@ -830,6 +940,43 @@ setInterval(() => {
         http.get(`http://localhost:${PORT}/health`);
     } catch (e) {}
 }, 14 * 60 * 1000); // Every 14 mins
+
+setInterval(() => {
+  try {
+    const now = new Date();
+    const isFriday = now.getUTCDay() === 5;
+    const isTime = now.getUTCHours() === 21 && now.getUTCMinutes() === 55;
+    if (isFriday && isTime) {
+      console.log('[SYSTEM] Weekend Close - Closing all positions');
+      let closedPnL = 0;
+      for (const symbol of ['XAU/USD','NAS100']) {
+        const mkt = market[symbol];
+        if (!mkt) continue;
+        const { bid, ask, mid } = mkt;
+        const openList = trades.filter(t => t.status === 'OPEN' && t.symbol === symbol);
+        for (const t of openList) {
+          const isBuy = t.type === 'BUY';
+          const exit = isBuy ? bid : ask;
+          t.status = 'CLOSED';
+          t.closeReason = 'MANUAL';
+          t.closeTime = Date.now();
+          t.closePrice = exit;
+          const pnl = (isBuy ? exit - t.entryPrice : t.entryPrice - exit) * t.currentSize;
+          t.pnl += pnl;
+          account.balance += pnl;
+          closedPnL += pnl;
+          notifyAll('Trade Closed', `${symbol} ${t.type} @ ${exit.toFixed(2)} (WEEKEND_CLOSE) PnL ${pnl.toFixed(2)}`);
+        }
+      }
+      if (closedPnL !== 0) {
+        account.dayPnL += closedPnL;
+        account.totalPnL += closedPnL;
+        account.equity = account.balance;
+      }
+      saveState();
+    }
+  } catch {}
+}, 60 * 1000);
 
 function sseBroadcast() {
   try {
