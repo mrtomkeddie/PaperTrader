@@ -115,12 +115,30 @@ function loadState() {
     try {
         if (fs.existsSync(STATE_FILE)) {
             const raw = fs.readFileSync(STATE_FILE, 'utf8');
+            try {
+                const parsed = JSON.parse(raw);
+                if (parsed && parsed.account && Array.isArray(parsed.trades)) {
+                    account = parsed.account;
+                    trades = parsed.trades;
+                    pushSubscriptions = Array.isArray(parsed.pushSubscriptions) ? parsed.pushSubscriptions : [];
+                    console.log(`[SYSTEM] Loaded persisted state: ${trades.length} trades, balance £${account.balance.toFixed(2)}`);
+                    return;
+                }
+            } catch (parseError) {
+                console.warn('[SYSTEM] State file corrupted, attempting backup...');
+            }
+        }
+        
+        // Try backup if main fails
+        const BACKUP_FILE = `${STATE_FILE}.bak`;
+        if (fs.existsSync(BACKUP_FILE)) {
+            const raw = fs.readFileSync(BACKUP_FILE, 'utf8');
             const parsed = JSON.parse(raw);
             if (parsed && parsed.account && Array.isArray(parsed.trades)) {
                 account = parsed.account;
                 trades = parsed.trades;
                 pushSubscriptions = Array.isArray(parsed.pushSubscriptions) ? parsed.pushSubscriptions : [];
-                console.log(`[SYSTEM] Loaded persisted state: ${trades.length} trades, balance £${account.balance.toFixed(2)}`);
+                console.log(`[SYSTEM] Loaded backup state: ${trades.length} trades`);
             }
         }
     } catch (e) {
@@ -132,7 +150,18 @@ function saveState() {
     try {
         fs.mkdirSync(DATA_DIR, { recursive: true });
         const payload = JSON.stringify({ account, trades, pushSubscriptions }, null, 2);
-        fs.writeFileSync(STATE_FILE, payload, 'utf8');
+        
+        // Create backup of current state if it exists
+        if (fs.existsSync(STATE_FILE)) {
+            try {
+                fs.copyFileSync(STATE_FILE, `${STATE_FILE}.bak`);
+            } catch {}
+        }
+
+        // Atomic write: Write to temp file then rename
+        const tempFile = `${STATE_FILE}.tmp`;
+        fs.writeFileSync(tempFile, payload, 'utf8');
+        fs.renameSync(tempFile, STATE_FILE);
     } catch (e) {
         console.warn('[SYSTEM] Failed to save state:', e.message);
     }
@@ -371,6 +400,9 @@ function connectBinance() {
     ws.on('error', () => { try { ws.close(); } catch {} });
 }
 
+let oandaReq = null;
+let lastOandaHeartbeat = Date.now();
+
 function connectOanda() {
     const host = OANDA_ENV === 'live' ? 'stream-fxtrade.oanda.com' : 'stream-fxpractice.oanda.com';
     const instruments = ['XAU_USD','NAS100_USD'].join(',');
@@ -380,9 +412,13 @@ function connectOanda() {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${OANDA_TOKEN}` }
     };
-    const req = https.request(options, (res) => {
+
+    if (oandaReq) { try { oandaReq.destroy(); } catch {} }
+
+    oandaReq = https.request(options, (res) => {
         let buffer = '';
         res.on('data', (chunk) => {
+            lastOandaHeartbeat = Date.now();
             buffer += chunk.toString();
             const parts = buffer.split('\n');
             buffer = parts.pop() || '';
@@ -421,9 +457,18 @@ function connectOanda() {
         });
         res.on('end', () => { setTimeout(connectLiveFeed, 5000); });
     });
-    req.on('error', () => { setTimeout(connectLiveFeed, 5000); });
-    req.end();
+    oandaReq.on('error', () => { setTimeout(connectLiveFeed, 5000); });
+    oandaReq.end();
 }
+
+// OANDA Watchdog: Force reconnect if stream is silent > 60s
+setInterval(() => {
+    if (Date.now() - lastOandaHeartbeat > 60000) {
+        console.warn('[SYSTEM] OANDA stream silent > 1min. Force reconnecting...');
+        connectLiveFeed();
+        lastOandaHeartbeat = Date.now();
+    }
+}, 10000);
 
 function connectLiveFeed() {
     connectOanda();
