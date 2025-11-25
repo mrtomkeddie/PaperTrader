@@ -10,9 +10,26 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import { initFirebase, loadStateFromCloud, saveStateToCloud } from './firebase.js';
+import webpush from 'web-push';
 
 // Load .env file from root
 dotenv.config();
+
+// --- WEB PUSH SETUP ---
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    try {
+        webpush.setVapidDetails(
+            'mailto:example@yourdomain.org',
+            process.env.VAPID_PUBLIC_KEY,
+            process.env.VAPID_PRIVATE_KEY
+        );
+        console.log('[SYSTEM] Web Push VAPID keys configured');
+    } catch (e) {
+        console.error('[SYSTEM] Failed to set VAPID details:', e);
+    }
+} else {
+    console.warn('[SYSTEM] Missing VAPID keys for push notifications');
+}
 
 const app = express();
 app.use(cors());
@@ -529,10 +546,10 @@ connectLiveFeed();
 })();
 
 function notifyAll(title, body) {
-    if (!webpushClient || !process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
+    if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
     const payload = JSON.stringify({ title, body });
     for (const sub of pushSubscriptions) {
-        try { webpushClient.sendNotification(sub, payload).catch(() => {}); } catch {}
+        try { webpush.sendNotification(sub, payload).catch(() => {}); } catch {}
     }
 }
 

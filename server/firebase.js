@@ -18,6 +18,10 @@ export function initFirebase() {
         let serviceAccount;
         try {
             serviceAccount = JSON.parse(serviceAccountRaw);
+            // Fix private key formatting if it contains literal \n characters
+            if (serviceAccount.private_key && typeof serviceAccount.private_key === 'string') {
+                serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+            }
         } catch (e) {
             console.error('[FIREBASE] Failed to parse service account JSON:', e.message);
             return false;
