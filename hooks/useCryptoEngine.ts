@@ -98,17 +98,16 @@ export const useCryptoEngine = () => {
       } catch { }
     })();
     const interval = setInterval(async () => {
+      if (isConnected) return;
       try {
         const res = await fetch(`${base}/state?ts=${Date.now()}`, { cache: 'no-store' });
         if (res.ok) {
           const s = await res.json();
-          if (s.assets && s.account && s.trades) {
-            setAssets(s.assets);
-            setAccount(s.account);
-            setTrades(s.trades);
-            setIsConnected(true);
-            lastUpdateRef.current = Date.now();
-          }
+          if (s.assets) setAssets(s.assets);
+          if (s.account) setAccount(s.account);
+          if (s.trades) setTrades(s.trades);
+          setIsConnected(true);
+          lastUpdateRef.current = Date.now();
         }
       } catch { }
     }, 1500);

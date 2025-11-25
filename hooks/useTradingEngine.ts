@@ -44,13 +44,11 @@ export const useTradingEngine = () => {
         stream.onmessage = (ev) => {
           try {
             const state = JSON.parse(ev.data);
-            if (state.assets && state.account && state.trades) {
-              setAssets(state.assets);
-              setAccount(state.account);
-              setTrades(state.trades);
-              setIsConnected(true);
-              lastUpdateRef.current = Date.now();
-            }
+            if (state.assets) setAssets(state.assets);
+            if (state.account) setAccount(state.account);
+            if (state.trades) setTrades(state.trades);
+            setIsConnected(true);
+            lastUpdateRef.current = Date.now();
           } catch {}
         };
         stream.onerror = () => {
@@ -100,50 +98,41 @@ export const useTradingEngine = () => {
   }, [remoteUrl]);
 
   useEffect(() => {
+    if (isConnected) return;
     const interval = setInterval(async () => {
-      
-      // --- REMOTE SERVER POLL ---
       try {
-          // Auto-fix dirty URLs from iPhone copy-paste
           const cleanUrl = remoteUrl.trim().replace(/\/$/, "");
           const res = await fetch(`${cleanUrl}/state?ts=${Date.now()}`, { cache: 'no-store' });
           if (res.ok) {
               const state = await res.json();
-              // We only update if we got valid data back
-              if (state.assets && state.account && state.trades) {
-                  setAssets(state.assets);
-                  setAccount(state.account);
-                  setTrades(state.trades);
-                  setIsConnected(true); // Connection successful
-              }
+              if (state.assets) setAssets(state.assets);
+              if (state.account) setAccount(state.account);
+              if (state.trades) setTrades(state.trades);
+              setIsConnected(true);
           } else {
-              setIsConnected(false); // Server reachable but returned error
+              setIsConnected(false);
           }
       } catch (e) {
-          setIsConnected(false); // Network error (server down or wrong URL)
+          setIsConnected(false);
           try {
               const alt = DEFAULT_REMOTE_URL.trim().replace(/\/$/, "");
               if (alt && alt !== remoteUrl) {
                   const res2 = await fetch(`${alt}/state?ts=${Date.now()}`, { cache: 'no-store' });
                   if (res2.ok) {
                       const state2 = await res2.json();
-                      if (state2.assets && state2.account && state2.trades) {
-                          if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', alt);
-                          setRemoteUrl(alt);
-                          setAssets(state2.assets);
-                          setAccount(state2.account);
-                          setTrades(state2.trades);
-                          setIsConnected(true);
-                      }
+                      if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', alt);
+                      setRemoteUrl(alt);
+                      if (state2.assets) setAssets(state2.assets);
+                      if (state2.account) setAccount(state2.account);
+                      if (state2.trades) setTrades(state2.trades);
+                      setIsConnected(true);
                   }
               }
           } catch {}
       }
-      
     }, TICK_RATE_MS);
-
     return () => clearInterval(interval);
-  }, [remoteUrl]);
+  }, [remoteUrl, isConnected]);
 
   // --- Auto-discover best remote server on first load ---
   useEffect(() => {
