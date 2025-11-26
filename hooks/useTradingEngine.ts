@@ -125,9 +125,23 @@ export const useTradingEngine = () => {
         const rawSaved = typeof window !== 'undefined' ? localStorage.getItem('remoteUrl') : null;
         const saved = rawSaved ? rawSaved.trim().replace(/\/$/, '') : null;
         const hasProto = saved ? /^https?:\/\//i.test(saved) : false;
-        const clean = isDev ? '/api' : (hasProto && saved ? saved! : DEFAULT_REMOTE_URL);
-        if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', clean);
-        setRemoteUrl(clean);
+        if (isDev) {
+          const clean = '/api';
+          if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', clean);
+          setRemoteUrl(clean);
+          return;
+        }
+        let preferred = DEFAULT_REMOTE_URL;
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 800);
+          const res = await fetch('http://localhost:3001/state', { signal: ctrl.signal, cache: 'no-store' });
+          clearTimeout(t);
+          if (res && res.ok) preferred = 'http://localhost:3001';
+        } catch {}
+        if (preferred === DEFAULT_REMOTE_URL && hasProto && saved) preferred = saved;
+        if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', preferred);
+        setRemoteUrl(preferred);
       } catch {}
     };
     chooseUrl();
@@ -168,9 +182,9 @@ export const useTradingEngine = () => {
   }, [remoteUrl]);
 
   const resetAccount = useCallback(async () => {
-     if (confirm("Reset Remote Account? This will clear history on the server.")) {
+     if (confirm("Reset account balance only? History will be preserved.")) {
           const cleanUrl = remoteUrl.trim().replace(/\/$/, "");
-          try { await fetch(`${cleanUrl}/reset`, { method: 'POST' }); } catch(e) {}
+          try { await fetch(`${cleanUrl}/reset_account`, { method: 'POST' }); } catch(e) {}
      }
   }, [remoteUrl]);
 

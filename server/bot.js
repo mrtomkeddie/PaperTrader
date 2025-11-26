@@ -978,9 +978,25 @@ app.post('/strategy/:symbol', (req, res) => {
 });
 
 app.post('/reset', (req, res) => {
+    try {
+        const arch = path.join(DATA_DIR, 'archives');
+        fs.mkdirSync(arch, { recursive: true });
+        const ts = new Date().toISOString().replace(/[:.]/g, '-');
+        const dst = path.join(arch, `state-${ts}.json`);
+        if (fs.existsSync(STATE_FILE)) {
+            const raw = fs.readFileSync(STATE_FILE, 'utf8');
+            fs.writeFileSync(dst, raw, 'utf8');
+        }
+    } catch {}
     account = { balance: INITIAL_BALANCE, equity: INITIAL_BALANCE, dayPnL: 0, totalPnL: 0 };
     trades = [];
     pushSubscriptions = [];
+    saveState();
+    res.sendStatus(200);
+});
+
+app.post('/reset_account', (req, res) => {
+    account = { balance: INITIAL_BALANCE, equity: INITIAL_BALANCE, dayPnL: 0, totalPnL: 0 };
     saveState();
     res.sendStatus(200);
 });
