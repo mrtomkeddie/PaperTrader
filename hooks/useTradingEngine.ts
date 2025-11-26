@@ -14,7 +14,8 @@ export const useTradingEngine = () => {
         const raw = localStorage.getItem('remoteUrl');
         const saved = raw ? raw.trim().replace(/\/$/, '') : '';
         const hasProto = /^https?:\/\//i.test(saved);
-        if (saved && hasProto) return saved;
+        const isLocalHost = /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?/i.test(saved);
+        if (saved && hasProto && !isLocalHost) return saved;
         return DEFAULT_REMOTE_URL;
       }
       return isDev ? '/api' : DEFAULT_REMOTE_URL;
@@ -165,11 +166,12 @@ export const useTradingEngine = () => {
         const rawSaved = typeof window !== 'undefined' ? localStorage.getItem('remoteUrl') : null;
         const saved = rawSaved ? rawSaved.trim().replace(/\/$/, '') : null;
         const hasProto = saved ? /^https?:\/\//i.test(saved) : false;
+        const isLocalHost = saved ? /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?/i.test(saved) : false;
         const candidates = [
           ...(isDev ? ['/api'] : []),
           'http://localhost:3001',
           'http://localhost:3002',
-          ...(hasProto && saved ? [saved] : []),
+          ...(hasProto && saved && !isLocalHost ? [saved] : []),
           DEFAULT_REMOTE_URL,
         ];
         for (const base of candidates) {
