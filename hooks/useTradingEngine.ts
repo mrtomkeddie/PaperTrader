@@ -99,7 +99,7 @@ export const useTradingEngine = () => {
   useEffect(() => {
     const applyFallback = async () => {
       try {
-        if (trades.length > 0) return;
+        if (isConnected || trades.length > 0) return;
         const url = 'https://raw.githubusercontent.com/mrtomkeddie/Paper-Trader-2.0/main/data/state.json';
         const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) return;
@@ -111,9 +111,9 @@ export const useTradingEngine = () => {
         }
       } catch {}
     };
-    const t = setTimeout(applyFallback, 1500);
+    const t = setTimeout(applyFallback, 1200);
     return () => { try { clearTimeout(t); } catch {} };
-  }, [trades.length]);
+  }, [isConnected, trades.length]);
 
   useEffect(() => {
     if (isConnected) return;
@@ -165,6 +165,20 @@ export const useTradingEngine = () => {
     };
     chooseUrl();
   }, []);
+
+  useEffect(() => {
+    if (isDev) return;
+    const id = setInterval(async () => {
+      try {
+        const res = await fetch('http://localhost:3001/state', { cache: 'no-store' });
+        if (res && res.ok && remoteUrl !== 'http://localhost:3001') {
+          localStorage.setItem('remoteUrl', 'http://localhost:3001');
+          setRemoteUrl('http://localhost:3001');
+        }
+      } catch {}
+    }, 5000);
+    return () => { try { clearInterval(id); } catch {} };
+  }, [remoteUrl, isDev]);
 
   // --- Public Interface Wrappers for Remote Calls ---
   const toggleBot = useCallback(async (symbol: AssetSymbol) => {
