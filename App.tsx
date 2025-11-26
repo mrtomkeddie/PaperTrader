@@ -84,6 +84,20 @@ const App: React.FC = () => {
       try {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
         const reg = await navigator.serviceWorker.register('/sw.js');
+        try { await reg.update(); } catch {}
+        if (reg && typeof reg.addEventListener === 'function') {
+          try {
+            reg.addEventListener('updatefound', () => {
+              const installing = reg.installing;
+              if (!installing) return;
+              installing.addEventListener('statechange', () => {
+                if (installing.state === 'installed' && navigator.serviceWorker && navigator.serviceWorker.controller) {
+                  try { window.location.reload(); } catch {}
+                }
+              });
+            });
+          } catch {}
+        }
         const perm = await Notification.requestPermission();
         if (perm !== 'granted') return;
         const vapid = (import.meta as any)?.env?.VITE_VAPID_PUBLIC_KEY;
