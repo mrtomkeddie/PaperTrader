@@ -97,6 +97,25 @@ export const useTradingEngine = () => {
   }, [remoteUrl]);
 
   useEffect(() => {
+    const applyFallback = async () => {
+      try {
+        if (trades.length > 0) return;
+        const url = 'https://raw.githubusercontent.com/mrtomkeddie/Paper-Trader-2.0/main/data/state.json';
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const arr = Array.isArray(data?.trades) ? data.trades : [];
+        if (arr.length > 0) {
+          setTrades(arr);
+          if (data?.account) setAccount(data.account);
+        }
+      } catch {}
+    };
+    const t = setTimeout(applyFallback, 1500);
+    return () => { try { clearTimeout(t); } catch {} };
+  }, [trades.length]);
+
+  useEffect(() => {
     if (isConnected) return;
     const interval = setInterval(async () => {
       try {
