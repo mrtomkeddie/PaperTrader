@@ -11,11 +11,6 @@ export const useTradingEngine = () => {
   const [remoteUrl, setRemoteUrl] = useState(() => {
       if (typeof window !== 'undefined') {
         if (isDev) return '/api';
-        const raw = localStorage.getItem('remoteUrl');
-        const saved = raw ? raw.trim().replace(/\/$/, '') : '';
-        const hasProto = /^https?:\/\//i.test(saved);
-        const isLocalHost = /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?/i.test(saved);
-        if (saved && hasProto && !isLocalHost) return saved;
         return DEFAULT_REMOTE_URL;
       }
       return isDev ? '/api' : DEFAULT_REMOTE_URL;
@@ -116,6 +111,20 @@ export const useTradingEngine = () => {
           lastUpdateRef.current = Date.now();
         }
       } catch {}
+      try {
+        if (!isDev) {
+          const r2 = await fetch(`${DEFAULT_REMOTE_URL.replace(/\/$/, '')}/state?ts=${Date.now()}`, { cache: 'no-store' });
+          if (r2.ok) {
+            const s2 = await r2.json();
+            if (s2.assets) setAssets(s2.assets);
+            if (s2.account) setAccount(s2.account);
+            if (s2.trades) setTrades(s2.trades);
+            setIsConnected(true);
+            lastUpdateRef.current = Date.now();
+            setRemoteUrl(DEFAULT_REMOTE_URL.replace(/\/$/, ''));
+          }
+        }
+      } catch {}
     }, 5000);
     return () => { try { clearInterval(id); } catch {} };
   }, [remoteUrl]);
@@ -163,15 +172,8 @@ export const useTradingEngine = () => {
   useEffect(() => {
     const chooseUrl = async () => {
       try {
-        const rawSaved = typeof window !== 'undefined' ? localStorage.getItem('remoteUrl') : null;
-        const saved = rawSaved ? rawSaved.trim().replace(/\/$/, '') : null;
-        const hasProto = saved ? /^https?:\/\//i.test(saved) : false;
-        const isLocalHost = saved ? /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?/i.test(saved) : false;
         const candidates = [
           ...(isDev ? ['/api'] : []),
-          'http://localhost:3001',
-          'http://localhost:3002',
-          ...(hasProto && saved && !isLocalHost ? [saved] : []),
           DEFAULT_REMOTE_URL,
         ];
         for (const base of candidates) {
