@@ -111,49 +111,32 @@ const TradeHistory: React.FC<Props> = ({ trades }) => {
   return (
     <>
       <div className="pb-24 lg:pb-0">
-        <div className="space-y-5 mb-6">
-          {/* Symbol Filters */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between px-1">
-               <h3 className="text-[10px] font-bold text-ios-gray uppercase tracking-wider">Asset</h3>
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 [&::-webkit-scrollbar]:hidden">
-              {(['ALL', ...Array.from(new Set(trades.map(t => t.symbol)))] as const).map(opt => (
-                <button
-                  key={String(opt)}
-                  onClick={() => setSymbolFilter(String(opt))}
-                  className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap border ${
-                    symbolFilter === String(opt) 
-                      ? 'bg-white text-black border-white shadow-lg shadow-white/10 scale-105' 
-                      : 'bg-white/5 text-ios-gray border-white/5 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  {String(opt) === 'ALL' ? 'All Assets' : String(opt)}
-                </button>
-              ))}
-            </div>
+        <div className="mb-3 px-2 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-ios-gray uppercase tracking-wider">Filter</h3>
+          <div className="flex gap-2">
+            {(['ALL', ...Array.from(new Set(trades.map(t => t.symbol)))] as const).map(opt => (
+              <button
+                key={String(opt)}
+                onClick={() => setSymbolFilter(String(opt))}
+                className={`px-2.5 py-1 text-[10px] font-bold rounded-[6px] transition-all ${symbolFilter === String(opt) ? 'bg-[#636366] text-white shadow' : 'text-neutral-500 hover:text-neutral-300'}`}
+              >
+                {String(opt) === 'ALL' ? 'All' : String(opt)}
+              </button>
+            ))}
           </div>
-
-          {/* Strategy Filters */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between px-1">
-               <h3 className="text-[10px] font-bold text-ios-gray uppercase tracking-wider">Strategy</h3>
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2 [&::-webkit-scrollbar]:hidden">
-              {(['ALL', ...Array.from(new Set(trades.map(t => t.strategy).filter(Boolean)))] as (('ALL'|StrategyType)[])).map(opt => (
-                <button
-                  key={String(opt)}
-                  onClick={() => setStrategyFilter(opt as StrategyType | 'ALL')}
-                  className={`px-4 py-2 text-xs font-bold rounded-full transition-all whitespace-nowrap border ${
-                    strategyFilter === opt 
-                      ? 'bg-white text-black border-white shadow-lg shadow-white/10 scale-105' 
-                      : 'bg-white/5 text-ios-gray border-white/5 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  {opt === 'ALL' ? 'All Strategies' : getStrategyBadge(opt as StrategyType).label}
-                </button>
-              ))}
-            </div>
+        </div>
+        <div className="mb-3 px-2 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-ios-gray uppercase tracking-wider">Strategy</h3>
+          <div className="flex gap-2">
+            {(['ALL', ...Array.from(new Set(trades.map(t => t.strategy).filter(Boolean)))] as (('ALL'|StrategyType)[])).map(opt => (
+              <button
+                key={String(opt)}
+                onClick={() => setStrategyFilter(opt as StrategyType | 'ALL')}
+                className={`px-2.5 py-1 text-[10px] font-bold rounded-[6px] transition-all ${strategyFilter === opt ? 'bg-[#636366] text-white shadow' : 'text-neutral-500 hover:text-neutral-300'}`}
+              >
+                {opt === 'ALL' ? 'All' : getStrategyBadge(opt as StrategyType).label}
+              </button>
+            ))}
           </div>
         </div>
 

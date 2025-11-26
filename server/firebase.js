@@ -9,22 +9,34 @@ const DOC_ID = 'state';
 
 export function initFirebase() {
     try {
-        const serviceAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-        if (!serviceAccountRaw) {
-            console.warn('[FIREBASE] Missing FIREBASE_SERVICE_ACCOUNT_JSON in .env');
+        let serviceAccount;
+        
+        // Option 1: Full JSON in one variable
+        if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+            try {
+                serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+            } catch (e) {
+                console.error('[FIREBASE] Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON:', e.message);
+            }
+        }
+
+        // Option 2: Individual variables (Fallback)
+        if (!serviceAccount && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+            serviceAccount = {
+                project_id: process.env.FIREBASE_PROJECT_ID,
+                client_email: process.env.FIREBASE_CLIENT_EMAIL,
+                private_key: process.env.FIREBASE_PRIVATE_KEY
+            };
+        }
+
+        if (!serviceAccount) {
+            console.warn('[FIREBASE] Missing Firebase credentials. Set FIREBASE_SERVICE_ACCOUNT_JSON or (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY)');
             return false;
         }
 
-        let serviceAccount;
-        try {
-            serviceAccount = JSON.parse(serviceAccountRaw);
-            // Fix private key formatting if it contains literal \n characters
-            if (serviceAccount.private_key && typeof serviceAccount.private_key === 'string') {
-                serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-            }
-        } catch (e) {
-            console.error('[FIREBASE] Failed to parse service account JSON:', e.message);
-            return false;
+        // Fix private key formatting if it contains literal \n characters
+        if (serviceAccount.private_key && typeof serviceAccount.private_key === 'string') {
+            serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
         }
 
         if (!admin.apps.length) {
