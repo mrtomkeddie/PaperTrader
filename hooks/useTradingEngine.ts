@@ -70,29 +70,6 @@ export const useTradingEngine = () => {
           esRef.current = null;
           setIsConnected(false);
           try { connect(remoteUrl); } catch {}
-          try {
-            const alt = DEFAULT_REMOTE_URL.trim().replace(/\/$/, "");
-            if (alt && alt !== remoteUrl) {
-              const es2 = connect(alt);
-              es2.onmessage = (ev2) => {
-                try {
-                  const s2 = JSON.parse(ev2.data);
-                  if (s2.assets && s2.account && s2.trades) {
-                    const hasTrades = Array.isArray(s2.trades) && s2.trades.length > 0;
-                    if (hasTrades) {
-                      if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', alt);
-                      setRemoteUrl(alt);
-                    }
-                    setAssets(s2.assets);
-                    setAccount(s2.account);
-                    setTrades(s2.trades);
-                    setIsConnected(true);
-                    lastUpdateRef.current = Date.now();
-                  }
-                } catch {}
-              };
-            }
-          } catch {}
         }
       }, 5000);
       return () => { try { clearInterval(watchdog); } catch {}; try { es.close(); } catch {}; esRef.current = null; };
@@ -113,20 +90,6 @@ export const useTradingEngine = () => {
           if (s.trades) setTrades(s.trades);
           setIsConnected(true);
           lastUpdateRef.current = Date.now();
-        }
-      } catch {}
-      try {
-        if (!isDev) {
-          const r2 = await fetch(`${DEFAULT_REMOTE_URL.replace(/\/$/, '')}/state?ts=${Date.now()}`, { cache: 'no-store' });
-          if (r2.ok) {
-            const s2 = await r2.json();
-            if (s2.assets) setAssets(s2.assets);
-            if (s2.account) setAccount(s2.account);
-            if (s2.trades) setTrades(s2.trades);
-            setIsConnected(true);
-            lastUpdateRef.current = Date.now();
-            setRemoteUrl(DEFAULT_REMOTE_URL.replace(/\/$/, ''));
-          }
         }
       } catch {}
     }, 5000);
@@ -150,23 +113,6 @@ export const useTradingEngine = () => {
           }
       } catch (e) {
           setIsConnected(false);
-          if (!(isDev)) {
-            try {
-                const alt = DEFAULT_REMOTE_URL.trim().replace(/\/$/, "");
-                if (alt && alt !== remoteUrl) {
-                    const res2 = await fetch(`${alt}/state?ts=${Date.now()}`, { cache: 'no-store' });
-                    if (res2.ok) {
-                        const state2 = await res2.json();
-                        if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', alt);
-                        setRemoteUrl(alt);
-                        if (state2.assets) setAssets(state2.assets);
-                        if (state2.account) setAccount(state2.account);
-                        if (state2.trades) setTrades(state2.trades);
-                        setIsConnected(true);
-                    }
-                }
-            } catch {}
-          }
       }
     }, TICK_RATE_MS);
     return () => clearInterval(interval);
@@ -179,26 +125,9 @@ export const useTradingEngine = () => {
         const rawSaved = typeof window !== 'undefined' ? localStorage.getItem('remoteUrl') : null;
         const saved = rawSaved ? rawSaved.trim().replace(/\/$/, '') : null;
         const hasProto = saved ? /^https?:\/\//i.test(saved) : false;
-        const candidates = [
-          ...(isDev ? ['/api'] : []),
-          ...(hasProto && saved ? [saved] : []),
-          DEFAULT_REMOTE_URL,
-        ];
-        for (const base of candidates) {
-          try {
-            const cleanBase = base.replace(/\/$/, '');
-            const res = await fetch(`${cleanBase}/state?ts=${Date.now()}`, { method: 'GET', cache: 'no-store' });
-            if (res.ok) {
-              const s = await res.json();
-              const hasTrades = Array.isArray(s?.trades) && s.trades.length > 0;
-              if (hasTrades || cleanBase === DEFAULT_REMOTE_URL) {
-                if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', cleanBase);
-                setRemoteUrl(cleanBase);
-                return;
-              }
-            }
-          } catch {}
-        }
+        const clean = isDev ? '/api' : (hasProto && saved ? saved! : DEFAULT_REMOTE_URL);
+        if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', clean);
+        setRemoteUrl(clean);
       } catch {}
     };
     chooseUrl();
