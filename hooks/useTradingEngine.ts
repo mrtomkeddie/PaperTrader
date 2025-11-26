@@ -11,7 +11,10 @@ export const useTradingEngine = () => {
   const [remoteUrl, setRemoteUrl] = useState(() => {
       if (typeof window !== 'undefined') {
         if (isDev) return '/api';
-        return DEFAULT_REMOTE_URL;
+        const raw = localStorage.getItem('remoteUrl');
+        const saved = raw ? raw.trim().replace(/\/$/, '') : '';
+        const hasProto = /^https?:\/\//i.test(saved);
+        return hasProto ? saved : DEFAULT_REMOTE_URL;
       }
       return isDev ? '/api' : DEFAULT_REMOTE_URL;
   });
@@ -67,28 +70,29 @@ export const useTradingEngine = () => {
           esRef.current = null;
           setIsConnected(false);
           try { connect(remoteUrl); } catch {}
-          if (!(isDev)) {
-            try {
-              const alt = DEFAULT_REMOTE_URL.trim().replace(/\/$/, "");
-              if (alt && alt !== remoteUrl) {
-                const es2 = connect(alt);
-                es2.onmessage = (ev2) => {
-                  try {
-                    const s2 = JSON.parse(ev2.data);
-                    if (s2.assets && s2.account && s2.trades) {
+          try {
+            const alt = DEFAULT_REMOTE_URL.trim().replace(/\/$/, "");
+            if (alt && alt !== remoteUrl) {
+              const es2 = connect(alt);
+              es2.onmessage = (ev2) => {
+                try {
+                  const s2 = JSON.parse(ev2.data);
+                  if (s2.assets && s2.account && s2.trades) {
+                    const hasTrades = Array.isArray(s2.trades) && s2.trades.length > 0;
+                    if (hasTrades) {
                       if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', alt);
                       setRemoteUrl(alt);
-                      setAssets(s2.assets);
-                      setAccount(s2.account);
-                      setTrades(s2.trades);
-                      setIsConnected(true);
-                      lastUpdateRef.current = Date.now();
                     }
-                  } catch {}
-                };
-              }
-            } catch {}
-          }
+                    setAssets(s2.assets);
+                    setAccount(s2.account);
+                    setTrades(s2.trades);
+                    setIsConnected(true);
+                    lastUpdateRef.current = Date.now();
+                  }
+                } catch {}
+              };
+            }
+          } catch {}
         }
       }, 5000);
       return () => { try { clearInterval(watchdog); } catch {}; try { es.close(); } catch {}; esRef.current = null; };
@@ -172,20 +176,26 @@ export const useTradingEngine = () => {
   useEffect(() => {
     const chooseUrl = async () => {
       try {
+        const rawSaved = typeof window !== 'undefined' ? localStorage.getItem('remoteUrl') : null;
+        const saved = rawSaved ? rawSaved.trim().replace(/\/$/, '') : null;
+        const hasProto = saved ? /^https?:\/\//i.test(saved) : false;
         const candidates = [
           ...(isDev ? ['/api'] : []),
+          ...(hasProto && saved ? [saved] : []),
           DEFAULT_REMOTE_URL,
         ];
         for (const base of candidates) {
           try {
-            const res = await fetch(`${base.replace(/\/$/, '')}/state?ts=${Date.now()}`, { method: 'GET', cache: 'no-store' });
+            const cleanBase = base.replace(/\/$/, '');
+            const res = await fetch(`${cleanBase}/state?ts=${Date.now()}`, { method: 'GET', cache: 'no-store' });
             if (res.ok) {
-              const clean = base.replace(/\/$/, '');
-              if (typeof window !== 'undefined') {
-                localStorage.setItem('remoteUrl', clean);
+              const s = await res.json();
+              const hasTrades = Array.isArray(s?.trades) && s.trades.length > 0;
+              if (hasTrades || cleanBase === DEFAULT_REMOTE_URL) {
+                if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', cleanBase);
+                setRemoteUrl(cleanBase);
+                return;
               }
-              setRemoteUrl(clean);
-              return;
             }
           } catch {}
         }
