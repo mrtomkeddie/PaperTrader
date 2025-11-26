@@ -174,6 +174,10 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, oandaConfig, onSave, 
             )}
           </div>
 
+          <div className="pt-4 text-center">
+            <p className="text-[10px] text-ios-gray/50">v2.1.0 (Stabilized)</p>
+          </div>
+
         </div>
       </div>
     </div>

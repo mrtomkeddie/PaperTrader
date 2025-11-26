@@ -71,16 +71,47 @@ export async function loadStateFromCloud() {
 export async function saveStateToCloud(state) {
     if (!db) return;
     try {
-        // Ensure we don't save circular structures or excessive data
+        const ref = db.collection(COLLECTION).doc(DOC_ID);
+        const snap = await ref.get();
+        const existing = snap.exists ? snap.data() : {};
+        const prevTrades = Array.isArray(existing?.trades) ? existing.trades : [];
+        const newTrades = Array.isArray(state?.trades) ? state.trades : [];
+
+        const keyForTrade = (t) => {
+            if (!t) return '';
+            if (t.id) return t.id;
+            const parts = [t.symbol, t.entryPrice, t.openTime || t.open_time || t.openTimestamp, t.initialSize];
+            return parts.filter(Boolean).join('|');
+        };
+
+        const mergedByKey = new Map();
+        for (const t of prevTrades) mergedByKey.set(keyForTrade(t), t);
+        for (const t of newTrades) {
+            const k = keyForTrade(t);
+            if (!k) continue;
+            const existingT = mergedByKey.get(k);
+            if (!existingT) mergedByKey.set(k, t);
+            else {
+                const preferNew = (existingT.status !== 'CLOSED' && t.status === 'CLOSED') ||
+                    (typeof t.closeTime === 'number' && typeof existingT.closeTime === 'number' && t.closeTime > existingT.closeTime);
+                if (preferNew) mergedByKey.set(k, t);
+            }
+        }
+
+        const prevSubs = Array.isArray(existing?.pushSubscriptions) ? existing.pushSubscriptions : [];
+        const newSubs = Array.isArray(state?.pushSubscriptions) ? state.pushSubscriptions : [];
+        const subsByEndpoint = new Map();
+        for (const s of prevSubs) if (s && s.endpoint) subsByEndpoint.set(s.endpoint, s);
+        for (const s of newSubs) if (s && s.endpoint) subsByEndpoint.set(s.endpoint, s);
+
         const payload = {
             account: state.account,
-            trades: state.trades,
-            pushSubscriptions: state.pushSubscriptions,
+            trades: Array.from(mergedByKey.values()),
+            pushSubscriptions: Array.from(subsByEndpoint.values()),
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
-        
-        await db.collection(COLLECTION).doc(DOC_ID).set(payload, { merge: true });
-        // console.log('[FIREBASE] State saved'); // Commented out to reduce noise
+
+        await ref.set(payload, { merge: true });
     } catch (e) {
         console.error('[FIREBASE] Save error:', e.message);
     }
