@@ -2,10 +2,44 @@
   "account": {
     "balance": 528.6632500000024,
     "equity": 528.6632500000024,
-    "dayPnL": 5.430300000004257,
-    "totalPnL": 28.663250000002453
+    "dayPnL": 5.430300000004259,
+    "totalPnL": 28.66325000000245
   },
   "trades": [
+    {
+      "id": "e6e8d8d3-4289-4065-9430-97466a1b595b",
+      "symbol": "NAS100",
+      "type": "BUY",
+      "entryPrice": 25262.3,
+      "initialSize": 0.14,
+      "currentSize": 0.14,
+      "stopLoss": 25224.40655,
+      "tpLevels": [
+        {
+          "id": 1,
+          "price": 25413.8738,
+          "percentage": 0.4,
+          "hit": false
+        },
+        {
+          "id": 2,
+          "price": 25514.923,
+          "percentage": 0.4,
+          "hit": false
+        },
+        {
+          "id": 3,
+          "price": 26020.169,
+          "percentage": 0.2,
+          "hit": false
+        }
+      ],
+      "openTime": 1764182381580,
+      "status": "OPEN",
+      "strategy": "NY_ORB",
+      "pnl": 0,
+      "entryReason": "NY_ORB Signal"
+    },
     {
       "id": "17a3f989-d21e-4c8d-9ab9-bd7c77d86171",
       "symbol": "NAS100",
@@ -2395,5 +2429,21 @@
       "strategy": "NY_ORB"
     }
   ],
-  "pushSubscriptions": []
+  "pushSubscriptions": [],
+  "assets": {
+    "XAU/USD": {
+      "activeStrategies": [
+        "LONDON_SWEEP",
+        "TREND_FOLLOW"
+      ],
+      "botActive": true
+    },
+    "NAS100": {
+      "activeStrategies": [
+        "NY_ORB",
+        "TREND_FOLLOW"
+      ],
+      "botActive": true
+    }
+  }
 }

@@ -157,6 +157,17 @@ function loadState() {
                     account = parsed.account;
                     trades = parsed.trades;
                     pushSubscriptions = Array.isArray(parsed.pushSubscriptions) ? parsed.pushSubscriptions : [];
+                    
+                    // Restore Asset Configuration
+                    if (parsed.assets && typeof assets !== 'undefined') {
+                        for (const [sym, cfg] of Object.entries(parsed.assets)) {
+                            if (assets[sym]) {
+                                if (Array.isArray(cfg.activeStrategies)) assets[sym].activeStrategies = cfg.activeStrategies;
+                                if (typeof cfg.botActive === 'boolean') assets[sym].botActive = cfg.botActive;
+                            }
+                        }
+                    }
+
                     recalculateAccountState();
                     console.log(`[SYSTEM] Loaded persisted state: ${trades.length} trades, balance £${account.balance.toFixed(2)}`);
                     return;
@@ -175,6 +186,17 @@ function loadState() {
                 account = parsed.account;
                 trades = parsed.trades;
                 pushSubscriptions = Array.isArray(parsed.pushSubscriptions) ? parsed.pushSubscriptions : [];
+                
+                // Restore Asset Configuration from Backup
+                if (parsed.assets && typeof assets !== 'undefined') {
+                    for (const [sym, cfg] of Object.entries(parsed.assets)) {
+                        if (assets[sym]) {
+                            if (Array.isArray(cfg.activeStrategies)) assets[sym].activeStrategies = cfg.activeStrategies;
+                            if (typeof cfg.botActive === 'boolean') assets[sym].botActive = cfg.botActive;
+                        }
+                    }
+                }
+
                 recalculateAccountState();
                 console.log(`[SYSTEM] Loaded backup state: ${trades.length} trades`);
             }
@@ -187,7 +209,19 @@ function loadState() {
 function saveState() {
     try {
         fs.mkdirSync(DATA_DIR, { recursive: true });
-        const payload = JSON.stringify({ account, trades, pushSubscriptions }, null, 2);
+        
+        // Persist Asset Configuration
+        const assetsConfig = {};
+        if (typeof assets !== 'undefined') {
+            for (const [sym, data] of Object.entries(assets)) {
+                assetsConfig[sym] = {
+                    activeStrategies: data.activeStrategies,
+                    botActive: data.botActive
+                };
+            }
+        }
+
+        const payload = JSON.stringify({ account, trades, pushSubscriptions, assets: assetsConfig }, null, 2);
         
         // Create backup of current state if it exists
         if (fs.existsSync(STATE_FILE)) {
@@ -999,7 +1033,10 @@ app.post('/crypto/strategy/:symbol', async (req, res) => {
 
 app.post('/toggle/:symbol', (req, res) => {
     const { symbol } = req.params;
-    if (assets[symbol]) assets[symbol].botActive = !assets[symbol].botActive;
+    if (assets[symbol]) {
+        assets[symbol].botActive = !assets[symbol].botActive;
+        saveState();
+    }
     res.sendStatus(200);
 });
 
@@ -1016,6 +1053,7 @@ app.post('/strategy/:symbol', (req, res) => {
             // Add
             assets[symbol].activeStrategies.push(strategy);
         }
+        saveState();
     }
     res.sendStatus(200);
 });

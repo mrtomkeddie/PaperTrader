@@ -168,14 +168,16 @@ export const useTradingEngine = () => {
           return;
         }
         let preferred = DEFAULT_REMOTE_URL;
-        try {
-          const ctrl = new AbortController();
-          const t = setTimeout(() => ctrl.abort(), 800);
-          const res = await fetch('http://localhost:3001/state', { signal: ctrl.signal, cache: 'no-store' });
-          clearTimeout(t);
-          if (res && res.ok) preferred = 'http://localhost:3001';
-        } catch {}
-        if (preferred === DEFAULT_REMOTE_URL && hasProto && saved) preferred = saved;
+        // In production, we strictly use the configured remote or saved URL
+        // to avoid accidental connection to localhost servers running on the client machine
+        // FIX: If the saved URL is localhost but we are in production, ignore it and force default.
+        if (!isDev && saved && saved.includes('localhost')) {
+            preferred = DEFAULT_REMOTE_URL;
+            if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', preferred);
+        } else if (preferred === DEFAULT_REMOTE_URL && hasProto && saved) {
+            preferred = saved;
+        }
+        
         if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', preferred);
         setRemoteUrl(preferred);
       } catch {}
@@ -183,19 +185,7 @@ export const useTradingEngine = () => {
     chooseUrl();
   }, []);
 
-  useEffect(() => {
-    if (isDev) return;
-    const id = setInterval(async () => {
-      try {
-        const res = await fetch('http://localhost:3001/state', { cache: 'no-store' });
-        if (res && res.ok && remoteUrl !== 'http://localhost:3001') {
-          localStorage.setItem('remoteUrl', 'http://localhost:3001');
-          setRemoteUrl('http://localhost:3001');
-        }
-      } catch {}
-    }, 5000);
-    return () => { try { clearInterval(id); } catch {} };
-  }, [remoteUrl, isDev]);
+  // Removed auto-localhost discovery interval to enforce consistent server connection
 
   // --- Public Interface Wrappers for Remote Calls ---
   const toggleBot = useCallback(async (symbol: AssetSymbol) => {
@@ -221,13 +211,42 @@ export const useTradingEngine = () => {
       });
 
       try { 
-          await fetch(`${cleanUrl}/strategy/${encodeURIComponent(symbol)}`, { 
+          const res = await fetch(`${cleanUrl}/strategy/${encodeURIComponent(symbol)}`, { 
               method: 'POST', 
               headers: {'Content-Type': 'application/json'}, 
               body: JSON.stringify({ strategy: s }) 
           }); 
+          if (!res.ok) throw new Error('Server rejected strategy toggle');
       } catch (e) {
-          // Revert logic could go here if needed, but next poll will sync anyway
+          // Revert optimistic update if server request fails
+          setAssets(prev => {
+              const asset = prev[symbol];
+              // We can't easily "undo" without knowing the previous state exactly,
+              // but we can toggle it back.
+              // Better: just rely on the next poll/SSE to fix it, but let's notify.
+              // Or simpler: Toggle it back manually.
+              const list = asset.activeStrategies;
+              const newList = list.includes(s) 
+                  ? list.filter(strat => strat !== s) // It was added, so remove it
+                  : [...list, s]; // It was removed, so add it back
+               
+              // Actually, if we just toggled it, the "current" list (in prev) has the NEW state.
+              // So we need to reverse the logic to get back to OLD state.
+              // BUT 'prev' in this setter might be different from the 'prev' in the first setter due to closure?
+              // No, 'prev' is the current state when this runs.
+              // If the first setter ran, 'prev' here has the CHANGED state.
+              // So we just toggle 's' again to revert.
+              
+              const revertList = list.includes(s)
+                  ? list.filter(strat => strat !== s)
+                  : [...list, s];
+
+              return {
+                  ...prev,
+                  [symbol]: { ...asset, activeStrategies: revertList }
+              };
+          });
+          console.error("Failed to toggle strategy, reverting UI", e);
       }
   }, [remoteUrl]);
 
