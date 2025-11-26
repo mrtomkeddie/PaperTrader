@@ -869,6 +869,9 @@ app.get('/state', (req, res) => {
     res.setHeader('Surrogate-Control', 'no-store');
   } catch {}
   try {
+    if (trades.length < 2) githubLoadState();
+  } catch {}
+  try {
     for (const t of trades) {
       if (t.status === 'OPEN' && market[t.symbol]) {
         const { bid, ask } = market[t.symbol];
