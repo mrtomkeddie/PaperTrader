@@ -314,7 +314,6 @@ cloudLoadState();
 
 async function githubLoadState() {
   try {
-    if (trades.length >= 2) return;
     const url = 'https://raw.githubusercontent.com/mrtomkeddie/Paper-Trader-2.0/main/data/state.json';
     const raw = await new Promise((resolve) => {
       try {
@@ -330,7 +329,6 @@ async function githubLoadState() {
     if (!raw) return;
     const parsed = JSON.parse(raw);
     const arr = Array.isArray(parsed?.trades) ? parsed.trades : [];
-    if (arr.length < 2) return;
     const keyForTrade = (t) => {
       if (!t) return '';
       if (t.id) return t.id;
@@ -342,11 +340,22 @@ async function githubLoadState() {
     for (const t of arr) {
       const k = keyForTrade(t);
       if (!k) continue;
-      if (!mergedByKey.has(k)) mergedByKey.set(k, t);
+      const existing = mergedByKey.get(k);
+      if (!existing) {
+        mergedByKey.set(k, t);
+      } else {
+        const preferRemote = (existing.status !== 'CLOSED' && t.status === 'CLOSED') ||
+          (typeof t.closeTime === 'number' && typeof existing.closeTime === 'number' && t.closeTime > existing.closeTime);
+        if (preferRemote) mergedByKey.set(k, t);
+      }
     }
-    trades = Array.from(mergedByKey.values());
-    if (parsed?.account && typeof parsed.account.balance === 'number') account = parsed.account;
-    saveState();
+    const mergedList = Array.from(mergedByKey.values());
+    if (mergedList.length > trades.length) {
+      trades = mergedList;
+      if (parsed?.account && typeof parsed.account.balance === 'number') account = parsed.account;
+      saveState();
+      console.log(`[SYSTEM] GitHub state merged: ${trades.length} trades`);
+    }
   } catch {}
 }
 

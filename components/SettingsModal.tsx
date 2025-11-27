@@ -18,7 +18,15 @@ interface Props {
 const SettingsModal: React.FC<Props> = ({ isOpen, onClose, oandaConfig, onSave, onSetCryptoRemote, isIndicesConnected, isCryptoConnected }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [remoteUrl, setRemoteUrl] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('remoteUrl') || DEFAULT_REMOTE_URL;
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('remoteUrl');
+        if (saved) return saved;
+        const hostIsLocal = window.location && window.location.hostname === 'localhost';
+        if (hostIsLocal) return 'http://localhost:3001';
+        return DEFAULT_REMOTE_URL;
+      }
+    } catch {}
     return DEFAULT_REMOTE_URL;
   });
   const [cryptoUrl, setCryptoUrl] = useState(() => {

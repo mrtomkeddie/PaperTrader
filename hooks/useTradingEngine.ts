@@ -11,10 +11,13 @@ export const useTradingEngine = () => {
   const [remoteUrl, setRemoteUrl] = useState(() => {
       if (typeof window !== 'undefined') {
         if (isDev) return '/api';
+        const hostIsLocal = typeof window !== 'undefined' && window.location && window.location.hostname === 'localhost';
         const raw = localStorage.getItem('remoteUrl');
         const saved = raw ? raw.trim().replace(/\/$/, '') : '';
         const hasProto = /^https?:\/\//i.test(saved);
-        return hasProto ? saved : DEFAULT_REMOTE_URL;
+        if (hostIsLocal) return 'http://localhost:3001';
+        if (hasProto && saved) return saved;
+        return DEFAULT_REMOTE_URL;
       }
       return isDev ? '/api' : DEFAULT_REMOTE_URL;
   });
@@ -168,14 +171,11 @@ export const useTradingEngine = () => {
           return;
         }
         let preferred = DEFAULT_REMOTE_URL;
-        // In production, we strictly use the configured remote or saved URL
-        // to avoid accidental connection to localhost servers running on the client machine
-        // FIX: If the saved URL is localhost but we are in production, ignore it and force default.
-        if (!isDev && saved && saved.includes('localhost')) {
-            preferred = DEFAULT_REMOTE_URL;
-            if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', preferred);
-        } else if (preferred === DEFAULT_REMOTE_URL && hasProto && saved) {
-            preferred = saved;
+        const onLocal = typeof window !== 'undefined' && window.location && window.location.hostname === 'localhost';
+        if (onLocal) {
+          preferred = 'http://localhost:3001';
+        } else if (hasProto && saved) {
+          preferred = saved;
         }
         
         if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', preferred);

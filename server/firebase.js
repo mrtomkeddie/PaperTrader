@@ -61,6 +61,8 @@ export async function loadStateFromCloud() {
         if (doc.exists) {
             console.log('[FIREBASE] Cloud state loaded');
             return doc.data();
+        } else {
+            console.warn('[FIREBASE] Cloud document missing: pt2/state');
         }
     } catch (e) {
         console.error('[FIREBASE] Load error:', e.message);
