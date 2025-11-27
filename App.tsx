@@ -126,8 +126,8 @@ const App: React.FC = () => {
 
   const isPositiveDay = account.dayPnL >= 0;
 
-  // Fixed Assets: Gold and Nasdaq only
-  const visibleAssets = [AssetSymbol.XAUUSD, AssetSymbol.NAS100];
+  // Fixed Assets: Focus on NAS100 only
+  const visibleAssets = [AssetSymbol.NAS100];
 
   const combinedTrades: Trade[] = React.useMemo(() => {
     return [];

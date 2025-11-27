@@ -3928,17 +3928,9 @@
   ],
   "pushSubscriptions": [],
   "assets": {
-    "XAU/USD": {
-      "activeStrategies": [
-        "LONDON_SWEEP",
-        "TREND_FOLLOW"
-      ],
-      "botActive": true
-    },
     "NAS100": {
       "activeStrategies": [
-        "NY_ORB",
-        "TREND_FOLLOW"
+        "NY_ORB"
       ],
       "botActive": true
     }

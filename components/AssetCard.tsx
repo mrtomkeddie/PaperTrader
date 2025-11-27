@@ -48,10 +48,10 @@ const AssetCard: React.FC<Props> = ({ asset, trades, toggleBot, setStrategy }) =
 
     const getAvailableStrategies = (symbol: AssetSymbol) => {
         if (symbol === AssetSymbol.XAUUSD) {
-            return [StrategyType.LONDON_SWEEP, StrategyType.TREND_FOLLOW, StrategyType.AI_AGENT];
+            return [StrategyType.LONDON_SWEEP, StrategyType.AI_AGENT];
         }
         if (symbol === AssetSymbol.NAS100) {
-            return [StrategyType.NY_ORB, StrategyType.TREND_FOLLOW, StrategyType.AI_AGENT];
+            return [StrategyType.NY_ORB, StrategyType.AI_AGENT];
         }
         return [StrategyType.AI_AGENT];
     };

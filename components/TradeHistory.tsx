@@ -21,6 +21,8 @@ const getStrategyBadge = (strategy: StrategyType) => {
       return { label: 'NY ORB', className: 'bg-blue-500/15 text-blue-400 border-blue-500/20' };
     case StrategyType.AI_AGENT:
       return { label: 'GEMINI', className: 'bg-purple-500/15 text-purple-300 border-purple-500/20' };
+    case StrategyType.MANUAL:
+      return { label: 'MANUAL', className: 'bg-gray-500/20 text-gray-300 border-gray-500/20' };
     default:
       return { label: 'MANUAL', className: 'bg-gray-500/20 text-gray-300 border-gray-500/20' };
   }
@@ -129,7 +131,7 @@ const TradeHistory: React.FC<Props> = ({ trades }) => {
         <div className="mb-3 px-2 flex items-center justify-between">
           <h3 className="text-sm font-bold text-ios-gray uppercase tracking-wider">Strategy</h3>
           <div className="flex gap-2">
-            {(['ALL', ...Array.from(new Set(trades.map(t => t.strategy).filter(Boolean)))] as (('ALL'|StrategyType)[])).map(opt => (
+            {(() => { const allowed: StrategyType[] = [StrategyType.NY_ORB, StrategyType.AI_AGENT, StrategyType.MANUAL]; const opts: ('ALL' | StrategyType)[] = ['ALL', ...allowed.filter(s => trades.some(t => t.strategy === s))]; return opts; })().map(opt => (
               <button
                 key={String(opt)}
                 onClick={() => setStrategyFilter(opt as StrategyType | 'ALL')}

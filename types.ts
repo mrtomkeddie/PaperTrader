@@ -8,6 +8,7 @@ export enum StrategyType {
   // Basic / Trend
   TREND_FOLLOW = 'TREND_FOLLOW',
   AI_AGENT = 'AI_AGENT',
+  MANUAL = 'MANUAL',
   
   // Institutional Strategies
   LONDON_SWEEP = 'LONDON_SWEEP', 

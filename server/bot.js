@@ -103,7 +103,6 @@ if (API_KEY) {
 
 // --- TYPES & CONFIG ---
 const ASSET_CONFIG = {
-    'XAU/USD': { startPrice: 2350, volatility: 0.001, decimals: 2, lotSize: 10, valuePerPoint: 1, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
     'NAS100': { startPrice: 18500, volatility: 0.0015, decimals: 1, lotSize: 1, valuePerPoint: 1, minLot: 0.01, maxLot: 100, lotStep: 0.01 }
 };
 
@@ -165,6 +164,9 @@ function loadState() {
                                 if (Array.isArray(cfg.activeStrategies)) assets[sym].activeStrategies = cfg.activeStrategies;
                                 if (typeof cfg.botActive === 'boolean') assets[sym].botActive = cfg.botActive;
                             }
+                        }
+                        if (assets['NAS100']) {
+                            assets['NAS100'].activeStrategies = (assets['NAS100'].activeStrategies || []).filter(s => s !== 'TREND_FOLLOW');
                         }
                     }
 
@@ -242,16 +244,15 @@ function saveState() {
 
 // CANDLE STORAGE (Symbol -> M5 Candles [])
 let candlesM5 = {
-    'XAU/USD': [], 'NAS100': []
+    'NAS100': []
 };
 let candlesH1 = {
-    'XAU/USD': [], 'NAS100': []
+    'NAS100': []
 };
 
 // MARKET STATE (bid/ask/mid per symbol)
-const SPREAD_PCT = { 'XAU/USD': 0.0002, 'NAS100': 0.0005 };
+const SPREAD_PCT = { 'NAS100': 0.0005 };
 let market = {
-    'XAU/USD': { bid: ASSET_CONFIG['XAU/USD'].startPrice * (1 - SPREAD_PCT['XAU/USD']/2), ask: ASSET_CONFIG['XAU/USD'].startPrice * (1 + SPREAD_PCT['XAU/USD']/2), mid: ASSET_CONFIG['XAU/USD'].startPrice },
     'NAS100': { bid: ASSET_CONFIG['NAS100'].startPrice * (1 - SPREAD_PCT['NAS100']/2), ask: ASSET_CONFIG['NAS100'].startPrice * (1 + SPREAD_PCT['NAS100']/2), mid: ASSET_CONFIG['NAS100'].startPrice }
 };
 
@@ -277,14 +278,12 @@ function isWithinLondonSweepWindow(ts) {
 
 // AI CACHE (To prevent spamming API)
 let aiState = {
-    'XAU/USD': { lastCheck: 0, sentiment: 'NEUTRAL', confidence: 0, reason: '' },
     'NAS100': { lastCheck: 0, sentiment: 'NEUTRAL', confidence: 0, reason: '' }
 };
 
 // INITIALIZE ASSETS WITH BOTH STRATEGIES ACTIVE BY DEFAULT
 let assets = {
-    'XAU/USD': createAsset('XAU/USD', ['LONDON_SWEEP', 'TREND_FOLLOW']), 
-    'NAS100': createAsset('NAS100', ['NY_ORB', 'TREND_FOLLOW'])
+    'NAS100': createAsset('NAS100', ['NY_ORB'])
 };
 
 function createAsset(symbol, defaultStrategies) {
@@ -527,7 +526,7 @@ let lastOandaHeartbeat = Date.now();
 
 function connectOanda() {
     const host = OANDA_ENV === 'live' ? 'stream-fxtrade.oanda.com' : 'stream-fxpractice.oanda.com';
-    const instruments = ['XAU_USD','NAS100_USD'].join(',');
+    const instruments = ['NAS100_USD'].join(',');
     const options = {
         hostname: host,
         path: `/v3/accounts/${OANDA_ACCOUNT_ID}/pricing/stream?instruments=${encodeURIComponent(instruments)}`,
@@ -553,7 +552,7 @@ function connectOanda() {
                         const bid = parseFloat(evt.bids?.[0]?.price || evt.closeoutBid || '0');
                         const ask = parseFloat(evt.asks?.[0]?.price || evt.closeoutAsk || '0');
                         const mid = ask && bid ? (ask + bid) / 2 : (parseFloat(evt.price || '0'));
-                        const symbol = inst === 'XAU_USD' ? 'XAU/USD' : inst === 'NAS100_USD' ? 'NAS100' : null;
+                        const symbol = inst === 'NAS100_USD' ? 'NAS100' : null;
                         if (!symbol || !mid) continue;
                         market[symbol] = { bid, ask, mid };
                         const asset = assets[symbol];
@@ -602,7 +601,7 @@ connectLiveFeed();
     try {
         if (!USE_OANDA) return;
         const host = OANDA_ENV === 'live' ? 'api-fxtrade.oanda.com' : 'api-fxpractice.oanda.com';
-        const map = { 'XAU/USD': 'XAU_USD', 'NAS100': 'NAS100_USD' };
+        const map = { 'NAS100': 'NAS100_USD' };
         for (const symbol of Object.keys(assets)) {
             const inst = map[symbol];
             if (!inst) continue;
@@ -848,8 +847,8 @@ function processTicks(symbol) {
         const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(new Date());
         const hh = parseInt(String(parts.find(p => p.type === 'hour')?.value || '0'), 10);
         const mm = parseInt(String(parts.find(p => p.type === 'minute')?.value || '0'), 10);
-        const inLunch = (hh === 11 && mm >= 30) || (hh > 11 && hh < 14);
-        if (inLunch) { console.log('[FILTER] Signal skipped - Lunch Pause'); return; }
+        const inLunch = (hh === 11 && mm >= 30) || (hh > 11 && hh < 15);
+        if (symbol === 'NAS100' && inLunch) { console.log('[FILTER] Signal skipped - Lunch Pause'); return; }
     }
     const nowUtc = new Date();
     const dow = nowUtc.getUTCDay();
@@ -857,7 +856,7 @@ function processTicks(symbol) {
     if ((dow === 5 && hour >= 21) || dow === 6 || dow === 0) return;
 
     // A. TREND FOLLOW (24/7)
-    if (asset.activeStrategies.includes('TREND_FOLLOW')) {
+    if (asset.activeStrategies.includes('TREND_FOLLOW') && symbol !== 'NAS100') {
             const isTrendUp = asset.currentPrice > asset.ema200;
             const pullback = isTrendUp ? asset.currentPrice <= asset.ema : asset.currentPrice >= asset.ema;
             const confirm = isTrendUp ? asset.slope > 0.1 : asset.slope < -0.1;
@@ -882,7 +881,7 @@ function processTicks(symbol) {
     
     // C. NY ORB (NAS100)
     if (asset.activeStrategies.includes('NY_ORB') && symbol === 'NAS100') {
-            const volExpansion = asset.bollinger.upper - asset.bollinger.lower > asset.currentPrice * 0.002;
+            const volExpansion = asset.bollinger.upper - asset.bollinger.lower > asset.currentPrice * 0.0016;
             if (volExpansion && asset.trend === 'UP' && asset.currentPrice > asset.bollinger.upper) {
                 console.log(`[NY_ORB] ${symbol} BUY @ ${asset.currentPrice.toFixed(2)}`);
                 executeTrade(symbol, 'BUY', asset.currentPrice, 'NY_ORB', 'AGGRESSIVE');
@@ -890,7 +889,8 @@ function processTicks(symbol) {
     }
 
     // D. AI AGENT (Real Gemini)
-    if (asset.activeStrategies.includes('AI_AGENT') && aiState[symbol].confidence > 75) {
+    const minConfidence = (symbol === 'NAS100' && hour >= 16 && hour < 17) ? 85 : 75;
+    if (asset.activeStrategies.includes('AI_AGENT') && aiState[symbol].confidence > minConfidence) {
         const sentiment = aiState[symbol].sentiment;
         // If AI is Bullish and we are in Uptrend -> Buy
         if (sentiment === 'BULLISH' && asset.trend === 'UP') {
@@ -948,7 +948,9 @@ app.get('/export/json', (req, res) => {
 
 app.get('/export/csv', (req, res) => {
   const status = (req.query.status || 'closed').toString().toUpperCase();
-  const list = status === 'ALL' ? trades : trades.filter(t => t.status === 'CLOSED');
+  const symbolParam = (req.query.symbol || '').toString();
+  let list = status === 'ALL' ? trades : trades.filter(t => t.status === 'CLOSED');
+  if (symbolParam && symbolParam !== 'ALL') list = list.filter(t => t.symbol === symbolParam);
   const headers = ['id','symbol','type','entryPrice','initialSize','currentSize','stopLoss','openTime','closeTime','closePrice','pnl','status','strategy'];
   const rows = list.map(t => [
     t.id,
@@ -967,7 +969,8 @@ app.get('/export/csv', (req, res) => {
   ].join(','));
   const csv = [headers.join(','), ...rows].join('\n');
   res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', 'attachment; filename="trades.csv"');
+  const fname = symbolParam && symbolParam !== 'ALL' ? `trades_${symbolParam.replace(/[^A-Za-z0-9_-]/g,'')}.csv` : 'trades.csv';
+  res.setHeader('Content-Disposition', `attachment; filename="${fname}"`);
   res.send(csv);
 });
 
@@ -1256,7 +1259,7 @@ setInterval(() => {
     if (isFriday && isTime) {
       console.log('[SYSTEM] Weekend Close - Closing all positions');
       let closedPnL = 0;
-      for (const symbol of ['XAU/USD','NAS100']) {
+      for (const symbol of ['NAS100']) {
         const mkt = market[symbol];
         if (!mkt) continue;
         const { bid, ask, mid } = mkt;
