@@ -9,8 +9,10 @@
   "pushSubscriptions": [],
   "assets": {
     "NAS100": {
-      "activeStrategies": [],
-      "botActive": false
+      "activeStrategies": [
+        "NY_ORB"
+      ],
+      "botActive": true
     }
   }
 }

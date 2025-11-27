@@ -311,6 +311,9 @@ loadState();
 console.log(USE_OANDA ? '[SYSTEM] Using OANDA pricing stream' : '[SYSTEM] Using Binance pricing stream (fallback)');
 cloudLoadState();
 setInterval(() => { try { cloudLoadState(); } catch {} }, 10 * 60 * 1000);
+
+(async () => { try { await githubLoadState(); } catch {} })();
+setInterval(() => { try { githubLoadState(); } catch {} }, 10 * 60 * 1000);
 async function githubLoadState() {
   try {
     const url = 'https://raw.githubusercontent.com/mrtomkeddie/Paper-Trader-2.0/main/data/state.json';
