@@ -1241,6 +1241,36 @@ app.post('/push/test', (req, res) => {
     res.sendStatus(200);
 });
 
+app.post('/admin/close', (req, res) => {
+  try {
+    const sp = (req.body?.symbol || req.query?.symbol || 'XAU/USD').toString();
+    let closedPnL = 0; let closed = 0;
+    const targets = sp === 'ALL' ? Array.from(new Set(trades.filter(t => t.status === 'OPEN').map(t => t.symbol))) : [sp];
+    for (const symbol of targets) {
+      const mkt = market[symbol] || {};
+      const bid = mkt.bid; const ask = mkt.ask;
+      const openList = trades.filter(t => t.status === 'OPEN' && t.symbol === symbol);
+      for (const t of openList) {
+        const isBuy = t.type === 'BUY';
+        const exit = isBuy ? (bid != null ? bid : t.entryPrice) : (ask != null ? ask : t.entryPrice);
+        t.status = 'CLOSED';
+        t.closeReason = 'MANUAL';
+        t.closeTime = Date.now();
+        t.closePrice = exit;
+        const pnl = (isBuy ? exit - t.entryPrice : t.entryPrice - exit) * t.currentSize;
+        t.pnl += pnl; account.balance += pnl; closedPnL += pnl; closed++;
+        try { notifyAll('Trade Closed', `${symbol} ${t.type} @ ${Number(exit).toFixed(2)} (ADMIN_CLOSE) PnL ${pnl.toFixed(2)}`); } catch {}
+        try { sendSms(`CLOSE ${symbol} ${t.type} @ ${Number(exit).toFixed(2)} (ADMIN_CLOSE) PnL ${pnl.toFixed(2)}`); } catch {}
+      }
+    }
+    if (closedPnL !== 0) { account.dayPnL += closedPnL; account.totalPnL += closedPnL; account.equity = account.balance; }
+    saveState();
+    res.json({ closed, closedPnL });
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'error' });
+  }
+});
+
 // Start Server
 app.listen(PORT, '0.0.0.0', () => console.log(`Scheduler running on port ${PORT}`));
 
