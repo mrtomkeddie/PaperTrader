@@ -1,9 +1,9 @@
 {
   "account": {
-    "dayPnL": -30.03910000000054,
+    "dayPnL": -30.039100000000552,
     "balance": 511.2834500000024,
     "equity": 511.2834500000024,
-    "totalPnL": 11.2834500000024
+    "totalPnL": 11.283450000002397
   },
   "trades": [
     {
@@ -77,7 +77,7 @@
       "strategy": "NY_ORB",
       "pnl": 0,
       "entryReason": "NY_ORB Signal",
-      "floatingPnl": -0.1259999999996944
+      "floatingPnl": -0.05599999999969441
     },
     {
       "id": "17a3f989-d21e-4c8d-9ab9-bd7c77d86171",
@@ -3184,7 +3184,7 @@
       "strategy": "NY_ORB",
       "pnl": 0,
       "entryReason": "NY_ORB Signal",
-      "floatingPnl": -1.0919999999997163
+      "floatingPnl": -1.0269999999997164
     },
     {
       "id": "59b9ca10-0371-4045-a388-c0d88b11c0e9",
@@ -3257,7 +3257,7 @@
       "strategy": "NY_ORB",
       "pnl": 0,
       "entryReason": "NY_ORB Signal",
-      "floatingPnl": -4.3159999999996215
+      "floatingPnl": -4.250999999999622
     },
     {
       "id": "86feede8-a5fb-4823-8218-cb0eb448080e",
@@ -3330,7 +3330,7 @@
       "strategy": "NY_ORB",
       "pnl": 0,
       "entryReason": "NY_ORB Signal",
-      "floatingPnl": -0.5719999999997163
+      "floatingPnl": -0.5069999999997162
     },
     {
       "id": "0a9098e3-e1fd-43eb-8c4c-4f66b5dbf455",
@@ -3365,7 +3365,7 @@
       "strategy": "NY_ORB",
       "pnl": 0,
       "entryReason": "NY_ORB Signal",
-      "floatingPnl": -1.2869999999997164
+      "floatingPnl": -1.2219999999997162
     },
     {
       "id": "54e7b3b4-1a6e-4c98-a171-0e3cf1f89c7e",
@@ -3400,7 +3400,7 @@
       "strategy": "NY_ORB",
       "pnl": 0,
       "entryReason": "NY_ORB Signal",
-      "floatingPnl": -4.302999999999811
+      "floatingPnl": -4.237999999999811
     },
     {
       "id": "5bf7413e-a5cc-4787-a9c1-da648191c79f",
@@ -3473,7 +3473,7 @@
       "strategy": "NY_ORB",
       "pnl": 0,
       "entryReason": "NY_ORB Signal",
-      "floatingPnl": 0.5040000000003056
+      "floatingPnl": 0.5740000000003056
     },
     {
       "id": "95aa6dfb-17af-4fe6-b808-13e491564bd9",
@@ -3850,7 +3850,7 @@
       "strategy": "TREND_FOLLOW",
       "pnl": 0,
       "entryReason": "TREND_FOLLOW Signal",
-      "floatingPnl": -1.4195999999996638
+      "floatingPnl": -2.2764000000000304
     },
     {
       "id": "9a5d44da-768f-432f-b94a-3e237bee839b",
@@ -3923,7 +3923,7 @@
       "strategy": "TREND_FOLLOW",
       "pnl": 0,
       "entryReason": "TREND_FOLLOW Signal",
-      "floatingPnl": -0.6215999999998166
+      "floatingPnl": -1.4784000000001833
     }
   ],
   "pushSubscriptions": [],

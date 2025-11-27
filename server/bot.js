@@ -360,6 +360,7 @@ async function githubLoadState() {
 }
 
 (async () => { try { await githubLoadState(); } catch {} })();
+setInterval(() => { try { githubLoadState(); } catch {} }, 10 * 60 * 1000);
 
 // --- INDICATORS MATH ---
 const calculateEMA = (currentPrice, prevEMA, period) => {
@@ -988,6 +989,15 @@ app.post('/cloud/sync', (req, res) => {
   try {
     saveState();
     res.sendStatus(200);
+  } catch (e) {
+    res.status(500).json({ error: e?.message || 'error' });
+  }
+});
+
+app.post('/cloud/merge', async (req, res) => {
+  try {
+    await cloudLoadState();
+    res.json({ trades: trades.length, accountBalance: account.balance });
   } catch (e) {
     res.status(500).json({ error: e?.message || 'error' });
   }
