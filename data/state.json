@@ -2,10 +2,45 @@
   "account": {
     "balance": 490.62700000000063,
     "equity": 490.62700000000063,
-    "dayPnL": -14.936999999999717,
+    "dayPnL": 0,
     "totalPnL": -9.372999999999337
   },
   "trades": [
+    {
+      "id": "79a19350-6f87-420d-b97e-52951bbd14ce",
+      "symbol": "NAS100",
+      "type": "BUY",
+      "entryPrice": 25598.8,
+      "initialSize": 0.13,
+      "currentSize": 0.13,
+      "stopLoss": 25560.4018,
+      "tpLevels": [
+        {
+          "id": 1,
+          "price": 25752.392799999998,
+          "percentage": 0.4,
+          "hit": false
+        },
+        {
+          "id": 2,
+          "price": 25854.788,
+          "percentage": 0.4,
+          "hit": false
+        },
+        {
+          "id": 3,
+          "price": 26366.764,
+          "percentage": 0.2,
+          "hit": false
+        }
+      ],
+      "openTime": 1764755700427,
+      "status": "OPEN",
+      "strategy": "NY_ORB",
+      "pnl": 0,
+      "entryReason": "NY_ORB Signal",
+      "floatingPnl": 0.14300000000028376
+    },
     {
       "id": "15a817cd-f51d-4410-b7c7-5f02014df5c4",
       "symbol": "NAS100",
