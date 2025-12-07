@@ -247,7 +247,7 @@ function saveState() {
 let candlesM5 = {
   'NAS100': []
 };
-let candlesH1 = {
+let candlesM15 = {
   'NAS100': []
 };
 
@@ -326,7 +326,7 @@ function createAsset(symbol, defaultStrategies) {
     rsi: 50,
     ema: ASSET_CONFIG[symbol].startPrice,
     ema200: ASSET_CONFIG[symbol].startPrice,
-    ema200H1: ASSET_CONFIG[symbol].startPrice,
+    ema200M15: ASSET_CONFIG[symbol].startPrice,
     htfTrend: 'UP',
     trend: 'UP',
     macd: { macdLine: 0, signalLine: 0, histogram: 0 },
@@ -474,19 +474,20 @@ Goal: Increase trading opportunities while respecting the higher-timeframe bias.
 Market Data for ${symbol}:
 - Price: ${asset.currentPrice}
 - Primary Trend (200 EMA): ${asset.trend}
-- Higher Timeframe Trend (1H 200 EMA): ${asset.htfTrend}
-- H1 Distance to 200 EMA (%): ${(((asset.currentPrice - asset.ema200H1) / asset.ema200H1) * 100).toFixed(3)}
+- Higher Timeframe Trend (M15 200 EMA): ${asset.htfTrend}
+- M15 Distance to 200 EMA (%): ${(((asset.currentPrice - asset.ema200M15) / asset.ema200M15) * 100).toFixed(3)}
 - Momentum (RSI 14): ${asset.rsi.toFixed(2)}
 - Immediate Slope: ${asset.slope.toFixed(4)}
 - Volatility (Band Width): ${(asset.bollinger.upper - asset.bollinger.lower).toFixed(2)}
 
 Rules:
-- King Rule (H1): The 1H trend sets preference.
-- If H1 is UP: prefer BUYS; buy dips.
-- If H1 is DOWN: prefer SELLS; sell rallies.
-- If H1 is NEUTRAL/FLAT (distance to 200 EMA < 0.20%): both directions are allowed; scalp the range.
+- King Rule (M15): The 15-Minute trend sets preference.
+- The 15-Minute Trend is your guide. You are looking for quick moves in alignment with the M15 momentum.
+- If M15 is UP: prefer BUYS; buy dips.
+- If M15 is DOWN: prefer SELLS; sell rallies.
+- If M15 is NEUTRAL/FLAT (distance to 200 EMA < 0.20%): both directions are allowed; scalp the range.
 - When both directions are allowed, base your decision on near-term momentum and mean-reversion vs breakout context.
-- Only label BEARISH in H1 UP when downside momentum is strong; otherwise keep bias neutral.
+- Only label BEARISH in M15 UP when downside momentum is strong; otherwise keep bias neutral.
 - Confidence: >80 when alignment is strong; <50 when signals conflict.
 
 Return ONLY this JSON:
@@ -549,7 +550,7 @@ function connectBinance() {
         const stdDev = asset.currentPrice * 0.002;
         asset.bollinger = { upper: sma + stdDev * 2, middle: sma, lower: sma - stdDev * 2 };
         updateCandles(symbol, asset.currentPrice);
-        updateCandlesH1(symbol, asset.currentPrice);
+        updateCandlesM15(symbol, asset.currentPrice);
         processTicks(symbol);
       }
     } catch { }
@@ -560,6 +561,7 @@ function connectBinance() {
 
 let oandaReq = null;
 let lastOandaHeartbeat = Date.now();
+let lastPriceTime = Date.now();
 
 function connectOanda() {
   const host = OANDA_ENV === 'live' ? 'stream-fxtrade.oanda.com' : 'stream-fxpractice.oanda.com';
@@ -585,6 +587,7 @@ function connectOanda() {
         try {
           const evt = JSON.parse(line);
           if (evt.type === 'PRICE') {
+            lastPriceTime = Date.now();
             const inst = evt.instrument;
             const bid = parseFloat(evt.bids?.[0]?.price || evt.closeoutBid || '0');
             const ask = parseFloat(evt.asks?.[0]?.price || evt.closeoutAsk || '0');
@@ -607,7 +610,7 @@ function connectOanda() {
             const stdDev = asset.currentPrice * 0.002;
             asset.bollinger = { upper: sma + stdDev * 2, middle: sma, lower: sma - stdDev * 2 };
             updateCandles(symbol, asset.currentPrice);
-            updateCandlesH1(symbol, asset.currentPrice);
+            updateCandlesM15(symbol, asset.currentPrice);
             processTicks(symbol);
           }
         } catch { }
@@ -619,12 +622,28 @@ function connectOanda() {
   oandaReq.end();
 }
 
-// OANDA Watchdog: Force reconnect if stream is silent > 60s
+// OANDA Watchdog: Force reconnect if stream is silent > 60s or Stale > 5m
 setInterval(() => {
-  if (Date.now() - lastOandaHeartbeat > 60000) {
+  const now = Date.now();
+  
+  // 1. Silent Stream (No Data at all)
+  if (now - lastOandaHeartbeat > 60000) {
     console.warn('[SYSTEM] OANDA stream silent > 1min. Force reconnecting...');
     connectLiveFeed();
-    lastOandaHeartbeat = Date.now();
+    lastOandaHeartbeat = now;
+    lastPriceTime = now;
+    return;
+  }
+
+  // 2. Stale Prices (Heartbeats only, no ticks)
+  if (now - lastPriceTime > 5 * 60 * 1000) {
+    const phase = getMarketPhase(now);
+    if (phase === 'OPEN') {
+      console.warn('[WATCHDOG] Stream is stale (No prices for 5m). Restarting...');
+      connectLiveFeed();
+      lastPriceTime = now;
+      lastOandaHeartbeat = now;
+    }
   }
 }, 10000);
 
@@ -644,7 +663,7 @@ connectLiveFeed();
       if (!inst) continue;
       const options = {
         hostname: host,
-        path: `/v3/instruments/${encodeURIComponent(inst)}/candles?granularity=H1&price=M&count=200`,
+        path: `/v3/instruments/${encodeURIComponent(inst)}/candles?granularity=M15&price=M&count=200`,
         method: 'GET',
         headers: { 'Authorization': `Bearer ${OANDA_TOKEN}` }
       };
@@ -666,13 +685,13 @@ connectLiveFeed();
                 const t = new Date(c.time).getTime();
                 if (isFinite(cl) && cl > 0) list.push({ open: o || cl, high: h || cl, low: l || cl, close: cl, time: t, isClosed: true });
               }
-              candlesH1[symbol] = list.slice(-200);
-              const closes = candlesH1[symbol].map(e => e.close);
+              candlesM15[symbol] = list.slice(-200);
+              const closes = candlesM15[symbol].map(e => e.close);
               if (closes.length > 0) {
-                const emaH1 = calculateEMAFromSeries(closes, 200);
-                assets[symbol].ema200H1 = emaH1;
+                const emaM15 = calculateEMAFromSeries(closes, 200);
+                assets[symbol].ema200M15 = emaM15;
                 const price = assets[symbol].currentPrice;
-                assets[symbol].htfTrend = (price > emaH1) ? 'UP' : 'DOWN';
+                assets[symbol].htfTrend = (price > emaM15) ? 'UP' : 'DOWN';
               }
             } catch { }
             resolve(null);
@@ -682,7 +701,7 @@ connectLiveFeed();
         req.end();
       });
     }
-    console.log('[SYSTEM] Initialized 1H history and EMA200 for Indices/Gold');
+    console.log('[SYSTEM] Initialized M15 history and EMA200 for Indices/Gold');
   } catch { }
 })();
 
@@ -723,10 +742,10 @@ function updateCandles(symbol, price) {
   }
 }
 
-function updateCandlesH1(symbol, price) {
-  const timeframeMs = 60 * 60 * 1000;
+function updateCandlesM15(symbol, price) {
+  const timeframeMs = 15 * 60 * 1000;
   const now = Date.now();
-  const list = candlesH1[symbol];
+  const list = candlesM15[symbol];
   if (list.length === 0) {
     list.push({ open: price, high: price, low: price, close: price, time: now, isClosed: false });
     return;
@@ -743,10 +762,10 @@ function updateCandlesH1(symbol, price) {
     if (list.length > 200) list.shift();
     const closes = list.filter(c => c.isClosed).map(c => c.close);
     if (closes.length > 0) {
-      const emaH1 = calculateEMAFromSeries(closes, 200);
-      assets[symbol].ema200H1 = emaH1;
+      const emaM15 = calculateEMAFromSeries(closes, 200);
+      assets[symbol].ema200M15 = emaM15;
       const p = assets[symbol].currentPrice;
-      assets[symbol].htfTrend = (p > emaH1) ? 'UP' : 'DOWN';
+      assets[symbol].htfTrend = (p > emaM15) ? 'UP' : 'DOWN';
     }
   }
 }
@@ -926,7 +945,7 @@ function processTicks(symbol) {
   }
 
   // D. AI AGENT (Real Gemini)
-  const minConfidence = (symbol === 'NAS100' && hour >= 16 && hour < 17) ? 85 : 75;
+  const minConfidence = (symbol === 'NAS100' && hour >= 16 && hour < 17) ? 75 : 65;
   if (asset.activeStrategies.includes('AI_AGENT') && aiState[symbol].confidence > minConfidence) {
     const sentiment = aiState[symbol].sentiment;
     // If AI is Bullish and we are in Uptrend -> Buy

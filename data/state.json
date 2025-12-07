@@ -1,9 +1,9 @@
 {
   "account": {
-    "balance": 490.62700000000063,
-    "equity": 490.62700000000063,
+    "balance": 484.08800000000076,
+    "equity": 484.08800000000076,
     "dayPnL": 0,
-    "totalPnL": -9.372999999999337
+    "totalPnL": -15.91199999999924
   },
   "trades": [
     {
@@ -35,11 +35,14 @@
         }
       ],
       "openTime": 1764755700427,
-      "status": "OPEN",
+      "status": "CLOSED",
       "strategy": "NY_ORB",
-      "pnl": 0,
+      "pnl": -8.163999999999906,
       "entryReason": "NY_ORB Signal",
-      "floatingPnl": 0.14300000000028376
+      "floatingPnl": -8.163999999999906,
+      "closeReason": "STOP_LOSS",
+      "closeTime": 1764866579937,
+      "closePrice": 25536.5
     },
     {
       "id": "15a817cd-f51d-4410-b7c7-5f02014df5c4",
@@ -382,6 +385,82 @@
       "closeReason": "STOP_LOSS",
       "closeTime": 1764547565261,
       "closePrice": 25387.65
+    },
+    {
+      "id": "4134edab-4cf5-42ee-89c9-abc3ce098dce",
+      "symbol": "NAS100",
+      "type": "BUY",
+      "entryPrice": 25605,
+      "initialSize": 0.13,
+      "currentSize": 0.13,
+      "stopLoss": 25566.592500000002,
+      "tpLevels": [
+        {
+          "id": 1,
+          "price": 25758.63,
+          "percentage": 0.4,
+          "hit": false
+        },
+        {
+          "id": 2,
+          "price": 25861.05,
+          "percentage": 0.4,
+          "hit": false
+        },
+        {
+          "id": 3,
+          "price": 26373.15,
+          "percentage": 0.2,
+          "hit": false
+        }
+      ],
+      "openTime": 1764755967378,
+      "status": "CLOSED",
+      "strategy": "NY_ORB",
+      "pnl": -5.486000000000095,
+      "entryReason": "NY_ORB Signal",
+      "floatingPnl": -5.486000000000095,
+      "closeReason": "STOP_LOSS",
+      "closeTime": 1764770492276,
+      "closePrice": 25564.05
+    },
+    {
+      "id": "dcd4065d-e743-4e14-9eb6-b9e26035590e",
+      "symbol": "NAS100",
+      "type": "BUY",
+      "entryPrice": 25537.1,
+      "initialSize": 0.13,
+      "currentSize": 0.13,
+      "stopLoss": 25591.8825,
+      "tpLevels": [
+        {
+          "id": 1,
+          "price": 25690.3226,
+          "percentage": 0.4,
+          "hit": false
+        },
+        {
+          "id": 2,
+          "price": 25792.470999999998,
+          "percentage": 0.4,
+          "hit": false
+        },
+        {
+          "id": 3,
+          "price": 26303.213,
+          "percentage": 0.2,
+          "hit": false
+        }
+      ],
+      "openTime": 1764866580421,
+      "status": "CLOSED",
+      "strategy": "NY_ORB",
+      "pnl": 7.111000000000095,
+      "entryReason": "NY_ORB Signal",
+      "floatingPnl": 7.111000000000095,
+      "closeReason": "STOP_LOSS",
+      "closeTime": 1764867928763,
+      "closePrice": 25592.3
     }
   ],
   "pushSubscriptions": [
