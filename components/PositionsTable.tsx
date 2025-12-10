@@ -46,7 +46,13 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                                         {isProfit ? '+' : ''}{pnlVal.toFixed(2)}
                                     </td>
                                     <td className="py-3 px-4 text-gray-500 text-xs font-mono">
-                                        {new Date(trade.closeTime || trade.openTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        {new Date(trade.closeTime || trade.openTime).toLocaleString('en-GB', {
+                                            day: '2-digit',
+                                            month: '2-digit',
+                                            year: '2-digit',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
                                     </td>
                                 </tr>
                             );
@@ -72,7 +78,13 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                     <div className="flex items-center gap-2">
                         <span className="font-bold text-white text-lg">{trade.symbol}</span>
                         <span className="text-[10px] text-gray-500 font-mono">
-                            {new Date(trade.closeTime || trade.openTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            {new Date(trade.closeTime || trade.openTime).toLocaleString('en-GB', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}
                         </span>
                     </div>
                     <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${trade.type === 'BUY' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>

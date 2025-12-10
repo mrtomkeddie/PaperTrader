@@ -7,6 +7,17 @@ interface Props {
     onSelectTrade: (trade: Trade) => void;
 }
 
+const getStrategyLabel = (strategy: string) => {
+    switch (strategy) {
+        case StrategyType.NY_ORB: return 'NY ORB';
+        case StrategyType.AI_AGENT: return 'Gemini AI';
+        case StrategyType.TREND_FOLLOW: return 'Trend';
+        case StrategyType.LONDON_SWEEP: return 'Ldn Sweep';
+        case StrategyType.LONDON_CONTINUATION: return 'Ldn Cont';
+        default: return strategy.replace(/_/g, ' ');
+    }
+};
+
 const MobileTrades: React.FC<Props> = ({ trades, onSelectTrade }) => {
     const [activeFilter, setActiveFilter] = useState<'ALL' | 'NY ORB' | 'GEMINI'>('ALL');
 
@@ -46,8 +57,8 @@ const MobileTrades: React.FC<Props> = ({ trades, onSelectTrade }) => {
                     <div>
                         <div className="flex items-center gap-2">
                             <span className="text-sm font-bold text-white">{trade.symbol}</span>
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-bold ${trade.strategy === 'NY_ORB' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
-                                {trade.strategy === 'NY_ORB' ? 'NY ORB' : 'Gemini'}
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-bold ${trade.strategy === StrategyType.NY_ORB ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                                {getStrategyLabel(trade.strategy)}
                             </span>
                         </div>
                         <div className="text-[10px] text-gray-500 mt-0.5">@ {trade.entryPrice.toFixed(2)}</div>

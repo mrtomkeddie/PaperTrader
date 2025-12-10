@@ -16,9 +16,9 @@ const STRATEGY_CONFIG: Record<string, StrategyType[]> = {
 };
 
 const AVAILABLE_STRATEGIES = [
-    { type: StrategyType.AI_AGENT, label: 'AI Guardian' },
+    { type: StrategyType.AI_AGENT, label: 'Gemini AI' },
     { type: StrategyType.TREND_FOLLOW, label: 'Trend Follow' },
-    { type: StrategyType.NY_ORB, label: 'NY Breakout' },
+    { type: StrategyType.NY_ORB, label: 'NY ORB' },
     { type: StrategyType.LONDON_SWEEP, label: 'London Sweep' },
 ];
 

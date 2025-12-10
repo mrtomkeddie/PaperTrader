@@ -492,9 +492,10 @@ Rules:
 - When both directions are allowed, base your decision on near-term momentum and mean-reversion vs breakout context.
 - Only label BEARISH in M15 UP when downside momentum is strong; otherwise keep bias neutral.
 - Confidence: >80 when alignment is strong; <50 when signals conflict.
+- Explanation Style: Use very simple, beginner-friendly language. Avoid complex financial jargon. Explain it like I'm 5 years old.
 
 Return ONLY this JSON:
-{ "sentiment": "BULLISH" | "BEARISH" | "NEUTRAL", "confidence": number (0-100), "reason": "concise rationale explaining WHY to enter now (e.g. 'Pullback to EMA200 in Uptrend'). If Neutral, explain what you are waiting for." }`;
+{ "sentiment": "BULLISH" | "BEARISH" | "NEUTRAL", "confidence": number (0-100), "reason": "Simple, beginner-friendly explanation of WHY (e.g. 'Price is going up and pulled back a bit, good time to buy')." }`;
 
     const response = await aiClient.models.generateContent({
       model: 'gemini-2.5-flash',
