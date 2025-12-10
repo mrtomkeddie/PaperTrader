@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trade, StrategyType } from '../../types';
+import { Trade, StrategyType, AssetSymbol } from '../../types';
 import { BarChart2, ChevronRight } from 'lucide-react';
 
 interface Props {
@@ -18,8 +18,10 @@ const getStrategyLabel = (strategy: string) => {
     }
 };
 
+type FilterType = 'ALL' | 'NAS100' | 'GOLD' | 'GEMINI' | 'NY ORB' | 'TREND' | 'LONDON';
+
 const MobileTrades: React.FC<Props> = ({ trades, onSelectTrade }) => {
-    const [activeFilter, setActiveFilter] = useState<'ALL' | 'NY ORB' | 'GEMINI'>('ALL');
+    const [activeFilter, setActiveFilter] = useState<FilterType>('ALL');
 
     const openTrades = trades.filter(t => t.status === 'OPEN').sort((a, b) => b.openTime - a.openTime);
     
@@ -27,8 +29,17 @@ const MobileTrades: React.FC<Props> = ({ trades, onSelectTrade }) => {
     
     const filteredClosedTrades = allClosedTrades.filter(t => {
         if (activeFilter === 'ALL') return true;
+        
+        // Asset Filters
+        if (activeFilter === 'NAS100') return t.symbol === AssetSymbol.NAS100;
+        if (activeFilter === 'GOLD') return t.symbol === AssetSymbol.XAUUSD;
+        
+        // Strategy Filters
+        if (activeFilter === 'GEMINI') return t.strategy === StrategyType.AI_AGENT;
         if (activeFilter === 'NY ORB') return t.strategy === StrategyType.NY_ORB;
-        if (activeFilter === 'GEMINI') return t.strategy !== StrategyType.NY_ORB;
+        if (activeFilter === 'TREND') return t.strategy === StrategyType.TREND_FOLLOW;
+        if (activeFilter === 'LONDON') return t.strategy === StrategyType.LONDON_SWEEP || t.strategy === StrategyType.LONDON_CONTINUATION;
+        
         return true;
     }).sort((a, b) => (b.closeTime || 0) - (a.closeTime || 0));
 
@@ -80,11 +91,13 @@ const MobileTrades: React.FC<Props> = ({ trades, onSelectTrade }) => {
         );
     };
 
+    const filters: FilterType[] = ['ALL', 'NAS100', 'GOLD', 'GEMINI', 'NY ORB', 'TREND', 'LONDON'];
+
     return (
         <div className="px-4 pb-24">
             {/* Filter Pills */}
             <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
-                {(['ALL', 'NY ORB', 'GEMINI'] as const).map((f) => (
+                {filters.map((f) => (
                     <button 
                         key={f} 
                         onClick={() => setActiveFilter(f)}

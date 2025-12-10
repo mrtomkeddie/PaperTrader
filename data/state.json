@@ -8,6 +8,41 @@
   },
   "trades": [
     {
+      "id": "03686afb-e901-4e7b-a956-5d71db047ff5",
+      "symbol": "NAS100",
+      "type": "BUY",
+      "entryPrice": 25619.9,
+      "initialSize": 0.12,
+      "currentSize": 0.12,
+      "stopLoss": 25581.470150000005,
+      "tpLevels": [
+        {
+          "id": 1,
+          "price": 25773.619400000003,
+          "percentage": 0.4,
+          "hit": false
+        },
+        {
+          "id": 2,
+          "price": 25876.099000000002,
+          "percentage": 0.4,
+          "hit": false
+        },
+        {
+          "id": 3,
+          "price": 26388.497000000003,
+          "percentage": 0.2,
+          "hit": false
+        }
+      ],
+      "openTime": 1765395765577,
+      "status": "OPEN",
+      "strategy": "TREND_FOLLOW",
+      "pnl": 0,
+      "entryReason": "Trend Follow: Price pullback to EMA confirmed by slope.",
+      "confidence": 85
+    },
+    {
       "id": "79a19350-6f87-420d-b97e-52951bbd14ce",
       "symbol": "NAS100",
       "type": "BUY",
