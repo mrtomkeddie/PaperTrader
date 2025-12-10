@@ -33,15 +33,6 @@ const MobileHeader: React.FC<Props> = ({ title, account, onOpenSettings, activeA
                 £{account.balance.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </h1>
 
-            {/* PnL Pill */}
-            <div className={`px-4 py-1.5 rounded-full flex items-center gap-2 ${isPositive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                {isPositive ? (
-                    <span className="text-xs font-bold">↗ £{pnl.toFixed(2)} (+{(pnl / account.balance * 100).toFixed(2)}%) Today</span>
-                ) : (
-                    <span className="text-xs font-bold">↘ £{Math.abs(pnl).toFixed(2)} ({(pnl / account.balance * 100).toFixed(2)}%) Today</span>
-                )}
-            </div>
-
             {/* Asset Toggle Removed */}
         </div>
     );
