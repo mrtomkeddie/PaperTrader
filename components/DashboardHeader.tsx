@@ -15,10 +15,7 @@ const DashboardHeader: React.FC<Props> = ({ account, toggleAsset, activeAsset, o
             {/* Top Row: Logo & Mobile Settings */}
             <div className="flex items-center justify-between w-full md:w-auto">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-gradient-to-tr from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center transform rotate-3">
-                        <span className="text-white font-bold text-lg">M</span>
-                    </div>
-                    <span className="text-xl font-bold tracking-tight text-white">MARKETECHO</span>
+                    <img src="/pt2logo.png" alt="Paper Trader 2.0" className="h-10 w-auto" />
                 </div>
                 
                 {/* Mobile Settings Button */}

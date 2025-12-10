@@ -632,12 +632,6 @@
         "AI_AGENT"
       ],
       "botActive": true
-    },
-    "XAU/USD": {
-      "activeStrategies": [
-        "LONDON_SWEEP"
-      ],
-      "botActive": true
     }
   }
 }
