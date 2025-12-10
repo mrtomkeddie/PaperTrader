@@ -145,12 +145,10 @@ const App: React.FC = () => {
              {activeMobileTab === 'dashboard' ? (
                 activeAssetData ? (
                     <MobileDashboard 
-                        asset={activeAssetData}
-                        activeStrategies={activeAssetData.activeStrategies || []}
-                        onToggleStrategy={setStrategy}
-                        isAutoTrading={activeAssetData.botActive}
-                        onToggleAuto={() => toggleBot(activeAssetData.symbol)}
-                    />
+                    assets={assets}
+                    onToggleStrategy={setStrategy}
+                    onToggleAuto={toggleBot}
+                />
                 ) : (
                     <div className="flex items-center justify-center h-64 text-gray-500">Loading...</div>
                 )

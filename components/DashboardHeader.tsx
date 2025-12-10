@@ -68,7 +68,7 @@ const DashboardHeader: React.FC<Props> = ({ account, toggleAsset, activeAsset, o
                          </div>
                     </div>
 
-                    <div className="text-right hidden xl:block">
+                    <div className="text-right hidden lg:block">
                         <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Win Rate</div>
                         <div className={`text-xl font-bold tabular-nums ${(account.winRate || 0) >= 50 ? 'text-green-500' : 'text-orange-500'}`}>
                             {(account.winRate || 0).toFixed(1)}%

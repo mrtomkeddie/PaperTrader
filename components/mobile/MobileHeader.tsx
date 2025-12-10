@@ -42,23 +42,7 @@ const MobileHeader: React.FC<Props> = ({ title, account, onOpenSettings, activeA
                 )}
             </div>
 
-            {/* Asset Toggle */}
-            {activeAsset && onToggleAsset && (
-                <div className="flex gap-2 mt-4 bg-[#1C1C1E] p-1 rounded-lg border border-white/5">
-                    <button 
-                        onClick={() => onToggleAsset(AssetSymbol.NAS100)}
-                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${activeAsset === AssetSymbol.NAS100 ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
-                    >
-                        NAS100
-                    </button>
-                    <button 
-                        onClick={() => onToggleAsset(AssetSymbol.XAUUSD)}
-                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${activeAsset === AssetSymbol.XAUUSD ? 'bg-yellow-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
-                    >
-                        GOLD
-                    </button>
-                </div>
-            )}
+            {/* Asset Toggle Removed */}
         </div>
     );
 };
