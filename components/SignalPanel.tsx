@@ -12,7 +12,8 @@ interface Props {
 }
 
 const STRATEGY_CONFIG: Record<string, StrategyType[]> = {
-    [AssetSymbol.NAS100]: [StrategyType.AI_AGENT, StrategyType.NY_ORB],
+    [AssetSymbol.NAS100]: [StrategyType.AI_AGENT, StrategyType.NY_ORB, StrategyType.TREND_FOLLOW],
+    [AssetSymbol.XAUUSD]: [StrategyType.LONDON_SWEEP],
 };
 
 const AVAILABLE_STRATEGIES = [

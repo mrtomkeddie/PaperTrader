@@ -1,14 +1,16 @@
 import React from 'react';
 import { Settings } from 'lucide-react';
-import { AccountState } from '../../types';
+import { AccountState, AssetSymbol } from '../../types';
 
 interface Props {
     title: string;
     account: AccountState;
     onOpenSettings: () => void;
+    activeAsset?: AssetSymbol;
+    onToggleAsset?: (asset: AssetSymbol) => void;
 }
 
-const MobileHeader: React.FC<Props> = ({ title, account, onOpenSettings }) => {
+const MobileHeader: React.FC<Props> = ({ title, account, onOpenSettings, activeAsset, onToggleAsset }) => {
     // Determine daily PnL color
     const pnl = account.totalPnL || 0;
     const isPositive = pnl >= 0;
@@ -39,6 +41,24 @@ const MobileHeader: React.FC<Props> = ({ title, account, onOpenSettings }) => {
                     <span className="text-xs font-bold">↘ £{Math.abs(pnl).toFixed(2)} ({(pnl / account.balance * 100).toFixed(2)}%) Today</span>
                 )}
             </div>
+
+            {/* Asset Toggle */}
+            {activeAsset && onToggleAsset && (
+                <div className="flex gap-2 mt-4 bg-[#1C1C1E] p-1 rounded-lg border border-white/5">
+                    <button 
+                        onClick={() => onToggleAsset(AssetSymbol.NAS100)}
+                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${activeAsset === AssetSymbol.NAS100 ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+                    >
+                        NAS100
+                    </button>
+                    <button 
+                        onClick={() => onToggleAsset(AssetSymbol.XAUUSD)}
+                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${activeAsset === AssetSymbol.XAUUSD ? 'bg-yellow-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+                    >
+                        GOLD
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

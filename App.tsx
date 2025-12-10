@@ -94,6 +94,11 @@ const App: React.FC = () => {
             title={activeMobileTab === 'dashboard' ? 'INDICES DASHBOARD' : 'INDICES HISTORY'}
             account={account}
             onOpenSettings={() => setIsSettingsOpen(true)}
+            activeAsset={activeSymbol}
+            onToggleAsset={(s) => {
+              setActiveSymbol(s);
+              setMobileSelectedTrade(null); // Clear selection when manually changing asset
+            }}
         />
       </div>
 

@@ -36,6 +36,12 @@ const DashboardHeader: React.FC<Props> = ({ account, toggleAsset, activeAsset, o
                     >
                         NAS100
                     </button>
+                    <button 
+                        onClick={() => toggleAsset(AssetSymbol.XAUUSD)}
+                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${activeAsset === AssetSymbol.XAUUSD ? 'bg-yellow-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+                    >
+                        GOLD
+                    </button>
                 </div>
 
                 {/* Desktop Settings & Stats */}

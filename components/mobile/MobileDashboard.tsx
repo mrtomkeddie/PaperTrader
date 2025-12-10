@@ -11,6 +11,18 @@ interface Props {
     onToggleAuto: () => void;
 }
 
+const STRATEGY_CONFIG: Record<string, StrategyType[]> = {
+    [AssetSymbol.NAS100]: [StrategyType.AI_AGENT, StrategyType.NY_ORB, StrategyType.TREND_FOLLOW],
+    [AssetSymbol.XAUUSD]: [StrategyType.LONDON_SWEEP],
+};
+
+const AVAILABLE_STRATEGIES = [
+    { type: StrategyType.AI_AGENT, label: 'Gemini AI', icon: Zap, color: 'purple' },
+    { type: StrategyType.TREND_FOLLOW, label: 'Trend', icon: TrendingUp, color: 'blue' },
+    { type: StrategyType.NY_ORB, label: 'NY ORB', icon: Clock, color: 'blue' },
+    { type: StrategyType.LONDON_SWEEP, label: 'London', icon: Activity, color: 'yellow' },
+];
+
 const MobileDashboard: React.FC<Props> = ({ asset, activeStrategies, onToggleStrategy, isAutoTrading, onToggleAuto }) => {
     // Transform history for mini chart
     const data = asset.history.map(h => ({ value: h.value }));
@@ -89,19 +101,28 @@ const MobileDashboard: React.FC<Props> = ({ asset, activeStrategies, onToggleStr
                 {/* Strategies */}
                 <div className="mb-6">
                     <label className="text-[10px] font-bold text-gray-500 uppercase mb-3 block">Active Strategies</label>
-                    <div className="flex gap-2">
-                        <button 
-                            onClick={() => onToggleStrategy(asset.symbol, StrategyType.NY_ORB)}
-                            className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all ${activeStrategies.includes(StrategyType.NY_ORB) ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'bg-[#1C1C1E] text-gray-500 border border-white/5'}`}
-                        >
-                            <Clock size={14} /> NY ORB
-                        </button>
-                        <button 
-                            onClick={() => onToggleStrategy(asset.symbol, StrategyType.AI_AGENT)}
-                            className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all ${activeStrategies.includes(StrategyType.AI_AGENT) ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/20' : 'bg-[#1C1C1E] text-gray-500 border border-white/5'}`}
-                        >
-                            <Zap size={14} /> Gemini AI
-                        </button>
+                    <div className="flex gap-2 flex-wrap">
+                        {AVAILABLE_STRATEGIES
+                            .filter(s => STRATEGY_CONFIG[asset.symbol]?.includes(s.type))
+                            .map((strat) => {
+                                const Icon = strat.icon;
+                                const isActive = activeStrategies.includes(strat.type);
+                                const colorClass = strat.color === 'purple' 
+                                    ? (isActive ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/20' : 'bg-[#1C1C1E] text-gray-500 border border-white/5')
+                                    : strat.color === 'yellow'
+                                    ? (isActive ? 'bg-yellow-600 text-white shadow-lg shadow-yellow-900/20' : 'bg-[#1C1C1E] text-gray-500 border border-white/5')
+                                    : (isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'bg-[#1C1C1E] text-gray-500 border border-white/5');
+                                
+                                return (
+                                    <button 
+                                        key={strat.type}
+                                        onClick={() => onToggleStrategy(asset.symbol, strat.type)}
+                                        className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all min-w-[100px] ${colorClass}`}
+                                    >
+                                        <Icon size={14} /> {strat.label}
+                                    </button>
+                                );
+                            })}
                     </div>
                 </div>
 
