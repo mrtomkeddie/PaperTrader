@@ -65,8 +65,10 @@ export interface Trade {
   strategy: StrategyType;
   
   // Analysis Fields
+  confidence?: number; // Confidence score at entry (0-100)
   entryReason?: string; // Why the trade was taken
-  closeReason?: 'TAKE_PROFIT' | 'STOP_LOSS' | 'MANUAL' | 'PARTIAL_CLOSE'; // Why it closed
+  outcomeReason?: string; // Analysis of the result (what worked/failed)
+  closeReason?: 'TAKE_PROFIT' | 'STOP_LOSS' | 'MANUAL' | 'PARTIAL_CLOSE' | 'AI_GUARDIAN'; // Why it closed
   brokerId?: string; // ID from Oanda if applicable
 }
 
@@ -104,6 +106,11 @@ export interface AssetData {
   activeStrategies: StrategyType[]; // CHANGED: Array of strategies
   isThinking?: boolean; // UI state for when AI is querying
   isLive?: boolean; // Connected to WebSocket or API
+  
+  // AI Data
+  aiSentiment?: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  aiConfidence?: number;
+  aiReason?: string;
 }
 
 export interface AccountState {

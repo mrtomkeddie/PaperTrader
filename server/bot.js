@@ -198,6 +198,9 @@ function loadState() {
               if (typeof cfg.botActive === 'boolean') assets[sym].botActive = cfg.botActive;
             }
           }
+          if (assets['NAS100']) {
+            assets['NAS100'].activeStrategies = (assets['NAS100'].activeStrategies || []).filter(s => s !== 'TREND_FOLLOW');
+          }
         }
 
         recalculateAccountState();
@@ -315,7 +318,7 @@ let aiState = {
 
 // INITIALIZE ASSETS WITH BOTH STRATEGIES ACTIVE BY DEFAULT
 let assets = {
-  'NAS100': createAsset('NAS100', ['NY_ORB'])
+  'NAS100': createAsset('NAS100', ['NY_ORB', 'AI_AGENT'])
 };
 
 function createAsset(symbol, defaultStrategies) {
@@ -491,7 +494,7 @@ Rules:
 - Confidence: >80 when alignment is strong; <50 when signals conflict.
 
 Return ONLY this JSON:
-{ "sentiment": "BULLISH" | "BEARISH" | "NEUTRAL", "confidence": number (0-100), "reason": "concise rationale" }`;
+{ "sentiment": "BULLISH" | "BEARISH" | "NEUTRAL", "confidence": number (0-100), "reason": "concise rationale explaining WHY to enter now (e.g. 'Pullback to EMA200 in Uptrend'). If Neutral, explain what you are waiting for." }`;
 
     const response = await aiClient.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -510,6 +513,11 @@ Return ONLY this JSON:
       confidence: decision.confidence,
       reason: decision.reason
     };
+    
+    // Sync to Asset for UI
+    assets[symbol].aiSentiment = decision.sentiment;
+    assets[symbol].aiConfidence = decision.confidence;
+    assets[symbol].aiReason = decision.reason;
 
     console.log(`[AI] Decision for ${symbol}: ${decision.sentiment} (${decision.confidence}%)`);
 
@@ -771,7 +779,7 @@ function updateCandlesM15(symbol, price) {
 }
 
 // --- STRATEGY & TRADE LOGIC ---
-function executeTrade(symbol, type, price, strategy, risk) {
+function executeTrade(symbol, type, price, strategy, risk, customReason = null, confidence = 0) {
   const isBuy = type === 'BUY';
 
   const { bid, ask } = market[symbol];
@@ -796,7 +804,9 @@ function executeTrade(symbol, type, price, strategy, risk) {
       { id: 2, price: tp2, percentage: 0.4, hit: false },
       { id: 3, price: tp3, percentage: 0.2, hit: false }
     ],
-    openTime: Date.now(), status: 'OPEN', strategy, pnl: 0, entryReason: `${strategy} Signal`
+    openTime: Date.now(), status: 'OPEN', strategy, pnl: 0, 
+    entryReason: customReason || `${strategy} Signal`,
+    confidence: confidence
   };
   trades.unshift(trade);
   console.log(`[BOT] Executed ${type} on ${symbol} @ ${price} via ${strategy}`);
@@ -822,7 +832,8 @@ function processTicks(symbol) {
       const sentiment = aiState[symbol].sentiment;
       // If Long and Sentiment is Bearish -> Close
       if (isBuy && sentiment === 'BEARISH') {
-        trade.status = 'CLOSED'; trade.closeReason = 'AI_GUARDIAN'; trade.closeTime = Date.now(); trade.closePrice = price;
+        trade.status = 'CLOSED'; trade.closeReason = 'AI_GUARDIAN'; trade.outcomeReason = "AI Guardian Intervention: Sentiment shifted BEARISH with high confidence.";
+        trade.closeTime = Date.now(); trade.closePrice = price;
         console.log(`[AI GUARDIAN] Panic Closed ${symbol} Trade due to Strong Bearish Sentiment`);
         const pnl = (price - trade.entryPrice) * trade.currentSize;
         trade.pnl += pnl; account.balance += pnl; closedPnL += pnl;
@@ -833,7 +844,8 @@ function processTicks(symbol) {
       }
       // If Short and Sentiment is Bullish -> Close
       if (!isBuy && sentiment === 'BULLISH') {
-        trade.status = 'CLOSED'; trade.closeReason = 'AI_GUARDIAN'; trade.closeTime = Date.now(); trade.closePrice = price;
+        trade.status = 'CLOSED'; trade.closeReason = 'AI_GUARDIAN'; trade.outcomeReason = "AI Guardian Intervention: Sentiment shifted BULLISH with high confidence.";
+        trade.closeTime = Date.now(); trade.closePrice = price;
         console.log(`[AI GUARDIAN] Panic Closed ${symbol} Trade due to Strong Bullish Sentiment`);
         const pnl = (trade.entryPrice - price) * trade.currentSize;
         trade.pnl += pnl; account.balance += pnl; closedPnL += pnl;
@@ -871,13 +883,15 @@ function processTicks(symbol) {
           account.balance += pnl;
           closedPnL += pnl;
           if (level.id === 1) trade.stopLoss = trade.entryPrice; // Breakeven
+          trade.outcomeReason = `Take Profit: Level ${level.id} hit. Locked in profit.`;
         }
       }
     }
 
     // D. STANDARD SL CHECK
     if (isBuy ? bid <= trade.stopLoss : ask >= trade.stopLoss) {
-      trade.status = 'CLOSED'; trade.closeReason = 'STOP_LOSS'; trade.closeTime = Date.now(); trade.closePrice = price;
+      trade.status = 'CLOSED'; trade.closeReason = 'STOP_LOSS'; trade.outcomeReason = "Stop Loss: Price invalidated trade setup.";
+      trade.closeTime = Date.now(); trade.closePrice = price;
       const exit = isBuy ? bid : ask;
       const pnl = (isBuy ? exit - trade.entryPrice : trade.entryPrice - exit) * trade.currentSize;
       trade.pnl += pnl; account.balance += pnl; closedPnL += pnl;
@@ -916,8 +930,8 @@ function processTicks(symbol) {
     const isTrendUp = asset.currentPrice > asset.ema200;
     const pullback = isTrendUp ? asset.currentPrice <= asset.ema : asset.currentPrice >= asset.ema;
     const confirm = isTrendUp ? asset.slope > 0.1 : asset.slope < -0.1;
-    if (isTrendUp && pullback && confirm) executeTrade(symbol, 'BUY', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE');
-    else if (!isTrendUp && pullback && confirm) executeTrade(symbol, 'SELL', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE');
+    if (isTrendUp && pullback && confirm) executeTrade(symbol, 'BUY', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', 'Trend Follow: Price pullback to EMA confirmed by slope.', 85);
+    else if (!isTrendUp && pullback && confirm) executeTrade(symbol, 'SELL', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', 'Trend Follow: Price pullback to EMA confirmed by slope.', 85);
   }
 
   // B. LONDON SWEEP (GOLD)
@@ -929,7 +943,7 @@ function processTicks(symbol) {
         const lowest = Math.min(...candles.slice(-10, -1).map(c => c.low));
         const current = candles[candles.length - 1];
         if (current.low < lowest && asset.currentPrice > lowest + 0.5) {
-          executeTrade(symbol, 'BUY', asset.currentPrice, 'LONDON_SWEEP', 'CONSERVATIVE');
+          executeTrade(symbol, 'BUY', asset.currentPrice, 'LONDON_SWEEP', 'CONSERVATIVE', 'London Sweep: Liquidity sweep of M5 lows during London Open.', 90);
         }
       }
     }
@@ -940,7 +954,7 @@ function processTicks(symbol) {
     const volExpansion = asset.bollinger.upper - asset.bollinger.lower > asset.currentPrice * 0.0012;
     if (volExpansion && asset.currentPrice > asset.bollinger.upper) {
       console.log(`[NY_ORB] ${symbol} BUY @ ${asset.currentPrice.toFixed(2)}`);
-      executeTrade(symbol, 'BUY', asset.currentPrice, 'NY_ORB', 'AGGRESSIVE');
+      executeTrade(symbol, 'BUY', asset.currentPrice, 'NY_ORB', 'AGGRESSIVE', 'NY ORB: Volatility expansion breakout above Bollinger Bands.', 88);
     }
   }
 
@@ -950,11 +964,11 @@ function processTicks(symbol) {
     const sentiment = aiState[symbol].sentiment;
     // If AI is Bullish and we are in Uptrend -> Buy
     if (sentiment === 'BULLISH' && asset.trend === 'UP') {
-      executeTrade(symbol, 'BUY', asset.currentPrice, 'AI_AGENT', 'SMART');
+      executeTrade(symbol, 'BUY', asset.currentPrice, 'AI_AGENT', 'SMART', aiState[symbol].reason, aiState[symbol].confidence);
       // Reset state so we don't spam
       aiState[symbol].confidence = 0;
     } else if (sentiment === 'BEARISH' && asset.trend === 'DOWN') {
-      executeTrade(symbol, 'SELL', asset.currentPrice, 'AI_AGENT', 'SMART');
+      executeTrade(symbol, 'SELL', asset.currentPrice, 'AI_AGENT', 'SMART', aiState[symbol].reason, aiState[symbol].confidence);
       aiState[symbol].confidence = 0;
     }
   }

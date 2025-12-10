@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { BrokerMode, OandaConfig } from '../types';
-import { X, CheckCircle, AlertCircle, Loader2, Cloud, Terminal, Bell } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Loader2, Cloud, Terminal, Bell, Download } from 'lucide-react';
 import { DEFAULT_REMOTE_URL, CRYPTO_DEFAULT_REMOTE_URL } from '../constants';
 
 interface Props {
@@ -128,11 +128,11 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, oandaConfig, onSave, 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="bg-[#1C1C1E] w-full max-w-md rounded-[24px] border border-white/10 overflow-hidden shadow-2xl relative z-10 animate-fade-in-up flex flex-col max-h-[85vh]">
+      <div className="bg-[#13141b] w-full max-w-md rounded-2xl border border-white/5 overflow-hidden shadow-2xl relative z-10 animate-fade-in-up flex flex-col max-h-[85vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-white/5">
+        <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center">
           <h2 className="text-lg font-bold text-white tracking-tight">Connection Status</h2>
-          <button onClick={onClose} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+          <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
             <X size={16} className="text-white" />
           </button>
         </div>
@@ -161,28 +161,28 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, oandaConfig, onSave, 
             <label className="text-[10px] text-ios-gray ml-1">Notifications</label>
             <button
               onClick={enablePush}
-              className={`w-full mt-1 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-white/10 ${pushStatus === 'enabled' ? 'bg-ios-green text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+              className={`w-full mt-1 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-white/5 ${pushStatus === 'enabled' ? 'bg-ios-green text-white' : 'bg-white/5 text-white hover:bg-white/10'}`}
             >
               <Bell size={16} /> {pushStatus === 'enabled' ? 'Enabled' : 'Enable Push'}
             </button>
             <div className="mt-2 flex justify-between gap-2">
-              <button onClick={testPush} className="w-1/2 font-bold py-2 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 text-xs">
+              <button onClick={testPush} className="w-1/2 font-bold py-2 rounded-xl border border-white/5 bg-white/5 text-white hover:bg-white/10 text-xs">
                 Send Test Push
               </button>
-              <a href="/sw.js" target="_blank" className="w-1/2 text-center font-bold py-2 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 text-xs">Service Worker</a>
+              <a href="/sw.js" target="_blank" className="w-1/2 text-center font-bold py-2 rounded-xl border border-white/5 bg-white/5 text-white hover:bg-white/10 text-xs">Service Worker</a>
             </div>
             <p className="text-[10px] text-ios-gray mt-1">On iPhone, install to Home Screen and open from there to enable push.</p>
           </div>
 
           {/* Analytics */}
           <div className="mt-4">
-            <label className="text-[10px] text-ios-gray ml-1">Analytics</label>
+            <label className="text-[10px] text-ios-gray ml-1">Data Management</label>
             <a
-              href={`${(remoteUrl || DEFAULT_REMOTE_URL).replace(/\/$/, '')}/export/csv?status=closed`}
+              href={`${(remoteUrl || DEFAULT_REMOTE_URL).replace(/\/$/, '')}/export/csv?status=ALL`}
               download="trades.csv"
-              className="w-full mt-1 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-white/10 bg-white/10 text-white hover:bg-white/20"
+              className="w-full mt-1 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-white/5 bg-white/5 text-white hover:bg-white/10"
             >
-              Export Closed Trades CSV
+              <Download size={16} /> Export Trade History (CSV)
             </a>
             <button
               onClick={() => setShowResetConfirm(true)}
@@ -210,11 +210,11 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, oandaConfig, onSave, 
                     type="text"
                     value={remoteUrl}
                     onChange={(e) => setRemoteUrl(e.target.value)}
-                    className="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-ios-blue"
+                    className="flex-1 bg-black/50 border border-white/5 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-ios-blue"
                   />
                   <button
                     onClick={() => handleConnect(remoteUrl)}
-                    className="bg-white/10 px-4 py-2 rounded-xl text-xs font-bold hover:bg-white/20"
+                    className="bg-white/5 px-4 py-2 rounded-xl text-xs font-bold hover:bg-white/10"
                   >
                     Set
                   </button>
@@ -235,7 +235,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, oandaConfig, onSave, 
       {showResetConfirm && (
         <div className="absolute inset-0 z-20 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowResetConfirm(false)} />
-          <div className="bg-[#1C1C1E] w-full max-w-sm rounded-[20px] border border-white/10 overflow-hidden shadow-2xl relative z-10 animate-fade-in-up">
+          <div className="bg-[#13141b] w-full max-w-sm rounded-2xl border border-white/5 overflow-hidden shadow-2xl relative z-10 animate-fade-in-up">
             <div className="p-6 space-y-4">
               <div className="text-center">
                 <div className="w-16 h-16 rounded-full bg-ios-red/20 text-ios-red flex items-center justify-center mx-auto mb-4">
@@ -255,7 +255,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, oandaConfig, onSave, 
                 <button
                   onClick={() => setShowResetConfirm(false)}
                   disabled={resetStatus === 'loading'}
-                  className="flex-1 font-bold py-3 rounded-xl border border-white/10 bg-white/10 text-white hover:bg-white/20 disabled:opacity-50"
+                  className="flex-1 font-bold py-3 rounded-xl border border-white/5 bg-white/5 text-white hover:bg-white/10 disabled:opacity-50"
                 >
                   Cancel
                 </button>
