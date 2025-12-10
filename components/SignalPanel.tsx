@@ -52,10 +52,10 @@ const SignalPanel: React.FC<Props> = ({ asset, trade, activeOpenTrade, onToggleS
         }
     } else {
         // Fallback to trend
-        if (asset.trend === 'UP' && asset.htfTrend === 'UP') {
+        if (asset.trend === 'UP') {
             signalTitle = "BULLISH TREND";
             signalColor = "bg-green-900/50 text-green-400 border border-green-500/30";
-        } else if (asset.trend === 'DOWN' && asset.htfTrend === 'DOWN') {
+        } else if (asset.trend === 'DOWN') {
             signalTitle = "BEARISH TREND";
             signalColor = "bg-red-900/50 text-red-400 border border-red-500/30";
         }

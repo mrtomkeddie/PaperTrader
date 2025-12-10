@@ -144,7 +144,7 @@ const App: React.FC = () => {
                         activeStrategies={activeAssetData.activeStrategies || []}
                         onToggleStrategy={setStrategy}
                         isAutoTrading={activeAssetData.botActive}
-                        onToggleAuto={toggleBot}
+                        onToggleAuto={() => toggleBot(activeAssetData.symbol)}
                     />
                 ) : (
                     <div className="flex items-center justify-center h-64 text-gray-500">Loading...</div>
