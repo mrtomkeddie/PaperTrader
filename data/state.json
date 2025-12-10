@@ -1,10 +1,10 @@
 {
   "account": {
-    "balance": 464.834,
-    "equity": 464.834,
-    "dayPnL": -19.25400000000078,
-    "totalPnL": -35.16600000000001,
-    "winRate": 35
+    "balance": 471.4940000000004,
+    "equity": 471.4940000000004,
+    "dayPnL": -12.594000000000342,
+    "totalPnL": -28.505999999999577,
+    "winRate": 33.33333333333333
   },
   "trades": [
     {
@@ -807,14 +807,54 @@
       "openTime": 1765394705253,
       "status": "CLOSED",
       "strategy": "TREND_FOLLOW",
-      "pnl": -4.656000000000349,
+      "pnl": -4.68,
       "entryReason": "Trend Follow: Price pullback to EMA confirmed by slope.",
       "confidence": 85,
-      "floatingPnl": -4.656000000000349,
+      "floatingPnl": -4.68,
       "closeReason": "STOP_LOSS",
       "outcomeReason": "Stop Loss: Price invalidated trade setup.",
-      "closeTime": 1765394886168,
-      "closePrice": 25610.75
+      "closeTime": 1765394886696,
+      "closePrice": 25610.550000000003
+    },
+    {
+      "id": "ad009b63-99bd-4b6b-b1c0-0449a76349d5",
+      "symbol": "NAS100",
+      "type": "BUY",
+      "entryPrice": 25619.2,
+      "initialSize": 0.12,
+      "currentSize": 0.12,
+      "stopLoss": 25683.3909,
+      "tpLevels": [
+        {
+          "id": 1,
+          "price": 25772.9152,
+          "percentage": 0.4,
+          "hit": false
+        },
+        {
+          "id": 2,
+          "price": 25875.392,
+          "percentage": 0.4,
+          "hit": false
+        },
+        {
+          "id": 3,
+          "price": 26387.776,
+          "percentage": 0.2,
+          "hit": false
+        }
+      ],
+      "openTime": 1765394928649,
+      "status": "CLOSED",
+      "strategy": "TREND_FOLLOW",
+      "pnl": 6.684000000000087,
+      "entryReason": "Trend Follow: Price pullback to EMA confirmed by slope.",
+      "confidence": 85,
+      "floatingPnl": 6.684000000000087,
+      "closeReason": "STOP_LOSS",
+      "outcomeReason": "Stop Loss: Price invalidated trade setup.",
+      "closeTime": 1765395420068,
+      "closePrice": 25675.800000000003
     }
   ],
   "pushSubscriptions": [

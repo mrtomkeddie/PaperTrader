@@ -108,13 +108,19 @@ const AssetCard: React.FC<{
                         .filter(s => STRATEGY_CONFIG[asset.symbol]?.includes(s.type))
                         .map((strat) => {
                             const isActive = activeStrategies.includes(strat.type);
+                            
+                            // Determine active color classes based on asset
+                            const activeClasses = asset.symbol === AssetSymbol.XAUUSD
+                                ? 'bg-yellow-600 text-white border-yellow-500 shadow-lg shadow-yellow-900/20'
+                                : 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-900/20';
+
                             return (
                                 <button
                                     key={strat.type}
                                     onClick={() => onToggleStrategy(asset.symbol, strat.type)}
                                     className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 border
                                 ${isActive
-                                            ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-900/20'
+                                            ? activeClasses
                                             : 'bg-[#1C1C1E] text-gray-500 border-white/5 hover:bg-white/5'}`}
                                 >
                                     <strat.icon size={14} className={isActive ? 'text-white' : 'text-gray-500'} />
