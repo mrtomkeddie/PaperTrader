@@ -32,12 +32,6 @@ const AssetCard: React.FC<{
     const color = isUp ? '#22c55e' : '#ef4444';
     const activeStrategies = asset.activeStrategies || [];
 
-    // Calculate mock win rate/stats based on asset data (or passed props if available)
-    // For now hardcoded or derived to match the visual style
-    const winRate = 33;
-    const wins = 1;
-    const losses = 10;
-
     return (
         <div className="bg-[#13141b] rounded-[32px] p-6 border border-white/5 shadow-xl relative overflow-hidden mb-6">
             {/* Header */}
@@ -78,26 +72,6 @@ const AssetCard: React.FC<{
                         />
                     </AreaChart>
                 </ResponsiveContainer>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-                <div className="bg-[#1C1C1E] rounded-2xl p-3 border border-white/5">
-                    <div className="text-[9px] font-bold text-gray-500 uppercase mb-1">Net P&L</div>
-                    <div className="text-red-500 font-bold text-sm">-27.14</div>
-                </div>
-                <div className="bg-[#1C1C1E] rounded-2xl p-3 border border-white/5">
-                    <div className="text-[9px] font-bold text-gray-500 uppercase mb-1">Win Rate</div>
-                    <div className="text-white font-bold text-sm">{winRate}%</div>
-                </div>
-                <div className="bg-[#1C1C1E] rounded-2xl p-3 border border-white/5">
-                    <div className="text-[9px] font-bold text-gray-500 uppercase mb-1">O / W / L</div>
-                    <div className="text-gray-300 font-bold text-xs flex gap-1">
-                        <span className="text-white">1</span>/
-                        <span className="text-green-500">{wins}</span>/
-                        <span className="text-red-500">{losses}</span>
-                    </div>
-                </div>
             </div>
 
             {/* Strategy Toggles */}
