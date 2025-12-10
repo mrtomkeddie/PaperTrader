@@ -15,7 +15,7 @@ const DashboardHeader: React.FC<Props> = ({ account, toggleAsset, activeAsset, o
             {/* Top Row: Logo & Mobile Settings */}
             <div className="flex items-center justify-between w-full md:w-auto">
                 <div className="flex items-center gap-2">
-                    <img src="/pt2logo.png" alt="Paper Trader 2.0" className="h-10 w-auto" />
+                    <img src="/pt2logo.png" alt="Paper Trader 2.0" className="h-12 w-auto object-contain" />
                 </div>
                 
                 {/* Mobile Settings Button */}
