@@ -131,7 +131,7 @@ const App: React.FC = () => {
                     )}
                 </div>
             </div>
-            <div className="h-[600px]">
+            <div className="h-[800px]">
                 <PositionsTable 
                     trades={trades} 
                     onSelectTrade={handleTradeSelect}
