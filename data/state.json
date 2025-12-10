@@ -1,9 +1,9 @@
 {
   "account": {
-    "balance": 472.86400000000066,
-    "equity": 472.86400000000066,
-    "dayPnL": -11.224000000000089,
-    "totalPnL": -27.13599999999933
+    "balance": 477.05000000000075,
+    "equity": 477.05000000000075,
+    "dayPnL": -7.037999999999992,
+    "totalPnL": -22.94999999999924
   },
   "trades": [
     {
@@ -13,7 +13,7 @@
       "entryPrice": 25633.8,
       "initialSize": 0.13,
       "currentSize": 0.13,
-      "stopLoss": 25595.3493,
+      "stopLoss": 25666.308,
       "tpLevels": [
         {
           "id": 1,
@@ -35,11 +35,15 @@
         }
       ],
       "openTime": 1765363463453,
-      "status": "OPEN",
+      "status": "CLOSED",
       "strategy": "NY_ORB",
-      "pnl": 0,
+      "pnl": 4.186000000000095,
       "entryReason": "NY_ORB Signal",
-      "floatingPnl": 5.07
+      "floatingPnl": 4.186000000000095,
+      "closeReason": "STOP_LOSS",
+      "outcomeReason": "Stop Loss: Price invalidated trade setup.",
+      "closeTime": 1765373537505,
+      "closePrice": 25667.25
     },
     {
       "id": "79a19350-6f87-420d-b97e-52951bbd14ce",
