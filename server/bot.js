@@ -265,10 +265,12 @@ function saveState() {
 
 // CANDLE STORAGE (Symbol -> M5 Candles [])
 let candlesM5 = {
-  'NAS100': []
+  'NAS100': [],
+  'XAUUSD': []
 };
 let candlesM15 = {
-  'NAS100': []
+  'NAS100': [],
+  'XAUUSD': []
 };
 
 // MARKET STATE (bid/ask/mid per symbol)
@@ -1029,10 +1031,17 @@ function processTicks(symbol) {
 
   // A. TREND FOLLOW (24/7)
   if (asset.activeStrategies.includes('TREND_FOLLOW')) {
-    // XAUUSD Time Restriction: Only trade after 12:00 UTC (Avoid London Sweep conflict)
-    const isXauRestricted = symbol === 'XAUUSD' && new Date().getUTCHours() < 12;
+    const utcHour = new Date().getUTCHours();
 
-    if (!isXauRestricted) {
+    // 1. NAS100 TIME FILTER (08:00 - 21:00 UTC)
+    // Restrict 'NAS100' trades to ONLY execute between 08:00 UTC and 21:00 UTC.
+    const isNasRestricted = symbol === 'NAS100' && (utcHour < 8 || utcHour >= 21);
+    
+    // 2. XAUUSD TIME FILTER (12:00 UTC+ only)
+    // Avoid London Sweep conflict
+    const isXauRestricted = symbol === 'XAUUSD' && utcHour < 12;
+
+    if (!isNasRestricted && !isXauRestricted) {
       const isTrendUp = asset.currentPrice > asset.ema200;
       const pullback = isTrendUp ? asset.currentPrice <= asset.ema : asset.currentPrice >= asset.ema;
       const confirm = isTrendUp ? asset.slope > 0.1 : asset.slope < -0.1;
@@ -1092,8 +1101,22 @@ function processTicks(symbol) {
           }
       }
 
-      if (isTrendUp && pullback && confirm) executeTrade(symbol, 'BUY', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', `Trend Follow: Price pullback to EMA confirmed by slope${fvgReason}.`, 85 + fvgConfidenceBoost);
-      else if (!isTrendUp && pullback && confirm) executeTrade(symbol, 'SELL', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', `Trend Follow: Price pullback to EMA confirmed by slope${fvgReason}.`, 85 + fvgConfidenceBoost);
+      // EXECUTION LOGIC with ADX FILTER
+      if (pullback && confirm) {
+          // 3. ADX VOLATILITY FILTER
+          // Requirement: ADX must be > 25 to enter a Trend Trade.
+          const adx = calculateADX(candlesM5[symbol] || [], 14);
+          
+          if (adx < 25) {
+              console.log(`[FILTER] Trend Signal skipped - ADX too low: ${adx.toFixed(1)}`);
+          } else {
+              if (isTrendUp) {
+                  executeTrade(symbol, 'BUY', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', `Trend Follow: Price pullback to EMA confirmed by slope${fvgReason}.`, 85 + fvgConfidenceBoost);
+              } else {
+                  executeTrade(symbol, 'SELL', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', `Trend Follow: Price pullback to EMA confirmed by slope${fvgReason}.`, 85 + fvgConfidenceBoost);
+              }
+          }
+      }
     }
   }
 
