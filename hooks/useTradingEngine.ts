@@ -133,18 +133,18 @@ export const useTradingEngine = () => {
         const rawSaved = typeof window !== 'undefined' ? localStorage.getItem('remoteUrl') : null;
         const saved = rawSaved ? rawSaved.trim().replace(/\/$/, '') : null;
         const hasProto = saved ? /^https?:\/\//i.test(saved) : false;
-        if (isDev) {
-          const clean = '/api';
-          if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', clean);
-          setRemoteUrl(clean);
-          return;
-        }
+        
+        // Check if saved URL is localhost
+        const isSavedLocalhost = saved ? (saved.includes('localhost') || saved.includes('127.0.0.1')) : false;
+
+        // Force Production: Ignore isDev and localhost logic to ensure we always connect to the deployed server
+        // We only respect saved URL if it's NOT localhost (e.g. if user manually pointed to another remote)
+        // Otherwise, revert to DEFAULT_REMOTE_URL (Production)
+        
         let preferred = DEFAULT_REMOTE_URL;
-        const onLocal = typeof window !== 'undefined' && window.location && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-        if (onLocal) {
-          preferred = 'http://localhost:3001';
-        } else if (hasProto && saved) {
-          preferred = saved;
+        
+        if (hasProto && saved && !isSavedLocalhost) {
+            preferred = saved;
         }
         
         if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', preferred);
