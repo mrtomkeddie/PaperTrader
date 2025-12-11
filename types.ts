@@ -91,6 +91,7 @@ export interface AssetData {
   symbol: AssetSymbol;
   currentPrice: number;
   history: PricePoint[];
+  candles?: Candle[]; // Added for historical view
   rsi: number;
   ema: number;
   // The "Big Picture" Trend

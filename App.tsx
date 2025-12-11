@@ -123,7 +123,10 @@ const App: React.FC = () => {
                 </div>
                 <div className="col-span-8 h-full">
                     {activeAssetData ? (
-                         <ChartPanel asset={activeAssetData} />
+                         <ChartPanel 
+                            asset={activeAssetData} 
+                            selectedTrade={selectedTrade}
+                         />
                     ) : (
                         <div className="h-full flex items-center justify-center bg-[#13141b] rounded-2xl border border-white/5">
                             <span className="text-gray-500">Loading Chart...</span>

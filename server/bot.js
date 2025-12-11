@@ -265,10 +265,12 @@ function saveState() {
 
 // CANDLE STORAGE (Symbol -> M5 Candles [])
 let candlesM5 = {
-  'NAS100': []
+  'NAS100': [],
+  'XAUUSD': []
 };
 let candlesM15 = {
-  'NAS100': []
+  'NAS100': [],
+  'XAUUSD': []
 };
 
 // MARKET STATE (bid/ask/mid per symbol)
@@ -345,6 +347,7 @@ function createAsset(symbol, defaultStrategies) {
     symbol,
     currentPrice: ASSET_CONFIG[symbol].startPrice,
     history: [],
+    candles: candlesM5[symbol], // Link to shared candle storage
     rsi: 50,
     ema: ASSET_CONFIG[symbol].startPrice,
     ema200: ASSET_CONFIG[symbol].startPrice,
