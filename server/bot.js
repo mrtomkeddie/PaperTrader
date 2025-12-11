@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import { initFirebase, loadStateFromCloud, saveStateToCloud, clearCloudState } from './firebase.js';
+import { detectFairValueGap, detectOrderBlock } from './utils/technicalAnalysis.js';
 import webpush from 'web-push';
 
 // Load .env file from root
@@ -1029,8 +1030,64 @@ function processTicks(symbol) {
       const isTrendUp = asset.currentPrice > asset.ema200;
       const pullback = isTrendUp ? asset.currentPrice <= asset.ema : asset.currentPrice >= asset.ema;
       const confirm = isTrendUp ? asset.slope > 0.1 : asset.slope < -0.1;
-      if (isTrendUp && pullback && confirm) executeTrade(symbol, 'BUY', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', 'Trend Follow: Price pullback to EMA confirmed by slope.', 85);
-      else if (!isTrendUp && pullback && confirm) executeTrade(symbol, 'SELL', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', 'Trend Follow: Price pullback to EMA confirmed by slope.', 85);
+
+      // FVG Check
+      let fvgReason = '';
+      let fvgConfidenceBoost = 0;
+      const candles = candlesM5[symbol];
+      if (candles && candles.length >= 20) {
+          // 1. FVG Detection (Last 3 closed candles)
+          const closedCandles = candles.slice(-4, -1);
+          const fvg = detectFairValueGap(closedCandles);
+          
+          if (fvg.isDetected) {
+              console.log(`[FVG] ${symbol} ${fvg.type.toUpperCase()} FVG Detected: ${fvg.gapBottom.toFixed(2)} - ${fvg.gapTop.toFixed(2)}`);
+              
+              if (isTrendUp && fvg.type === 'bullish') {
+                  fvgReason += ' + Bullish FVG confirmed';
+                  fvgConfidenceBoost += 5;
+              } else if (!isTrendUp && fvg.type === 'bearish') {
+                  fvgReason += ' + Bearish FVG confirmed';
+                  fvgConfidenceBoost += 5;
+              }
+          }
+
+          // 2. Order Block Detection (Scan history)
+          // We pass the last 50 candles to find a recent valid OB
+          const historyCandles = candles.slice(-50); 
+          const ob = detectOrderBlock(historyCandles);
+
+          if (ob.isDetected) {
+              // Check if we are "testing" the OB
+              // Bullish OB Test: Price is near/inside the OB zone [Low, High]
+              // Bearish OB Test: Price is near/inside the OB zone [Low, High]
+              const price = asset.currentPrice;
+              
+              if (ob.type === 'bullish') {
+                  // If Price is above OB Low and relatively close to OB High (retesting support)
+                  // Or literally inside it.
+                  if (price >= ob.bottom && price <= ob.top * 1.002) {
+                      console.log(`[OB] ${symbol} Testing BULLISH OB @ ${ob.bottom.toFixed(2)} - ${ob.top.toFixed(2)}`);
+                      if (isTrendUp) {
+                          fvgReason += ' + Testing Bullish Order Block';
+                          fvgConfidenceBoost += 10;
+                      }
+                  }
+              } else if (ob.type === 'bearish') {
+                   // If Price is below OB High and close to OB Low (retesting resistance)
+                  if (price <= ob.top && price >= ob.bottom * 0.998) {
+                      console.log(`[OB] ${symbol} Testing BEARISH OB @ ${ob.bottom.toFixed(2)} - ${ob.top.toFixed(2)}`);
+                      if (!isTrendUp) {
+                          fvgReason += ' + Testing Bearish Order Block';
+                          fvgConfidenceBoost += 10;
+                      }
+                  }
+              }
+          }
+      }
+
+      if (isTrendUp && pullback && confirm) executeTrade(symbol, 'BUY', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', `Trend Follow: Price pullback to EMA confirmed by slope${fvgReason}.`, 85 + fvgConfidenceBoost);
+      else if (!isTrendUp && pullback && confirm) executeTrade(symbol, 'SELL', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', `Trend Follow: Price pullback to EMA confirmed by slope${fvgReason}.`, 85 + fvgConfidenceBoost);
     }
   }
 
