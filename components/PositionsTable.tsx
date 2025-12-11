@@ -165,30 +165,30 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                 <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                         <span className="font-bold text-white text-lg">{trade.symbol}</span>
-                        <div className="flex flex-col items-end">
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${trade.type === 'BUY' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                            {trade.type}
+                        </span>
+                        <span className="text-[10px] text-gray-500 font-mono">
+                            O: {new Date(trade.openTime).toLocaleString('en-GB', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}
+                        </span>
+                        {trade.status === 'CLOSED' && trade.closeTime && (
                             <span className="text-[10px] text-gray-500 font-mono">
-                                O: {new Date(trade.openTime).toLocaleString('en-GB', {
+                                C: {new Date(trade.closeTime).toLocaleString('en-GB', {
                                     day: '2-digit',
                                     month: '2-digit',
                                     hour: '2-digit',
                                     minute: '2-digit'
                                 })}
                             </span>
-                            {trade.status === 'CLOSED' && trade.closeTime && (
-                                <span className="text-[10px] text-gray-500 font-mono">
-                                    C: {new Date(trade.closeTime).toLocaleString('en-GB', {
-                                        day: '2-digit',
-                                        month: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    })}
-                                </span>
-                            )}
-                        </div>
+                        )}
                     </div>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${trade.type === 'BUY' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                        {trade.type}
-                    </span>
                 </div>
                 
                 <div className="grid grid-cols-3 gap-4 text-xs">
