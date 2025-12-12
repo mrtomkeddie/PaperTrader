@@ -1240,6 +1240,8 @@ function processTicks(symbol) {
   }
 }
 
+}
+
 // --- API ---
 app.get('/state', (req, res) => {
   try {
