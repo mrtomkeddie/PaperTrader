@@ -15,6 +15,18 @@ import webpush from 'web-push';
 // Load .env file from root
 dotenv.config();
 
+// --- CRASH PREVENTION: GLOBAL ERROR HANDLERS ---
+process.on('uncaughtException', (err) => {
+  console.error('[[FATAL]] Uncaught Exception:', err);
+  // Keep process alive if possible, or exit cleanly
+  // process.exit(1); 
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[[FATAL]] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+
 // --- WEB PUSH SETUP ---
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   try {
@@ -140,7 +152,7 @@ function recalculateAccountState() {
       realized += (t.pnl || 0);
       const time = t.closeTime || t.openTime || 0;
       if (time >= startOfDay) day += (t.pnl || 0);
-      
+
       closedCount++;
       if ((t.pnl || 0) > 0) wins++;
     }
@@ -260,8 +272,20 @@ function saveState() {
   } catch (e) {
     console.warn('[SYSTEM] Failed to save state:', e.message);
   }
-  cloudSaveState();
+  // Safe cloud save
+  try {
+    cloudSaveState();
+  } catch (e) {
+    console.warn('[CLOUD] Failed to trigger cloud save:', e.message);
+  }
 }
+
+// --- CLOUD SYNC HELPER ---
+function cloudSaveState() {
+  saveStateToCloud({ account, trades, pushSubscriptions })
+    .catch(err => console.error('[CLOUD] Async Save Error:', err.message));
+}
+
 
 // CANDLE STORAGE (Symbol -> M5 Candles [])
 let candlesM5 = {
@@ -366,8 +390,26 @@ function createAsset(symbol, defaultStrategies) {
 
 loadState();
 console.log(USE_OANDA ? '[SYSTEM] Using OANDA pricing stream' : '[SYSTEM] Using Binance pricing stream (fallback)');
-cloudLoadState();
+
+// --- FIREBASE INIT ---
+let firebaseConnected = false;
+if (initFirebase()) {
+  firebaseConnected = true;
+  console.log('[SYSTEM] Cloud persistence active (Firebase).');
+} else {
+  console.warn('[SYSTEM] Cloud persistence disabled (Firebase init failed).');
+}
+
+// Load cloud state initially
+loadStateFromCloud().then(data => {
+  if (data) {
+    console.log('[CLOUD] Initial state loaded from cloud.');
+    // Optional: Merge logic here if needed, but handled in /cloud/merge
+  }
+}).catch(e => console.error('[CLOUD] Initial load failed:', e.message));
+
 setInterval(() => { try { cloudLoadState(); } catch { } }, 10 * 60 * 1000);
+
 
 if (ENABLE_GITHUB_SYNC) {
   (async () => { try { await githubLoadState(); } catch { } })();
@@ -459,53 +501,53 @@ const calculateRSI = (prices, period = 14) => {
 
 const calculateADX = (candles, period = 14) => {
   if (candles.length < period * 2) return 25; // Not enough data
-  
+
   // 1. Calculate TR, +DM, -DM for each candle
   let tr = [], plusDm = [], minusDm = [];
-  
+
   for (let i = 1; i < candles.length; i++) {
     const curr = candles[i];
     const prev = candles[i - 1];
-    
+
     const hL = curr.high - curr.low;
     const hCp = Math.abs(curr.high - prev.close);
     const lCp = Math.abs(curr.low - prev.close);
     tr.push(Math.max(hL, hCp, lCp));
-    
+
     const upMove = curr.high - prev.high;
     const downMove = prev.low - curr.low;
-    
+
     if (upMove > downMove && upMove > 0) plusDm.push(upMove); else plusDm.push(0);
     if (downMove > upMove && downMove > 0) minusDm.push(downMove); else minusDm.push(0);
   }
-  
+
   // 2. Smoothed averages (Wilder's Smoothing)
   // Simplified: Simple Moving Average for first, then prev - (prev/n) + curr
   // For simplicity/robustness here we use EMA approximation
   const smooth = (data, p) => {
-    let s = data.slice(0, p).reduce((a,b) => a+b, 0) / p;
+    let s = data.slice(0, p).reduce((a, b) => a + b, 0) / p;
     for (let i = p; i < data.length; i++) {
-      s = s * (1 - 1/p) + data[i] * (1/p); // Wilder's smoothing logic
+      s = s * (1 - 1 / p) + data[i] * (1 / p); // Wilder's smoothing logic
     }
     return s;
   };
-  
+
   const atr = smooth(tr, period);
   const sPlus = smooth(plusDm, period);
   const sMinus = smooth(minusDm, period);
-  
+
   if (atr === 0) return 0;
-  
+
   const plusDi = (sPlus / atr) * 100;
   const minusDi = (sMinus / atr) * 100;
-  
+
   const dx = (Math.abs(plusDi - minusDi) / (plusDi + minusDi)) * 100;
-  
+
   // ADX is smoothed DX
   // We don't have historical DX here, so we return DX as approximation or 
   // if we want to be strict we'd need more history. 
   // For this bot, returning DX as "Volatility Strength" is sufficient proxy.
-  return dx; 
+  return dx;
 };
 
 const calculateEMAFromSeries = (prices, period = 200) => {
@@ -546,7 +588,7 @@ async function consultGemini(symbol, asset) {
 
   try {
     console.log(`[AI] Consulting Gemini for ${symbol}...`);
-    
+
     const prompt = `
 You are a pragmatic intraday trader who respects the higher-timeframe trend. You do not panic during noise.
 Goal: Increase trading opportunities while respecting the higher-timeframe bias.
@@ -591,7 +633,7 @@ Return ONLY this JSON:
       confidence: decision.confidence,
       reason: decision.reason
     };
-    
+
     // Sync to Asset for UI
     assets[symbol].aiSentiment = decision.sentiment;
     assets[symbol].aiConfidence = decision.confidence;
@@ -678,11 +720,11 @@ function connectOanda() {
             const bid = parseFloat(evt.bids?.[0]?.price || evt.closeoutBid || '0');
             const ask = parseFloat(evt.asks?.[0]?.price || evt.closeoutAsk || '0');
             const mid = ask && bid ? (ask + bid) / 2 : (parseFloat(evt.price || '0'));
-            
+
             let symbol = null;
             if (inst === 'NAS100_USD') symbol = 'NAS100';
             else if (inst === 'XAU_USD') symbol = 'XAUUSD';
-            
+
             if (!symbol || !mid) continue;
             market[symbol] = { bid, ask, mid };
             const asset = assets[symbol];
@@ -715,7 +757,7 @@ function connectOanda() {
 // OANDA Watchdog: Force reconnect if stream is silent > 60s or Stale > 5m
 setInterval(() => {
   const now = Date.now();
-  
+
   // 1. Silent Stream (No Data at all)
   if (now - lastOandaHeartbeat > 60000) {
     console.warn('[SYSTEM] OANDA stream silent > 1min. Force reconnecting...');
@@ -888,7 +930,7 @@ function executeTrade(symbol, type, price, strategy, risk, customReason = null, 
       { id: 2, price: tp2, percentage: 0.4, hit: false },
       { id: 3, price: tp3, percentage: 0.2, hit: false }
     ],
-    openTime: Date.now(), status: 'OPEN', strategy, pnl: 0, 
+    openTime: Date.now(), status: 'OPEN', strategy, pnl: 0,
     entryReason: customReason || `${strategy} Signal`,
     confidence: confidence
   };
@@ -910,7 +952,7 @@ function processTicks(symbol) {
   // --- NEW PRICE ACTION CALCS ---
   const structure = analyzeMarketStructure(candlesM5[symbol], 48); // 4H Lookback
   const pdLevels = getPreviousDayLevels(candlesM15[symbol]);
-  
+
   // Attach to asset for visibility/AI
   asset.structure = structure;
   asset.pdLevels = pdLevels;
@@ -921,16 +963,16 @@ function processTicks(symbol) {
 
     // SPECIAL: NY ORB HARD CLOSE (21:00 UTC)
     if (trade.strategy === 'NY_ORB' && new Date().getUTCHours() >= 21) {
-       trade.status = 'CLOSED'; trade.closeReason = 'HARD_CLOSE'; trade.outcomeReason = "NY ORB Hard Close at 21:00 UTC";
-       trade.closeTime = Date.now(); trade.closePrice = price;
-       const exit = isBuy ? bid : ask;
-       const pnl = (isBuy ? exit - trade.entryPrice : trade.entryPrice - exit) * trade.currentSize;
-       trade.pnl += pnl; account.balance += pnl; closedPnL += pnl;
-       trade.floatingPnl = 0;
-       closedAnyTrade = true;
-       sendSms(`CLOSE ${symbol} ${trade.type} @ ${exit.toFixed(2)} (HARD_CLOSE) PnL ${pnl.toFixed(2)}`);
+      trade.status = 'CLOSED'; trade.closeReason = 'HARD_CLOSE'; trade.outcomeReason = "NY ORB Hard Close at 21:00 UTC";
+      trade.closeTime = Date.now(); trade.closePrice = price;
+      const exit = isBuy ? bid : ask;
+      const pnl = (isBuy ? exit - trade.entryPrice : trade.entryPrice - exit) * trade.currentSize;
+      trade.pnl += pnl; account.balance += pnl; closedPnL += pnl;
+      trade.floatingPnl = 0;
+      closedAnyTrade = true;
+      sendSms(`CLOSE ${symbol} ${trade.type} @ ${exit.toFixed(2)} (HARD_CLOSE) PnL ${pnl.toFixed(2)}`);
       notifyAll('Trade Closed', `${symbol} ${trade.type} @ ${exit.toFixed(2)} (HARD_CLOSE) PnL ${pnl.toFixed(2)}`);
-       continue;
+      continue;
     }
 
     // A. AI GUARDIAN (Panic Close)
@@ -939,318 +981,318 @@ function processTicks(symbol) {
         aiState[symbol] = { lastCheck: 0, sentiment: 'NEUTRAL', confidence: 0, reason: '' };
       }
       if (aiState[symbol].confidence > 80) {
-      // RULE: Only let AI Guardian close trades that were opened by the AI Agent.
-      // We do NOT want the AI interfering with mechanical strategies like London Sweep or NY ORB.
-      if (trade.strategy !== 'AI_AGENT') {
-        // Skip AI check for non-AI trades
-      } else {
-        const sentiment = aiState[symbol].sentiment;
-        // If Long and Sentiment is Bearish -> Close
-        if (isBuy && sentiment === 'BEARISH') {
-          trade.status = 'CLOSED'; trade.closeReason = 'AI_GUARDIAN'; trade.outcomeReason = "AI Guardian Intervention: Sentiment shifted BEARISH with high confidence.";
-          trade.closeTime = Date.now(); trade.closePrice = price;
-          console.log(`[AI GUARDIAN] Panic Closed ${symbol} Trade due to Strong Bearish Sentiment`);
-          const pnl = (price - trade.entryPrice) * trade.currentSize;
-          trade.pnl += pnl; account.balance += pnl; closedPnL += pnl;
-          trade.floatingPnl = 0;
-          closedAnyTrade = true;
-          sendSms(`CLOSE ${symbol} ${trade.type} @ ${price.toFixed(2)} (AI_GUARDIAN) PnL ${pnl.toFixed(2)}`);
-          notifyAll('Trade Closed', `${symbol} ${trade.type} @ ${price.toFixed(2)} (AI_GUARDIAN) PnL ${pnl.toFixed(2)}`);
-          continue; // Next trade
-        }
-        // If Short and Sentiment is Bullish -> Close
-        if (!isBuy && sentiment === 'BULLISH') {
-          trade.status = 'CLOSED'; trade.closeReason = 'AI_GUARDIAN'; trade.outcomeReason = "AI Guardian Intervention: Sentiment shifted BULLISH with high confidence.";
-          trade.closeTime = Date.now(); trade.closePrice = price;
-          console.log(`[AI GUARDIAN] Panic Closed ${symbol} Trade due to Strong Bullish Sentiment`);
-          const pnl = (trade.entryPrice - price) * trade.currentSize;
-          trade.pnl += pnl; account.balance += pnl; closedPnL += pnl;
-          trade.floatingPnl = 0;
-          closedAnyTrade = true;
-          sendSms(`CLOSE ${symbol} ${trade.type} @ ${price.toFixed(2)} (AI_GUARDIAN) PnL ${pnl.toFixed(2)}`);
-          notifyAll('Trade Closed', `${symbol} ${trade.type} @ ${price.toFixed(2)} (AI_GUARDIAN) PnL ${pnl.toFixed(2)}`);
-          continue;
-        }
-      }
-    }
-
-    // B. TRAILING STOP
-    // If profit > 0.2%, move SL to Breakeven + Trail
-    const currentProfitPct = isBuy ? (bid - trade.entryPrice) / trade.entryPrice : (trade.entryPrice - ask) / trade.entryPrice;
-    if (currentProfitPct > 0.002) {
-      if (isBuy) {
-        const newSL = bid * 0.999;
-        if (newSL > trade.stopLoss) trade.stopLoss = newSL;
-      } else {
-        const newSL = ask * 1.001;
-        if (newSL < trade.stopLoss) trade.stopLoss = newSL;
-      }
-    }
-
-    // C. STANDARD TP CHECKS
-    for (const level of trade.tpLevels) {
-      if (!level.hit) {
-        const hit = isBuy ? bid >= level.price : ask <= level.price;
-        if (hit) {
-          const closeAmt = trade.initialSize * level.percentage;
-          const exit = isBuy ? bid : ask;
-          const pnl = (isBuy ? exit - trade.entryPrice : trade.entryPrice - exit) * closeAmt;
-          trade.currentSize -= closeAmt;
-          trade.pnl += pnl;
-          level.hit = true;
-          account.balance += pnl;
-          closedPnL += pnl;
-          if (level.id === 1) trade.stopLoss = trade.entryPrice; // Breakeven
-          trade.outcomeReason = `Take Profit: Level ${level.id} hit. Locked in profit.`;
+        // RULE: Only let AI Guardian close trades that were opened by the AI Agent.
+        // We do NOT want the AI interfering with mechanical strategies like London Sweep or NY ORB.
+        if (trade.strategy !== 'AI_AGENT') {
+          // Skip AI check for non-AI trades
+        } else {
+          const sentiment = aiState[symbol].sentiment;
+          // If Long and Sentiment is Bearish -> Close
+          if (isBuy && sentiment === 'BEARISH') {
+            trade.status = 'CLOSED'; trade.closeReason = 'AI_GUARDIAN'; trade.outcomeReason = "AI Guardian Intervention: Sentiment shifted BEARISH with high confidence.";
+            trade.closeTime = Date.now(); trade.closePrice = price;
+            console.log(`[AI GUARDIAN] Panic Closed ${symbol} Trade due to Strong Bearish Sentiment`);
+            const pnl = (price - trade.entryPrice) * trade.currentSize;
+            trade.pnl += pnl; account.balance += pnl; closedPnL += pnl;
+            trade.floatingPnl = 0;
+            closedAnyTrade = true;
+            sendSms(`CLOSE ${symbol} ${trade.type} @ ${price.toFixed(2)} (AI_GUARDIAN) PnL ${pnl.toFixed(2)}`);
+            notifyAll('Trade Closed', `${symbol} ${trade.type} @ ${price.toFixed(2)} (AI_GUARDIAN) PnL ${pnl.toFixed(2)}`);
+            continue; // Next trade
+          }
+          // If Short and Sentiment is Bullish -> Close
+          if (!isBuy && sentiment === 'BULLISH') {
+            trade.status = 'CLOSED'; trade.closeReason = 'AI_GUARDIAN'; trade.outcomeReason = "AI Guardian Intervention: Sentiment shifted BULLISH with high confidence.";
+            trade.closeTime = Date.now(); trade.closePrice = price;
+            console.log(`[AI GUARDIAN] Panic Closed ${symbol} Trade due to Strong Bullish Sentiment`);
+            const pnl = (trade.entryPrice - price) * trade.currentSize;
+            trade.pnl += pnl; account.balance += pnl; closedPnL += pnl;
+            trade.floatingPnl = 0;
+            closedAnyTrade = true;
+            sendSms(`CLOSE ${symbol} ${trade.type} @ ${price.toFixed(2)} (AI_GUARDIAN) PnL ${pnl.toFixed(2)}`);
+            notifyAll('Trade Closed', `${symbol} ${trade.type} @ ${price.toFixed(2)} (AI_GUARDIAN) PnL ${pnl.toFixed(2)}`);
+            continue;
+          }
         }
       }
-    }
 
-    // D. STANDARD SL CHECK
-    if (isBuy ? bid <= trade.stopLoss : ask >= trade.stopLoss) {
-      trade.status = 'CLOSED'; trade.closeReason = 'STOP_LOSS'; trade.outcomeReason = "Stop Loss: Price invalidated trade setup.";
-      trade.closeTime = Date.now(); trade.closePrice = price;
+      // B. TRAILING STOP
+      // If profit > 0.2%, move SL to Breakeven + Trail
+      const currentProfitPct = isBuy ? (bid - trade.entryPrice) / trade.entryPrice : (trade.entryPrice - ask) / trade.entryPrice;
+      if (currentProfitPct > 0.002) {
+        if (isBuy) {
+          const newSL = bid * 0.999;
+          if (newSL > trade.stopLoss) trade.stopLoss = newSL;
+        } else {
+          const newSL = ask * 1.001;
+          if (newSL < trade.stopLoss) trade.stopLoss = newSL;
+        }
+      }
+
+      // C. STANDARD TP CHECKS
+      for (const level of trade.tpLevels) {
+        if (!level.hit) {
+          const hit = isBuy ? bid >= level.price : ask <= level.price;
+          if (hit) {
+            const closeAmt = trade.initialSize * level.percentage;
+            const exit = isBuy ? bid : ask;
+            const pnl = (isBuy ? exit - trade.entryPrice : trade.entryPrice - exit) * closeAmt;
+            trade.currentSize -= closeAmt;
+            trade.pnl += pnl;
+            level.hit = true;
+            account.balance += pnl;
+            closedPnL += pnl;
+            if (level.id === 1) trade.stopLoss = trade.entryPrice; // Breakeven
+            trade.outcomeReason = `Take Profit: Level ${level.id} hit. Locked in profit.`;
+          }
+        }
+      }
+
+      // D. STANDARD SL CHECK
+      if (isBuy ? bid <= trade.stopLoss : ask >= trade.stopLoss) {
+        trade.status = 'CLOSED'; trade.closeReason = 'STOP_LOSS'; trade.outcomeReason = "Stop Loss: Price invalidated trade setup.";
+        trade.closeTime = Date.now(); trade.closePrice = price;
+        const exit = isBuy ? bid : ask;
+        const pnl = (isBuy ? exit - trade.entryPrice : trade.entryPrice - exit) * trade.currentSize;
+        trade.pnl += pnl; account.balance += pnl; closedPnL += pnl;
+        trade.floatingPnl = 0;
+        closedAnyTrade = true;
+        sendSms(`CLOSE ${symbol} ${trade.type} @ ${exit.toFixed(2)} (STOP_LOSS) PnL ${pnl.toFixed(2)}`);
+        notifyAll('Trade Closed', `${symbol} ${trade.type} @ ${exit.toFixed(2)} (STOP_LOSS) PnL ${pnl.toFixed(2)}`);
+      }
+    }
+    for (const t of openTrades) {
+      if (t.status !== 'OPEN') continue;
+      const isBuy = t.type === 'BUY';
       const exit = isBuy ? bid : ask;
-      const pnl = (isBuy ? exit - trade.entryPrice : trade.entryPrice - exit) * trade.currentSize;
-      trade.pnl += pnl; account.balance += pnl; closedPnL += pnl;
-      trade.floatingPnl = 0;
-      closedAnyTrade = true;
-      sendSms(`CLOSE ${symbol} ${trade.type} @ ${exit.toFixed(2)} (STOP_LOSS) PnL ${pnl.toFixed(2)}`);
-      notifyAll('Trade Closed', `${symbol} ${trade.type} @ ${exit.toFixed(2)} (STOP_LOSS) PnL ${pnl.toFixed(2)}`);
+      t.floatingPnl = (isBuy ? exit - t.entryPrice : t.entryPrice - exit) * t.currentSize;
     }
-  }
-  for (const t of openTrades) {
-    if (t.status !== 'OPEN') continue;
-    const isBuy = t.type === 'BUY';
-    const exit = isBuy ? bid : ask;
-    t.floatingPnl = (isBuy ? exit - t.entryPrice : t.entryPrice - exit) * t.currentSize;
-  }
-  account.dayPnL += closedPnL;
-  account.totalPnL += closedPnL;
-  account.equity = account.balance;
-  if (closedAnyTrade || closedPnL !== 0) saveState();
+    account.dayPnL += closedPnL;
+    account.totalPnL += closedPnL;
+    account.equity = account.balance;
+    if (closedAnyTrade || closedPnL !== 0) saveState();
 
-  // 2. Run Strategies (Only if no open trade)
-  if (!asset.botActive) return;
-  if (openTrades.length > 0) return; // Max 1 trade per asset
-  {
-    const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(new Date());
-    const hh = parseInt(String(parts.find(p => p.type === 'hour')?.value || '0'), 10);
-    const mm = parseInt(String(parts.find(p => p.type === 'minute')?.value || '0'), 10);
-    const inLunch = (hh === 11 && mm >= 30) || (hh > 11 && hh < 15);
-    if (symbol === 'NAS100' && inLunch) { console.log('[FILTER] Signal skipped - Lunch Pause'); return; }
-  }
-  const nowUtc = new Date();
-  const dow = nowUtc.getUTCDay();
-  const hour = nowUtc.getUTCHours();
-  if ((dow === 5 && hour >= 21) || dow === 6 || dow === 0) return;
+    // 2. Run Strategies (Only if no open trade)
+    if (!asset.botActive) return;
+    if (openTrades.length > 0) return; // Max 1 trade per asset
+    {
+      const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(new Date());
+      const hh = parseInt(String(parts.find(p => p.type === 'hour')?.value || '0'), 10);
+      const mm = parseInt(String(parts.find(p => p.type === 'minute')?.value || '0'), 10);
+      const inLunch = (hh === 11 && mm >= 30) || (hh > 11 && hh < 15);
+      if (symbol === 'NAS100' && inLunch) { console.log('[FILTER] Signal skipped - Lunch Pause'); return; }
+    }
+    const nowUtc = new Date();
+    const dow = nowUtc.getUTCDay();
+    const hour = nowUtc.getUTCHours();
+    if ((dow === 5 && hour >= 21) || dow === 6 || dow === 0) return;
 
-  // A. TREND FOLLOW (24/7)
-  if (asset.activeStrategies.includes('TREND_FOLLOW')) {
-    const utcHour = new Date().getUTCHours();
+    // A. TREND FOLLOW (24/7)
+    if (asset.activeStrategies.includes('TREND_FOLLOW')) {
+      const utcHour = new Date().getUTCHours();
 
-    // 1. NAS100 TIME FILTER (08:00 - 21:00 UTC)
-    // Restrict 'NAS100' trades to ONLY execute between 08:00 UTC and 21:00 UTC.
-    const isNasRestricted = symbol === 'NAS100' && (utcHour < 8 || utcHour >= 21);
-    
-    // 2. XAUUSD TIME FILTER (12:00 UTC+ only)
-    // Avoid London Sweep conflict
-    const isXauRestricted = symbol === 'XAUUSD' && utcHour < 12;
+      // 1. NAS100 TIME FILTER (08:00 - 21:00 UTC)
+      // Restrict 'NAS100' trades to ONLY execute between 08:00 UTC and 21:00 UTC.
+      const isNasRestricted = symbol === 'NAS100' && (utcHour < 8 || utcHour >= 21);
 
-    if (!isNasRestricted && !isXauRestricted) {
-      // Idle Guard: if no trades for this symbol today, slightly relax filters
-      const now = new Date();
-      const startOfDayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0)).getTime();
-      const tradesToday = trades.filter(t => t.symbol === symbol && typeof t.openTime === 'number' && t.openTime >= startOfDayUtc);
-      const idleGuardActive = tradesToday.length === 0;
-      const adxThreshold = idleGuardActive ? 20 : 25;
-      const premiumLimit = idleGuardActive ? 0.80 : 0.75;
-      const discountLimit = idleGuardActive ? 0.20 : 0.25;
-      if (idleGuardActive) {
-        console.log(`[GUARD] ${symbol} Idle day — relaxing filters (ADX>${adxThreshold}, premium>${(premiumLimit*100).toFixed(0)}%, discount<${(discountLimit*100).toFixed(0)}%)`);
-      }
+      // 2. XAUUSD TIME FILTER (12:00 UTC+ only)
+      // Avoid London Sweep conflict
+      const isXauRestricted = symbol === 'XAUUSD' && utcHour < 12;
 
-      const isTrendUp = asset.currentPrice > asset.ema200;
-      const pullback = isTrendUp ? asset.currentPrice <= asset.ema : asset.currentPrice >= asset.ema;
-      const confirm = isTrendUp ? asset.slope > 0.1 : asset.slope < -0.1;
+      if (!isNasRestricted && !isXauRestricted) {
+        // Idle Guard: if no trades for this symbol today, slightly relax filters
+        const now = new Date();
+        const startOfDayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0)).getTime();
+        const tradesToday = trades.filter(t => t.symbol === symbol && typeof t.openTime === 'number' && t.openTime >= startOfDayUtc);
+        const idleGuardActive = tradesToday.length === 0;
+        const adxThreshold = idleGuardActive ? 20 : 25;
+        const premiumLimit = idleGuardActive ? 0.80 : 0.75;
+        const discountLimit = idleGuardActive ? 0.20 : 0.25;
+        if (idleGuardActive) {
+          console.log(`[GUARD] ${symbol} Idle day — relaxing filters (ADX>${adxThreshold}, premium>${(premiumLimit * 100).toFixed(0)}%, discount<${(discountLimit * 100).toFixed(0)}%)`);
+        }
 
-      // FVG Check
-      let fvgReason = '';
-      let fvgConfidenceBoost = 0;
-      const candles = candlesM5[symbol];
-      if (candles && candles.length >= 20) {
+        const isTrendUp = asset.currentPrice > asset.ema200;
+        const pullback = isTrendUp ? asset.currentPrice <= asset.ema : asset.currentPrice >= asset.ema;
+        const confirm = isTrendUp ? asset.slope > 0.1 : asset.slope < -0.1;
+
+        // FVG Check
+        let fvgReason = '';
+        let fvgConfidenceBoost = 0;
+        const candles = candlesM5[symbol];
+        if (candles && candles.length >= 20) {
           // 1. FVG Detection (Last 3 closed candles)
           const closedCandles = candles.slice(-4, -1);
           const fvg = detectFairValueGap(closedCandles);
-          
+
           if (fvg.isDetected) {
-              console.log(`[FVG] ${symbol} ${fvg.type.toUpperCase()} FVG Detected: ${fvg.gapBottom.toFixed(2)} - ${fvg.gapTop.toFixed(2)}`);
-              
-              if (isTrendUp && fvg.type === 'bullish') {
-                  fvgReason += ' + Bullish FVG confirmed';
-                  fvgConfidenceBoost += 5;
-              } else if (!isTrendUp && fvg.type === 'bearish') {
-                  fvgReason += ' + Bearish FVG confirmed';
-                  fvgConfidenceBoost += 5;
-              }
+            console.log(`[FVG] ${symbol} ${fvg.type.toUpperCase()} FVG Detected: ${fvg.gapBottom.toFixed(2)} - ${fvg.gapTop.toFixed(2)}`);
+
+            if (isTrendUp && fvg.type === 'bullish') {
+              fvgReason += ' + Bullish FVG confirmed';
+              fvgConfidenceBoost += 5;
+            } else if (!isTrendUp && fvg.type === 'bearish') {
+              fvgReason += ' + Bearish FVG confirmed';
+              fvgConfidenceBoost += 5;
+            }
           }
 
           // 2. Order Block Detection (Scan history)
           // We pass the last 50 candles to find a recent valid OB
-          const historyCandles = candles.slice(-50); 
+          const historyCandles = candles.slice(-50);
           const ob = detectOrderBlock(historyCandles);
 
           if (ob.isDetected) {
-              // Check if we are "testing" the OB
-              // Bullish OB Test: Price is near/inside the OB zone [Low, High]
-              // Bearish OB Test: Price is near/inside the OB zone [Low, High]
-              const price = asset.currentPrice;
-              
-              if (ob.type === 'bullish') {
-                  // If Price is above OB Low and relatively close to OB High (retesting support)
-                  // Or literally inside it.
-                  if (price >= ob.bottom && price <= ob.top * 1.002) {
-                      console.log(`[OB] ${symbol} Testing BULLISH OB @ ${ob.bottom.toFixed(2)} - ${ob.top.toFixed(2)}`);
-                      if (isTrendUp) {
-                          fvgReason += ' + Testing Bullish Order Block';
-                          fvgConfidenceBoost += 10;
-                      }
-                  }
-              } else if (ob.type === 'bearish') {
-                   // If Price is below OB High and close to OB Low (retesting resistance)
-                  if (price <= ob.top && price >= ob.bottom * 0.998) {
-                      console.log(`[OB] ${symbol} Testing BEARISH OB @ ${ob.bottom.toFixed(2)} - ${ob.top.toFixed(2)}`);
-                      if (!isTrendUp) {
-                          fvgReason += ' + Testing Bearish Order Block';
-                          fvgConfidenceBoost += 10;
-                      }
-                  }
-              }
-          }
-      }
+            // Check if we are "testing" the OB
+            // Bullish OB Test: Price is near/inside the OB zone [Low, High]
+            // Bearish OB Test: Price is near/inside the OB zone [Low, High]
+            const price = asset.currentPrice;
 
-      // EXECUTION LOGIC with ADX FILTER
-      if (pullback && confirm) {
+            if (ob.type === 'bullish') {
+              // If Price is above OB Low and relatively close to OB High (retesting support)
+              // Or literally inside it.
+              if (price >= ob.bottom && price <= ob.top * 1.002) {
+                console.log(`[OB] ${symbol} Testing BULLISH OB @ ${ob.bottom.toFixed(2)} - ${ob.top.toFixed(2)}`);
+                if (isTrendUp) {
+                  fvgReason += ' + Testing Bullish Order Block';
+                  fvgConfidenceBoost += 10;
+                }
+              }
+            } else if (ob.type === 'bearish') {
+              // If Price is below OB High and close to OB Low (retesting resistance)
+              if (price <= ob.top && price >= ob.bottom * 0.998) {
+                console.log(`[OB] ${symbol} Testing BEARISH OB @ ${ob.bottom.toFixed(2)} - ${ob.top.toFixed(2)}`);
+                if (!isTrendUp) {
+                  fvgReason += ' + Testing Bearish Order Block';
+                  fvgConfidenceBoost += 10;
+                }
+              }
+            }
+          }
+        }
+
+        // EXECUTION LOGIC with ADX FILTER
+        if (pullback && confirm) {
           // 3. ADX VOLATILITY FILTER
           // Requirement: ADX must be > 25 to enter a Trend Trade.
           const adx = calculateADX(candlesM5[symbol] || [], 14);
-          
-          if (adx < adxThreshold) {
-              console.log(`[FILTER] Trend Signal skipped - ADX too low: ${adx.toFixed(1)}`);
-          } else {
-              // 4. PRICE ACTION FILTERS (Premium/Discount)
-              const { positionPct } = structure; // 0.0 = Low, 1.0 = High
-              
-              if (isTrendUp) {
-                  // BUY: Avoid Extreme Premium (> 0.75)
-                  if (positionPct > premiumLimit) {
-                      console.log(`[FILTER] Trend Buy skipped - Price in Extreme Premium (${(positionPct * 100).toFixed(0)}% of Range)`);
-                  } else {
-                       // Log PDH/PDL Dist
-                       const distPDH = pdLevels.pdh ? (pdLevels.pdh - price).toFixed(1) : 'N/A';
-                       const distPDL = pdLevels.pdl ? (price - pdLevels.pdl).toFixed(1) : 'N/A';
-                       console.log(`[TREND] Evaluating BUY. Dist to PDH: ${distPDH}, PDL: ${distPDL}`);
-                       
-                       executeTrade(symbol, 'BUY', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', `Trend Follow: Price pullback to EMA confirmed by slope${fvgReason}.`, 85 + fvgConfidenceBoost);
-                  }
-              } else {
-                  // SELL: Avoid Extreme Discount (< 0.25)
-                  if (positionPct < discountLimit) {
-                      console.log(`[FILTER] Trend Sell skipped - Price in Extreme Discount (${(positionPct * 100).toFixed(0)}% of Range)`);
-                  } else {
-                       // Log PDH/PDL Dist
-                       const distPDH = pdLevels.pdh ? (pdLevels.pdh - price).toFixed(1) : 'N/A';
-                       const distPDL = pdLevels.pdl ? (price - pdLevels.pdl).toFixed(1) : 'N/A';
-                       console.log(`[TREND] Evaluating SELL. Dist to PDH: ${distPDH}, PDL: ${distPDL}`);
 
-                      executeTrade(symbol, 'SELL', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', `Trend Follow: Price pullback to EMA confirmed by slope${fvgReason}.`, 85 + fvgConfidenceBoost);
-                  }
+          if (adx < adxThreshold) {
+            console.log(`[FILTER] Trend Signal skipped - ADX too low: ${adx.toFixed(1)}`);
+          } else {
+            // 4. PRICE ACTION FILTERS (Premium/Discount)
+            const { positionPct } = structure; // 0.0 = Low, 1.0 = High
+
+            if (isTrendUp) {
+              // BUY: Avoid Extreme Premium (> 0.75)
+              if (positionPct > premiumLimit) {
+                console.log(`[FILTER] Trend Buy skipped - Price in Extreme Premium (${(positionPct * 100).toFixed(0)}% of Range)`);
+              } else {
+                // Log PDH/PDL Dist
+                const distPDH = pdLevels.pdh ? (pdLevels.pdh - price).toFixed(1) : 'N/A';
+                const distPDL = pdLevels.pdl ? (price - pdLevels.pdl).toFixed(1) : 'N/A';
+                console.log(`[TREND] Evaluating BUY. Dist to PDH: ${distPDH}, PDL: ${distPDL}`);
+
+                executeTrade(symbol, 'BUY', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', `Trend Follow: Price pullback to EMA confirmed by slope${fvgReason}.`, 85 + fvgConfidenceBoost);
               }
+            } else {
+              // SELL: Avoid Extreme Discount (< 0.25)
+              if (positionPct < discountLimit) {
+                console.log(`[FILTER] Trend Sell skipped - Price in Extreme Discount (${(positionPct * 100).toFixed(0)}% of Range)`);
+              } else {
+                // Log PDH/PDL Dist
+                const distPDH = pdLevels.pdh ? (pdLevels.pdh - price).toFixed(1) : 'N/A';
+                const distPDL = pdLevels.pdl ? (price - pdLevels.pdl).toFixed(1) : 'N/A';
+                console.log(`[TREND] Evaluating SELL. Dist to PDH: ${distPDH}, PDL: ${distPDL}`);
+
+                executeTrade(symbol, 'SELL', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', `Trend Follow: Price pullback to EMA confirmed by slope${fvgReason}.`, 85 + fvgConfidenceBoost);
+              }
+            }
           }
+        }
       }
     }
-  }
 
-  // B. LONDON SWEEP (GOLD)
-  if (asset.activeStrategies.includes('LONDON_SWEEP') && symbol === 'XAUUSD') {
-    const allow = isWithinLondonSweepWindow(Date.now());
-    if (allow) {
-      const candles = candlesM5[symbol];
-      if (candles.length > 10) {
-        const lowest = Math.min(...candles.slice(-10, -1).map(c => c.low));
-        const current = candles[candles.length - 1];
-        if (current.low < lowest && asset.currentPrice > lowest + 0.5) {
-          executeTrade(symbol, 'BUY', asset.currentPrice, 'LONDON_SWEEP', 'CONSERVATIVE', 'London Sweep: Liquidity sweep of M5 lows during London Open.', 90);
+    // B. LONDON SWEEP (GOLD)
+    if (asset.activeStrategies.includes('LONDON_SWEEP') && symbol === 'XAUUSD') {
+      const allow = isWithinLondonSweepWindow(Date.now());
+      if (allow) {
+        const candles = candlesM5[symbol];
+        if (candles.length > 10) {
+          const lowest = Math.min(...candles.slice(-10, -1).map(c => c.low));
+          const current = candles[candles.length - 1];
+          if (current.low < lowest && asset.currentPrice > lowest + 0.5) {
+            executeTrade(symbol, 'BUY', asset.currentPrice, 'LONDON_SWEEP', 'CONSERVATIVE', 'London Sweep: Liquidity sweep of M5 lows during London Open.', 90);
+          }
+        }
+      }
+    }
+
+    // C. NY ORB (NAS100)
+    if (asset.activeStrategies.includes('NY_ORB') && symbol === 'NAS100') {
+      const mins = hour * 60 + nowUtc.getUTCMinutes();
+      const start = 14 * 60 + 30; // 14:30
+      const end = 15 * 60 + 30;   // 15:30
+
+      if (mins >= start && mins <= end) {
+        const volExpansion = asset.bollinger.upper - asset.bollinger.lower > asset.currentPrice * 0.0012;
+
+        // LONG Logic (Breakout)
+        if (volExpansion && asset.currentPrice > asset.bollinger.upper) {
+          console.log(`[NY_ORB] ${symbol} BUY @ ${asset.currentPrice.toFixed(2)}`);
+          executeTrade(symbol, 'BUY', asset.currentPrice, 'NY_ORB', 'AGGRESSIVE', 'NY ORB: Volatility expansion breakout above Bollinger Bands.', 88);
+        }
+
+        // SHORT Logic (Close below Lower Band)
+        const lastClosed = candlesM5[symbol].filter(c => c.isClosed).pop();
+        if (lastClosed && volExpansion && lastClosed.close < asset.bollinger.lower) {
+          // SL at Breakout Candle High
+          const slPrice = lastClosed.high;
+          console.log(`[NY_ORB] ${symbol} SELL @ ${asset.currentPrice.toFixed(2)}`);
+          executeTrade(symbol, 'SELL', asset.currentPrice, 'NY_ORB', 'AGGRESSIVE', 'NY ORB: Close below Lower Bollinger Band.', 88, slPrice);
+        }
+      }
+    }
+
+    // D. AI AGENT (Real Gemini)
+    let minConfidence = 65;
+    if (symbol === 'NAS100') minConfidence = 85;
+
+    // XAUUSD Time Restriction: Only trade after 12:00 UTC (Avoid London Sweep conflict)
+    const isXauRestrictedAI = symbol === 'XAUUSD' && new Date().getUTCHours() < 12;
+
+    // ADX Filter
+    const adx = calculateADX(candlesM5[symbol]);
+    if (adx >= 20 && !isXauRestrictedAI) {
+      if (asset.activeStrategies.includes('AI_AGENT') && aiState[symbol].confidence > minConfidence) {
+        const sentiment = aiState[symbol].sentiment;
+        // If AI is Bullish and we are in Uptrend -> Buy
+        if (sentiment === 'BULLISH' && asset.trend === 'UP') {
+          // BLOCK BUY in Extreme Premium
+          const { positionPct } = structure;
+          if (positionPct > 0.75) {
+            console.log(`[FILTER] AI Buy blocked - Extreme Premium (${(positionPct * 100).toFixed(0)}%)`);
+          } else {
+            // Log Context
+            const distPDH = pdLevels.pdh ? (pdLevels.pdh - price).toFixed(1) : 'N/A';
+            console.log(`[AI] Executing BUY. Dist to PDH: ${distPDH}`);
+            executeTrade(symbol, 'BUY', asset.currentPrice, 'AI_AGENT', 'SMART', aiState[symbol].reason, aiState[symbol].confidence);
+            aiState[symbol].confidence = 0;
+          }
+        } else if (sentiment === 'BEARISH' && asset.trend === 'DOWN') {
+          const { positionPct } = structure;
+          if (positionPct < 0.25) {
+            console.log(`[FILTER] AI Sell blocked - Extreme Discount (${(positionPct * 100).toFixed(0)}%)`);
+          } else {
+            const distPDL = pdLevels.pdl ? (price - pdLevels.pdl).toFixed(1) : 'N/A';
+            console.log(`[AI] Executing SELL. Dist to PDL: ${distPDL}`);
+            executeTrade(symbol, 'SELL', asset.currentPrice, 'AI_AGENT', 'SMART', aiState[symbol].reason, aiState[symbol].confidence);
+            aiState[symbol].confidence = 0;
+          }
         }
       }
     }
   }
-
-  // C. NY ORB (NAS100)
-  if (asset.activeStrategies.includes('NY_ORB') && symbol === 'NAS100') {
-    const mins = hour * 60 + nowUtc.getUTCMinutes();
-    const start = 14 * 60 + 30; // 14:30
-    const end = 15 * 60 + 30;   // 15:30
-    
-    if (mins >= start && mins <= end) {
-      const volExpansion = asset.bollinger.upper - asset.bollinger.lower > asset.currentPrice * 0.0012;
-      
-      // LONG Logic (Breakout)
-      if (volExpansion && asset.currentPrice > asset.bollinger.upper) {
-        console.log(`[NY_ORB] ${symbol} BUY @ ${asset.currentPrice.toFixed(2)}`);
-        executeTrade(symbol, 'BUY', asset.currentPrice, 'NY_ORB', 'AGGRESSIVE', 'NY ORB: Volatility expansion breakout above Bollinger Bands.', 88);
-      }
-      
-      // SHORT Logic (Close below Lower Band)
-      const lastClosed = candlesM5[symbol].filter(c => c.isClosed).pop();
-      if (lastClosed && volExpansion && lastClosed.close < asset.bollinger.lower) {
-         // SL at Breakout Candle High
-         const slPrice = lastClosed.high;
-         console.log(`[NY_ORB] ${symbol} SELL @ ${asset.currentPrice.toFixed(2)}`);
-         executeTrade(symbol, 'SELL', asset.currentPrice, 'NY_ORB', 'AGGRESSIVE', 'NY ORB: Close below Lower Bollinger Band.', 88, slPrice);
-      }
-    }
-  }
-
-  // D. AI AGENT (Real Gemini)
-  let minConfidence = 65;
-  if (symbol === 'NAS100') minConfidence = 85; 
-
-  // XAUUSD Time Restriction: Only trade after 12:00 UTC (Avoid London Sweep conflict)
-  const isXauRestrictedAI = symbol === 'XAUUSD' && new Date().getUTCHours() < 12;
-
-  // ADX Filter
-  const adx = calculateADX(candlesM5[symbol]);
-  if (adx >= 20 && !isXauRestrictedAI) {
-    if (asset.activeStrategies.includes('AI_AGENT') && aiState[symbol].confidence > minConfidence) {
-      const sentiment = aiState[symbol].sentiment;
-      // If AI is Bullish and we are in Uptrend -> Buy
-      if (sentiment === 'BULLISH' && asset.trend === 'UP') {
-         // BLOCK BUY in Extreme Premium
-         const { positionPct } = structure;
-         if (positionPct > 0.75) {
-             console.log(`[FILTER] AI Buy blocked - Extreme Premium (${(positionPct * 100).toFixed(0)}%)`);
-         } else {
-             // Log Context
-             const distPDH = pdLevels.pdh ? (pdLevels.pdh - price).toFixed(1) : 'N/A';
-             console.log(`[AI] Executing BUY. Dist to PDH: ${distPDH}`);
-             executeTrade(symbol, 'BUY', asset.currentPrice, 'AI_AGENT', 'SMART', aiState[symbol].reason, aiState[symbol].confidence);
-             aiState[symbol].confidence = 0;
-         }
-      } else if (sentiment === 'BEARISH' && asset.trend === 'DOWN') {
-         const { positionPct } = structure;
-         if (positionPct < 0.25) {
-             console.log(`[FILTER] AI Sell blocked - Extreme Discount (${(positionPct * 100).toFixed(0)}%)`);
-         } else {
-             const distPDL = pdLevels.pdl ? (price - pdLevels.pdl).toFixed(1) : 'N/A';
-             console.log(`[AI] Executing SELL. Dist to PDL: ${distPDL}`);
-             executeTrade(symbol, 'SELL', asset.currentPrice, 'AI_AGENT', 'SMART', aiState[symbol].reason, aiState[symbol].confidence);
-             aiState[symbol].confidence = 0;
-         }
-      }
-    }
-  }
-}
 
 }
 
@@ -1368,7 +1410,17 @@ app.post('/cloud/clear', async (req, res) => {
   }
 });
 
-app.get('/health', (req, res) => res.send('OK'));
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    uptime: process.uptime(),
+    timestamp: Date.now(),
+    firebase: firebaseConnected,
+    ai_enabled: !!aiClient,
+    trades_count: trades.length
+  });
+});
+
 app.get('/diagnostics/:symbol', (req, res) => {
   try {
     const symbol = (req.params.symbol || '').toString().toUpperCase();
@@ -1678,7 +1730,7 @@ app.post('/restart', (req, res) => {
   try {
     saveState();
     res.json({ success: true, message: 'Bot restarting...' });
-    setTimeout(() => { try { process.exit(0); } catch {} }, 500);
+    setTimeout(() => { try { process.exit(0); } catch { } }, 500);
   } catch (e) {
     res.status(500).json({ success: false, error: e?.message || 'error' });
   }
@@ -1760,7 +1812,8 @@ let webpushClient = null;
   }
 })();
 // --- FIREBASE CLOUD PERSISTENCE ---
-initFirebase();
+// initFirebase() called at startup
+
 ((async () => {
   if (process.env.AUTOCLEAR_ON_BOOT === 'true') {
     try {
@@ -1818,9 +1871,8 @@ async function cloudLoadState() {
   } catch { }
 }
 
-function cloudSaveState() {
-  saveStateToCloud({ account, trades, pushSubscriptions });
-}
+// Duplicate removed
+
 
 setInterval(() => { try { cloudSaveState(); } catch { } }, 60 * 1000);
 
