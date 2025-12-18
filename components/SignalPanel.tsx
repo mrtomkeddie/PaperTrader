@@ -12,13 +12,14 @@ interface Props {
 }
 
 const STRATEGY_CONFIG: Record<string, StrategyType[]> = {
-    [AssetSymbol.NAS100]: [StrategyType.AI_AGENT, StrategyType.NY_ORB, StrategyType.TREND_FOLLOW],
-    [AssetSymbol.XAUUSD]: [StrategyType.AI_AGENT, StrategyType.LONDON_SWEEP, StrategyType.TREND_FOLLOW],
+    [AssetSymbol.NAS100]: [StrategyType.AI_AGENT, StrategyType.NY_ORB, StrategyType.TREND_FOLLOW, StrategyType.MEAN_REVERT],
+    [AssetSymbol.XAUUSD]: [StrategyType.AI_AGENT, StrategyType.LONDON_SWEEP, StrategyType.TREND_FOLLOW, StrategyType.MEAN_REVERT],
 };
 
 const AVAILABLE_STRATEGIES = [
     { type: StrategyType.AI_AGENT, label: 'Gemini AI' },
     { type: StrategyType.TREND_FOLLOW, label: 'Trend Follow' },
+    { type: StrategyType.MEAN_REVERT, label: 'Mean Revert' },
     { type: StrategyType.NY_ORB, label: 'NY ORB' },
     { type: StrategyType.LONDON_SWEEP, label: 'London Sweep' },
 ];

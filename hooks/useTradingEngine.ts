@@ -236,8 +236,8 @@ export const useTradingEngine = () => {
 function createInitialAsset(symbol: AssetSymbol): AssetData {
     // Default strategies match server/bot.js defaults
     const defaultStrategies = symbol === AssetSymbol.NAS100 
-        ? [StrategyType.NY_ORB, StrategyType.AI_AGENT]
-        : [StrategyType.AI_AGENT];
+        ? [StrategyType.NY_ORB, StrategyType.TREND_FOLLOW, StrategyType.MEAN_REVERT, StrategyType.AI_AGENT]
+        : [StrategyType.LONDON_SWEEP, StrategyType.TREND_FOLLOW, StrategyType.MEAN_REVERT, StrategyType.AI_AGENT];
 
     return {
       symbol,

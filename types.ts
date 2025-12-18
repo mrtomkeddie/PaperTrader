@@ -7,6 +7,7 @@ export enum AssetSymbol {
 export enum StrategyType {
   // Basic / Trend
   TREND_FOLLOW = 'TREND_FOLLOW',
+  MEAN_REVERT = 'MEAN_REVERT',
   AI_AGENT = 'AI_AGENT',
   MANUAL = 'MANUAL',
   

@@ -652,6 +652,7 @@ Return ONLY this JSON:
 // --- LIVE DATA CONNECTION (BINANCE) ---
 let ws;
 function connectBinance() {
+  try { if (ws) ws.close(); } catch { }
   ws = new WebSocket('wss://stream.binance.com:9443/ws/paxgusdt@kline_1m/btcusdt@kline_1m');
   ws.on('open', () => { });
   ws.on('message', (data) => {
@@ -664,6 +665,9 @@ function connectBinance() {
         const price = isNas ? parseFloat(event.k.c) / 5 : parseFloat(event.k.c);
         updateMarketFromMid(symbol, price);
         const asset = assets[symbol];
+        lastTickTs[symbol] = Date.now();
+        feedSource = 'BINANCE';
+        try { asset.feedSource = feedSource; asset.lastTickTs = lastTickTs[symbol]; } catch { }
         asset.currentPrice = market[symbol].mid;
         asset.isLive = true;
         asset.history.push({ time: new Date().toLocaleTimeString(), value: market[symbol].mid });
@@ -690,6 +694,12 @@ function connectBinance() {
 let oandaReq = null;
 let lastOandaHeartbeat = Date.now();
 let lastPriceTime = Date.now();
+let lastTickTs = { NAS100: 0, XAUUSD: 0 };
+let lastM5CloseTs = { NAS100: 0, XAUUSD: 0 };
+let lastM15CloseTs = { NAS100: 0, XAUUSD: 0 };
+let feedSource = null;
+let reconnectState = { count: 0, windowStart: 0 };
+let feedWatchdogLastReconnectMs = 0;
 
 function connectOanda() {
   const host = OANDA_ENV === 'live' ? 'stream-fxtrade.oanda.com' : 'stream-fxpractice.oanda.com';
@@ -728,6 +738,9 @@ function connectOanda() {
             if (!symbol || !mid) continue;
             market[symbol] = { bid, ask, mid };
             const asset = assets[symbol];
+            lastTickTs[symbol] = Date.now();
+            feedSource = 'OANDA';
+            try { asset.feedSource = feedSource; asset.lastTickTs = lastTickTs[symbol]; } catch { }
             asset.currentPrice = market[symbol].mid;
             asset.isLive = true;
             asset.history.push({ time: new Date().toLocaleTimeString(), value: market[symbol].mid });
@@ -780,7 +793,51 @@ setInterval(() => {
   }
 }, 10000);
 
+setInterval(() => {
+  const now = Date.now();
+  const nowUtc = new Date(now);
+  const dow = nowUtc.getUTCDay();
+  const hour = nowUtc.getUTCHours();
+  const isWeekend = (dow === 6 || dow === 0 || (dow === 5 && hour >= 21));
+  if (isWeekend) return;
+
+  for (const symbol of Object.keys(assets)) {
+    const lastTick = lastTickTs[symbol] || 0;
+    const ageMs = now - lastTick;
+    if (ageMs > 90 * 1000) {
+      try { assets[symbol].isLive = false; } catch { }
+      try { assets[symbol].feedStaleSec = Math.round(ageMs / 1000); } catch { }
+    } else {
+      try { assets[symbol].feedStaleSec = Math.round(ageMs / 1000); } catch { }
+    }
+  }
+
+  if (now - feedWatchdogLastReconnectMs < 60 * 1000) return;
+  const nasWindow = hour >= 8 && hour < 21;
+  const xauWindow = true;
+  const staleNas = nasWindow && (now - (lastTickTs.NAS100 || 0) > 2 * 60 * 1000);
+  const staleXau = xauWindow && (now - (lastTickTs.XAUUSD || 0) > 2 * 60 * 1000);
+  const stalledM5Nas = nasWindow && (now - (lastM5CloseTs.NAS100 || 0) > 12 * 60 * 1000) && (now - (lastTickTs.NAS100 || 0) < 2 * 60 * 1000);
+  const stalledM5Xau = xauWindow && (now - (lastM5CloseTs.XAUUSD || 0) > 12 * 60 * 1000) && (now - (lastTickTs.XAUUSD || 0) < 2 * 60 * 1000);
+
+  if (staleNas || staleXau || stalledM5Nas || stalledM5Xau) {
+    feedWatchdogLastReconnectMs = now;
+    console.warn(`[WATCHDOG] Feed stale or candle stalled (source=${feedSource || 'UNKNOWN'}). Reconnecting...`);
+    connectLiveFeed();
+  }
+}, 15000);
+
 function connectLiveFeed() {
+  const now = Date.now();
+  if (!reconnectState.windowStart || now - reconnectState.windowStart > 30 * 60 * 1000) {
+    reconnectState = { count: 0, windowStart: now };
+  }
+  reconnectState.count++;
+  if (reconnectState.count > 12 && process.env.AUTO_RESTART === 'true') {
+    try { saveState(); } catch { }
+    try { process.exit(0); } catch { }
+    return;
+  }
   if (USE_OANDA) {
     connectOanda();
   } else {
@@ -859,6 +916,7 @@ function updateCandles(symbol, price) {
 
   if (currentCandles.length === 0) {
     currentCandles.push({ open: price, high: price, low: price, close: price, time: now, isClosed: false });
+    lastM5CloseTs[symbol] = now;
     return;
   }
 
@@ -871,6 +929,7 @@ function updateCandles(symbol, price) {
     lastCandle.close = price;
   } else {
     lastCandle.isClosed = true;
+    lastM5CloseTs[symbol] = now;
     // Candle Close Event - Good time to check AI
     consultGemini(symbol, assets[symbol]);
 
@@ -885,6 +944,7 @@ function updateCandlesM15(symbol, price) {
   const list = candlesM15[symbol];
   if (list.length === 0) {
     list.push({ open: price, high: price, low: price, close: price, time: now, isClosed: false });
+    lastM15CloseTs[symbol] = now;
     return;
   }
   const last = list[list.length - 1];
@@ -895,6 +955,7 @@ function updateCandlesM15(symbol, price) {
     last.close = price;
   } else {
     last.isClosed = true;
+    lastM15CloseTs[symbol] = now;
     list.push({ open: price, high: price, low: price, close: price, time: now, isClosed: false });
     if (list.length > 200) list.shift();
     const closes = list.filter(c => c.isClosed).map(c => c.close);
@@ -944,6 +1005,69 @@ function executeTrade(symbol, type, price, strategy, risk, customReason = null, 
   sendSms(`OPEN ${symbol} ${type} @ ${fillPrice.toFixed(2)} (${strategy})`);
   notifyAll('Trade Opened', `${symbol} ${type} @ ${fillPrice.toFixed(2)} (${strategy})`);
   saveState();
+  return trade;
+}
+
+function setSkipReason(asset, reason) {
+  try { asset.lastSkipReason = reason || null; } catch { }
+}
+
+function getStartOfDayUtcMs(ts = Date.now()) {
+  const d = new Date(ts);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0)).getTime();
+}
+
+function getGuardConfig(symbol, nowMs = Date.now()) {
+  const startOfDayUtc = getStartOfDayUtcMs(nowMs);
+  const today = trades.filter(t => t.symbol === symbol && typeof t.openTime === 'number' && t.openTime >= startOfDayUtc);
+  const tradesToday = today.length;
+  let lastTradeMs = 0;
+  for (const t of today) {
+    if (typeof t.openTime === 'number' && t.openTime > lastTradeMs) lastTradeMs = t.openTime;
+  }
+  if (!lastTradeMs) lastTradeMs = startOfDayUtc;
+  const minsSinceLastTrade = Math.max(0, (nowMs - lastTradeMs) / 60000);
+
+  let stage = 0;
+  if (minsSinceLastTrade >= 720) stage = 3;
+  else if (minsSinceLastTrade >= 360) stage = 2;
+  else if (minsSinceLastTrade >= 120) stage = 1;
+
+  const maxTradesPerDay = 5;
+  const cooldownMs = 20 * 60 * 1000;
+
+  const adxThreshold = stage >= 3 ? 15 : stage === 2 ? 18 : stage === 1 ? 20 : 25;
+  const emaProximityMax = stage >= 3 ? 0.004 : stage === 2 ? 0.003 : stage === 1 ? 0.002 : 0.001;
+  const slopeAbsMin = stage >= 3 ? 0.02 : stage === 2 ? 0.03 : stage === 1 ? 0.05 : 0.1;
+  const premiumLimit = stage >= 3 ? 0.9 : stage === 2 ? 0.85 : stage === 1 ? 0.8 : 0.75;
+  const discountLimit = stage >= 3 ? 0.1 : stage === 2 ? 0.15 : stage === 1 ? 0.2 : 0.25;
+
+  return {
+    startOfDayUtc,
+    tradesToday,
+    lastTradeMs,
+    minsSinceLastTrade,
+    stage,
+    maxTradesPerDay,
+    cooldownMs,
+    adxThreshold,
+    emaProximityMax,
+    slopeAbsMin,
+    premiumLimit,
+    discountLimit
+  };
+}
+
+function isNasLunchPauseNow(ts = Date.now()) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(new Date(ts));
+    const hh = parseInt(String(parts.find(p => p.type === 'hour')?.value || '0'), 10);
+    const mm = parseInt(String(parts.find(p => p.type === 'minute')?.value || '0'), 10);
+    const mins = hh * 60 + mm;
+    return mins >= (11 * 60 + 30) && mins <= (13 * 60 + 30);
+  } catch {
+    return false;
+  }
 }
 
 function processTicks(symbol) {
@@ -1020,8 +1144,9 @@ function processTicks(symbol) {
           }
         }
       }
+    }
 
-      // B. TRAILING STOP
+    // B. TRAILING STOP
       // If profit > 0.2%, move SL to Breakeven + Trail
       const currentProfitPct = isBuy ? (bid - trade.entryPrice) / trade.entryPrice : (trade.entryPrice - ask) / trade.entryPrice;
       if (currentProfitPct > 0.002) {
@@ -1065,36 +1190,40 @@ function processTicks(symbol) {
         sendSms(`CLOSE ${symbol} ${trade.type} @ ${exit.toFixed(2)} (STOP_LOSS) PnL ${pnl.toFixed(2)}`);
         notifyAll('Trade Closed', `${symbol} ${trade.type} @ ${exit.toFixed(2)} (STOP_LOSS) PnL ${pnl.toFixed(2)}`);
       }
-    }
-    for (const t of openTrades) {
-      if (t.status !== 'OPEN') continue;
-      const isBuy = t.type === 'BUY';
-      const exit = isBuy ? bid : ask;
-      t.floatingPnl = (isBuy ? exit - t.entryPrice : t.entryPrice - exit) * t.currentSize;
-    }
-    account.dayPnL += closedPnL;
-    account.totalPnL += closedPnL;
-    account.equity = account.balance;
-    if (closedAnyTrade || closedPnL !== 0) saveState();
+  }
 
-    // 2. Run Strategies (Only if no open trade)
-    if (!asset.botActive) return;
-    if (openTrades.length > 0) return; // Max 1 trade per asset
-    {
-      const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(new Date());
-      const hh = parseInt(String(parts.find(p => p.type === 'hour')?.value || '0'), 10);
-      const mm = parseInt(String(parts.find(p => p.type === 'minute')?.value || '0'), 10);
-      const inLunch = (hh === 11 && mm >= 30) || (hh > 11 && hh < 15);
-      if (symbol === 'NAS100' && inLunch) { console.log('[FILTER] Signal skipped - Lunch Pause'); return; }
-    }
-    const nowUtc = new Date();
-    const dow = nowUtc.getUTCDay();
-    const hour = nowUtc.getUTCHours();
-    if ((dow === 5 && hour >= 21) || dow === 6 || dow === 0) return;
+  for (const t of openTrades) {
+    if (t.status !== 'OPEN') continue;
+    const isBuy = t.type === 'BUY';
+    const exit = isBuy ? bid : ask;
+    t.floatingPnl = (isBuy ? exit - t.entryPrice : t.entryPrice - exit) * t.currentSize;
+  }
+  account.dayPnL += closedPnL;
+  account.totalPnL += closedPnL;
+  account.equity = account.balance;
+  if (closedAnyTrade || closedPnL !== 0) saveState();
 
-    // A. TREND FOLLOW (24/7)
-    if (asset.activeStrategies.includes('TREND_FOLLOW')) {
-      const utcHour = new Date().getUTCHours();
+  // 2. Run Strategies (Only if no open trade)
+  if (!asset.botActive) return;
+  if (openTrades.length > 0) return; // Max 1 trade per asset
+  const nowUtc = new Date();
+  const dow = nowUtc.getUTCDay();
+  const hour = nowUtc.getUTCHours();
+  if ((dow === 5 && hour >= 21) || dow === 6 || dow === 0) { setSkipReason(asset, 'Weekend / market closed'); return; }
+
+  const guard = getGuardConfig(symbol, Date.now());
+  try {
+    asset.guardStage = guard.stage;
+    asset.minsSinceLastTrade = Math.round(guard.minsSinceLastTrade);
+    asset.tradesToday = guard.tradesToday;
+  } catch { }
+
+  if (guard.tradesToday >= guard.maxTradesPerDay) { setSkipReason(asset, `Daily limit ${guard.tradesToday}/${guard.maxTradesPerDay}`); return; }
+  if (Date.now() - guard.lastTradeMs < guard.cooldownMs) { setSkipReason(asset, 'Cooldown'); return; }
+
+  // A. TREND FOLLOW (24/7)
+  if (asset.activeStrategies.includes('TREND_FOLLOW')) {
+    const utcHour = new Date().getUTCHours();
 
       // 1. NAS100 TIME FILTER (08:00 - 21:00 UTC)
       // Restrict 'NAS100' trades to ONLY execute between 08:00 UTC and 21:00 UTC.
@@ -1104,24 +1233,15 @@ function processTicks(symbol) {
       // Avoid London Sweep conflict
       const isXauRestricted = symbol === 'XAUUSD' && utcHour < 12;
 
-      if (!isNasRestricted && !isXauRestricted) {
-        // Idle Guard: if no trades for this symbol today, slightly relax filters
-        const now = new Date();
-        const startOfDayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0)).getTime();
-        const tradesToday = trades.filter(t => t.symbol === symbol && typeof t.openTime === 'number' && t.openTime >= startOfDayUtc);
-        const idleGuardActive = tradesToday.length === 0;
-        const adxThreshold = idleGuardActive ? 20 : 25;
-        const premiumLimit = idleGuardActive ? 0.80 : 0.75;
-        const discountLimit = idleGuardActive ? 0.20 : 0.25;
-        if (idleGuardActive) {
-          console.log(`[GUARD] ${symbol} Idle day — relaxing filters (ADX>${adxThreshold}, premium>${(premiumLimit * 100).toFixed(0)}%, discount<${(discountLimit * 100).toFixed(0)}%)`);
-        }
-
+    if (!isNasRestricted && !isXauRestricted) {
+      if (symbol === 'NAS100' && isNasLunchPauseNow(Date.now())) {
+        setSkipReason(asset, 'Lunch pause');
+      } else {
         const isTrendUp = asset.currentPrice > asset.ema200;
         const emaProximity = Math.abs(asset.currentPrice - asset.ema) / (asset.ema || 1);
-        const nearEma = emaProximity <= (idleGuardActive ? 0.002 : 0.001);
+        const nearEma = emaProximity <= guard.emaProximityMax;
         const pullback = isTrendUp ? (asset.currentPrice <= asset.ema || nearEma) : (asset.currentPrice >= asset.ema || nearEma);
-        const confirm = isTrendUp ? asset.slope > (idleGuardActive ? 0.05 : 0.1) : asset.slope < (idleGuardActive ? -0.05 : -0.1);
+        const confirm = isTrendUp ? asset.slope > guard.slopeAbsMin : asset.slope < -guard.slopeAbsMin;
 
         // FVG Check
         let fvgReason = '';
@@ -1182,46 +1302,43 @@ function processTicks(symbol) {
         if (pullback && confirm) {
           // 3. ADX VOLATILITY FILTER
           // Requirement: ADX must be > 25 to enter a Trend Trade.
-          const adx = calculateADX(candlesM5[symbol] || [], 14);
+        const adx = calculateADX(candlesM5[symbol] || [], 14);
 
-          if (adx < adxThreshold) {
-            console.log(`[FILTER] Trend Signal skipped - ADX too low: ${adx.toFixed(1)}`);
-            try { asset.lastSkipReason = `ADX ${adx.toFixed(1)} < ${adxThreshold}`; } catch {}
-          } else {
-            // 4. PRICE ACTION FILTERS (Premium/Discount)
-            const { positionPct } = structure; // 0.0 = Low, 1.0 = High
+        if (adx < guard.adxThreshold) {
+          setSkipReason(asset, `ADX ${adx.toFixed(1)} < ${guard.adxThreshold}`);
+        } else {
+          // 4. PRICE ACTION FILTERS (Premium/Discount)
+          const { positionPct } = structure; // 0.0 = Low, 1.0 = High
 
-            if (isTrendUp) {
-              // BUY: Avoid Extreme Premium (> 0.75)
-              if (positionPct > premiumLimit) {
-                console.log(`[FILTER] Trend Buy skipped - Price in Extreme Premium (${(positionPct * 100).toFixed(0)}% of Range)`);
-                try { asset.lastSkipReason = `Premium ${(positionPct * 100).toFixed(0)}% > ${(premiumLimit * 100).toFixed(0)}%`; } catch {}
-              } else {
+          if (isTrendUp) {
+            // BUY: Avoid Extreme Premium (> 0.75)
+            if (positionPct > guard.premiumLimit) {
+              setSkipReason(asset, `Premium ${(positionPct * 100).toFixed(0)}% > ${(guard.premiumLimit * 100).toFixed(0)}%`);
+            } else {
                  // Log PDH/PDL Dist
                  const distPDH = pdLevels.pdh ? (pdLevels.pdh - price).toFixed(1) : 'N/A';
                  const distPDL = pdLevels.pdl ? (price - pdLevels.pdl).toFixed(1) : 'N/A';
                  console.log(`[TREND] Evaluating BUY. Dist to PDH: ${distPDH}, PDL: ${distPDL}`);
 
-                executeTrade(symbol, 'BUY', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', `Trend Follow: Price pullback to EMA confirmed by slope${fvgReason}.`, 85 + fvgConfidenceBoost);
-              }
+              executeTrade(symbol, 'BUY', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', `Trend Follow: Price pullback to EMA confirmed by slope${fvgReason}.`, 85 + fvgConfidenceBoost);
+            }
+          } else {
+            // SELL: Avoid Extreme Discount (< 0.25)
+            if (positionPct < guard.discountLimit) {
+              setSkipReason(asset, `Discount ${(positionPct * 100).toFixed(0)}% < ${(guard.discountLimit * 100).toFixed(0)}%`);
             } else {
-              // SELL: Avoid Extreme Discount (< 0.25)
-              if (positionPct < discountLimit) {
-                console.log(`[FILTER] Trend Sell skipped - Price in Extreme Discount (${(positionPct * 100).toFixed(0)}% of Range)`);
-                try { asset.lastSkipReason = `Discount ${(positionPct * 100).toFixed(0)}% < ${(discountLimit * 100).toFixed(0)}%`; } catch {}
-              } else {
                  // Log PDH/PDL Dist
                  const distPDH = pdLevels.pdh ? (pdLevels.pdh - price).toFixed(1) : 'N/A';
                  const distPDL = pdLevels.pdl ? (price - pdLevels.pdl).toFixed(1) : 'N/A';
                  console.log(`[TREND] Evaluating SELL. Dist to PDH: ${distPDH}, PDL: ${distPDL}`);
 
-                executeTrade(symbol, 'SELL', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', `Trend Follow: Price pullback to EMA confirmed by slope${fvgReason}.`, 85 + fvgConfidenceBoost);
-              }
+              executeTrade(symbol, 'SELL', asset.currentPrice, 'TREND_FOLLOW', 'AGGRESSIVE', `Trend Follow: Price pullback to EMA confirmed by slope${fvgReason}.`, 85 + fvgConfidenceBoost);
             }
           }
         }
       }
     }
+  }
 
     // B. LONDON SWEEP (GOLD)
     if (asset.activeStrategies.includes('LONDON_SWEEP') && symbol === 'XAUUSD') {
@@ -1264,45 +1381,84 @@ function processTicks(symbol) {
       }
     }
 
-    // D. AI AGENT (Real Gemini)
-    let minConfidence = 65;
-    if (symbol === 'NAS100') minConfidence = 85;
+  // D. AI AGENT (Real Gemini)
+  let minConfidence = 65;
+  if (symbol === 'NAS100') minConfidence = 85;
 
     // XAUUSD Time Restriction: Only trade after 12:00 UTC (Avoid London Sweep conflict)
     const isXauRestrictedAI = symbol === 'XAUUSD' && new Date().getUTCHours() < 12;
 
-    // ADX Filter
-    const adx = calculateADX(candlesM5[symbol]);
-    if (adx >= 20 && !isXauRestrictedAI) {
-      if (asset.activeStrategies.includes('AI_AGENT') && aiState[symbol].confidence > minConfidence) {
-        const sentiment = aiState[symbol].sentiment;
-        // If AI is Bullish and we are in Uptrend -> Buy
-        if (sentiment === 'BULLISH' && asset.trend === 'UP') {
-          // BLOCK BUY in Extreme Premium
-          const { positionPct } = structure;
-          if (positionPct > 0.75) {
-            console.log(`[FILTER] AI Buy blocked - Extreme Premium (${(positionPct * 100).toFixed(0)}%)`);
-          } else {
-            // Log Context
-            const distPDH = pdLevels.pdh ? (pdLevels.pdh - price).toFixed(1) : 'N/A';
-            console.log(`[AI] Executing BUY. Dist to PDH: ${distPDH}`);
-            executeTrade(symbol, 'BUY', asset.currentPrice, 'AI_AGENT', 'SMART', aiState[symbol].reason, aiState[symbol].confidence);
-            aiState[symbol].confidence = 0;
-          }
-        } else if (sentiment === 'BEARISH' && asset.trend === 'DOWN') {
-          const { positionPct } = structure;
-          if (positionPct < 0.25) {
-            console.log(`[FILTER] AI Sell blocked - Extreme Discount (${(positionPct * 100).toFixed(0)}%)`);
-          } else {
-            const distPDL = pdLevels.pdl ? (price - pdLevels.pdl).toFixed(1) : 'N/A';
-            console.log(`[AI] Executing SELL. Dist to PDL: ${distPDL}`);
-            executeTrade(symbol, 'SELL', asset.currentPrice, 'AI_AGENT', 'SMART', aiState[symbol].reason, aiState[symbol].confidence);
-            aiState[symbol].confidence = 0;
-          }
+  const aiAdxMin = Math.min(20, guard.adxThreshold);
+  const adx = calculateADX(candlesM5[symbol]);
+  if (adx >= aiAdxMin && !isXauRestrictedAI) {
+    if (symbol === 'NAS100' && isNasLunchPauseNow(Date.now())) {
+      setSkipReason(asset, 'Lunch pause');
+    } else if (asset.activeStrategies.includes('AI_AGENT') && aiState[symbol].confidence > minConfidence) {
+      const sentiment = aiState[symbol].sentiment;
+      const { positionPct } = structure;
+      if (sentiment === 'BULLISH' && asset.trend === 'UP') {
+        if (positionPct > guard.premiumLimit) {
+          setSkipReason(asset, `Premium ${(positionPct * 100).toFixed(0)}% > ${(guard.premiumLimit * 100).toFixed(0)}%`);
+        } else {
+          executeTrade(symbol, 'BUY', asset.currentPrice, 'AI_AGENT', 'SMART', aiState[symbol].reason, aiState[symbol].confidence);
+          aiState[symbol].confidence = 0;
+          setSkipReason(asset, null);
         }
+      } else if (sentiment === 'BEARISH' && asset.trend === 'DOWN') {
+        if (positionPct < guard.discountLimit) {
+          setSkipReason(asset, `Discount ${(positionPct * 100).toFixed(0)}% < ${(guard.discountLimit * 100).toFixed(0)}%`);
+        } else {
+          executeTrade(symbol, 'SELL', asset.currentPrice, 'AI_AGENT', 'SMART', aiState[symbol].reason, aiState[symbol].confidence);
+          aiState[symbol].confidence = 0;
+          setSkipReason(asset, null);
+        }
+      } else {
+        setSkipReason(asset, 'AI not aligned with trend');
       }
     }
+  } else {
+    if (isXauRestrictedAI) setSkipReason(asset, 'XAUUSD AI time restriction');
+    else if (adx < aiAdxMin) setSkipReason(asset, `ADX ${adx.toFixed(1)} < ${aiAdxMin}`);
   }
+
+  if (asset.activeStrategies.includes('MEAN_REVERT')) {
+    const stage = guard.stage;
+    const dev = stage >= 3 ? 0.0018 : stage === 2 ? 0.0022 : stage === 1 ? 0.0028 : 0.0032;
+    const rsiLow = stage >= 3 ? 48 : stage === 2 ? 45 : stage === 1 ? 42 : 38;
+    const rsiHigh = stage >= 3 ? 52 : stage === 2 ? 55 : stage === 1 ? 58 : 62;
+    const extremeLow = stage >= 3 ? 0.40 : stage === 2 ? 0.35 : stage === 1 ? 0.30 : 0.25;
+    const extremeHigh = 1 - extremeLow;
+
+    const rel = (asset.currentPrice - asset.ema) / (asset.ema || asset.currentPrice || 1);
+    const { positionPct } = structure;
+    const localCandles = candlesM5[symbol] || [];
+    const closed = localCandles.filter(c => c.isClosed);
+    const last10 = closed.slice(-10);
+    const low = last10.length ? Math.min(...last10.map(c => c.low)) : asset.currentPrice;
+    const high = last10.length ? Math.max(...last10.map(c => c.high)) : asset.currentPrice;
+
+    const canBuy = rel <= -dev && asset.rsi <= rsiLow && positionPct <= extremeLow;
+    const canSell = rel >= dev && asset.rsi >= rsiHigh && positionPct >= extremeHigh;
+
+    const mrAdxMax = 40;
+    if (adx > mrAdxMax) {
+      setSkipReason(asset, `ADX ${adx.toFixed(1)} > ${mrAdxMax}`);
+    } else if (symbol === 'NAS100' && isNasLunchPauseNow(Date.now())) {
+      setSkipReason(asset, 'Lunch pause');
+    } else if (canBuy) {
+      const sl = Math.min(low, asset.currentPrice) * (1 - 0.0006);
+      executeTrade(symbol, 'BUY', asset.currentPrice, 'MEAN_REVERT', 'CONSERVATIVE', `Mean Revert: Oversold dip below EMA with RSI ${asset.rsi.toFixed(0)}.`, 72, sl);
+      setSkipReason(asset, null);
+    } else if (canSell) {
+      const sl = Math.max(high, asset.currentPrice) * (1 + 0.0006);
+      executeTrade(symbol, 'SELL', asset.currentPrice, 'MEAN_REVERT', 'CONSERVATIVE', `Mean Revert: Overbought rally above EMA with RSI ${asset.rsi.toFixed(0)}.`, 72, sl);
+      setSkipReason(asset, null);
+    } else {
+      setSkipReason(asset, 'No setup');
+    }
+}
+
+}
 
 }
 

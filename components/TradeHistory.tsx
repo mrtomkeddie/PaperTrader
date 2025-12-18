@@ -13,6 +13,8 @@ const getStrategyBadge = (strategy: StrategyType) => {
   switch (strategy) {
     case StrategyType.TREND_FOLLOW:
       return { label: 'TREND', className: 'bg-orange-500/15 text-orange-400 border-orange-500/20' };
+    case StrategyType.MEAN_REVERT:
+      return { label: 'MEANREV', className: 'bg-teal-500/15 text-teal-300 border-teal-500/20' };
     case StrategyType.LONDON_SWEEP:
       return { label: 'LDN SWEEP', className: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20' };
     case StrategyType.LONDON_CONTINUATION:
@@ -98,7 +100,7 @@ const TradeHistory: React.FC<Props> = ({ trades }) => {
   const [historyOpen, setHistoryOpen] = useState(true);
 
   const filteredTrades = trades.filter(t => {
-    const symbolOk = symbolFilter === 'ALL' ? t.symbol === 'NAS100' : t.symbol === symbolFilter;
+    const symbolOk = symbolFilter === 'ALL' ? true : t.symbol === symbolFilter;
     const strategyOk = strategyFilter === 'ALL' ? true : t.strategy === strategyFilter;
     return symbolOk && strategyOk;
   });
@@ -146,7 +148,7 @@ const TradeHistory: React.FC<Props> = ({ trades }) => {
         <div className="mb-3 px-2 flex items-center justify-between">
           <h3 className="text-sm font-bold text-ios-gray uppercase tracking-wider">Filter</h3>
           <div className="flex gap-2">
-            {(() => { const allowed = ['NAS100']; const opts = ['ALL', ...allowed.filter(s => trades.some(t => t.symbol === s))] as const; return opts; })().map(opt => (
+            {(() => { const allowed = Array.from(new Set(trades.map(t => t.symbol))); const opts = ['ALL', ...allowed.filter(s => trades.some(t => t.symbol === s))] as const; return opts; })().map(opt => (
               <button
                 key={String(opt)}
                 onClick={() => setSymbolFilter(String(opt))}
@@ -160,7 +162,7 @@ const TradeHistory: React.FC<Props> = ({ trades }) => {
         <div className="mb-3 px-2 flex items-center justify-between">
           <h3 className="text-sm font-bold text-ios-gray uppercase tracking-wider">Strategy</h3>
           <div className="flex gap-2">
-            {(() => { const allowed: StrategyType[] = [StrategyType.NY_ORB, StrategyType.AI_AGENT]; const opts: ('ALL' | StrategyType)[] = ['ALL', ...allowed.filter(s => trades.some(t => t.strategy === s))]; return opts; })().map(opt => (
+            {(() => { const allowed = Object.values(StrategyType) as StrategyType[]; const opts: ('ALL' | StrategyType)[] = ['ALL', ...allowed.filter(s => trades.some(t => t.strategy === s))]; return opts; })().map(opt => (
               <button
                 key={String(opt)}
                 onClick={() => setStrategyFilter(opt as StrategyType | 'ALL')}

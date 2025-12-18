@@ -48,10 +48,10 @@ const AssetCard: React.FC<Props> = ({ asset, trades, toggleBot, setStrategy }) =
 
     const getAvailableStrategies = (symbol: AssetSymbol) => {
         if (symbol === AssetSymbol.XAUUSD) {
-            return [StrategyType.LONDON_SWEEP, StrategyType.AI_AGENT];
+            return [StrategyType.LONDON_SWEEP, StrategyType.TREND_FOLLOW, StrategyType.MEAN_REVERT, StrategyType.AI_AGENT];
         }
         if (symbol === AssetSymbol.NAS100) {
-            return [StrategyType.NY_ORB, StrategyType.AI_AGENT];
+            return [StrategyType.NY_ORB, StrategyType.TREND_FOLLOW, StrategyType.MEAN_REVERT, StrategyType.AI_AGENT];
         }
         return [StrategyType.AI_AGENT];
     };
@@ -173,6 +173,10 @@ const AssetCard: React.FC<Props> = ({ asset, trades, toggleBot, setStrategy }) =
                                 label = 'Trend Follow';
                                 activeColor = 'bg-orange-600/80';
                             }
+                            if (strat === StrategyType.MEAN_REVERT) {
+                                label = 'Mean Rev';
+                                activeColor = 'bg-teal-600/80';
+                            }
 
                             return (
                                 <button
@@ -188,6 +192,7 @@ const AssetCard: React.FC<Props> = ({ asset, trades, toggleBot, setStrategy }) =
                                     {(strat === StrategyType.LONDON_SWEEP || strat === StrategyType.LONDON_CONTINUATION) && <Landmark size={10} className={isActive ? 'text-white' : ''} />}
                                     {strat === StrategyType.NY_ORB && <Clock size={10} className={isActive ? 'text-white' : ''} />}
                                     {strat === StrategyType.TREND_FOLLOW && <TrendingUp size={10} className={isActive ? 'text-white' : ''} />}
+                                    {strat === StrategyType.MEAN_REVERT && <TrendingDown size={10} className={isActive ? 'text-white' : ''} />}
                                     {label}
                                 </button>
                             );
