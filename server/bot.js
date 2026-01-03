@@ -1636,9 +1636,15 @@ function processTicks(symbol) {
     if (symbol === 'NAS100' && isNasLunchPauseNow(Date.now())) {
       setSkipReason(asset, 'Lunch pause');
     } else if (asset.activeStrategies.includes('AI_AGENT') && aiState[symbol].confidence > minConfidence) {
-      // AI AGENT IS CONFIRM-ONLY (No Standalone Trades)
-      setSkipReason(asset, `AI Confidence ${aiState[symbol].confidence}% (Confirm Only)`);
-      // We do NOT executeTrade here. AI only acts as a Guardian (veto) or confirmation for other strategies.
+      // AI AGENT EXECUTION
+      const sentiment = aiState[symbol].sentiment;
+      const reason = aiState[symbol].reason;
+      
+      if (sentiment === 'BULLISH') {
+        executeTrade(symbol, 'BUY', asset.currentPrice, 'AI_AGENT', 'AGGRESSIVE', `AI Agent: ${reason}`, aiState[symbol].confidence);
+      } else if (sentiment === 'BEARISH') {
+        executeTrade(symbol, 'SELL', asset.currentPrice, 'AI_AGENT', 'AGGRESSIVE', `AI Agent: ${reason}`, aiState[symbol].confidence);
+      }
     }
   } else {
     if (isXauRestrictedAI) setSkipReason(asset, 'XAUUSD AI time restriction');
