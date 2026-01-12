@@ -1634,26 +1634,27 @@ function processTicks(symbol) {
   let minConfidence = 65;
   if (symbol === 'NAS100') minConfidence = 85;
 
-    // XAUUSD Time Restriction: Only trade after 12:00 UTC (Avoid London Sweep conflict)
-    const isXauRestrictedAI = symbol === 'XAUUSD' && new Date().getUTCHours() < 12;
+    // XAUUSD Time Restriction: Only trade after 09:00 UTC (Avoid London open volatility)
+    const isXauRestrictedAI = symbol === 'XAUUSD' && new Date().getUTCHours() < 9;
 
-  const aiAdxMin = Math.min(20, guard.adxThreshold);
-  const adx = calculateADX(candlesM5[symbol]);
-  if (adx >= aiAdxMin && !isXauRestrictedAI) {
-    if (symbol === 'NAS100' && isNasLunchPauseNow(Date.now())) {
-      setSkipReason(asset, 'Lunch pause');
-    } else if (asset.activeStrategies.includes('AI_AGENT') && aiState[symbol].confidence >= minConfidence) {
-      // AI AGENT EXECUTION
-      const sentiment = aiState[symbol].sentiment;
-      const reason = aiState[symbol].reason;
-      
-      if (sentiment === 'BULLISH') {
-        executeTrade(symbol, 'BUY', asset.currentPrice, 'AI_AGENT', 'AGGRESSIVE', `AI Agent: ${reason}`, aiState[symbol].confidence);
-      } else if (sentiment === 'BEARISH') {
-        executeTrade(symbol, 'SELL', asset.currentPrice, 'AI_AGENT', 'AGGRESSIVE', `AI Agent: ${reason}`, aiState[symbol].confidence);
+    const aiAdxMin = Math.min(20, guard.adxThreshold);
+    const adx = calculateADX(candlesM5[symbol]);
+  
+    if (adx >= aiAdxMin && !isXauRestrictedAI) {
+      if (symbol === 'NAS100' && isNasLunchPauseNow(Date.now())) {
+        setSkipReason(asset, 'Lunch pause');
+      } else if (asset.activeStrategies.includes('AI_AGENT') && aiState[symbol].confidence >= minConfidence) {
+        // AI AGENT EXECUTION
+        const sentiment = aiState[symbol].sentiment;
+        const reason = aiState[symbol].reason;
+        
+        if (sentiment === 'BULLISH') {
+          executeTrade(symbol, 'BUY', asset.currentPrice, 'AI_AGENT', 'AGGRESSIVE', `AI Agent: ${reason}`, aiState[symbol].confidence);
+        } else if (sentiment === 'BEARISH') {
+          executeTrade(symbol, 'SELL', asset.currentPrice, 'AI_AGENT', 'AGGRESSIVE', `AI Agent: ${reason}`, aiState[symbol].confidence);
+        }
       }
-    }
-  } else {
+    } else {
     if (isXauRestrictedAI) setSkipReason(asset, 'XAUUSD AI time restriction');
     else if (adx < aiAdxMin) setSkipReason(asset, `ADX ${adx.toFixed(1)} < ${aiAdxMin}`);
   }

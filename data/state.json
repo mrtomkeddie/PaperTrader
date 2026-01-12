@@ -2,11 +2,46 @@
   "account": {
     "balance": 436.1442091840687,
     "equity": 436.1442091840687,
-    "dayPnL": -4.981190815929621,
+    "dayPnL": 0,
     "totalPnL": -63.85579081593133,
-    "winRate": 37.735849056603776
+    "winRate": 37.03703703703704
   },
   "trades": [
+    {
+      "id": "c865bac0-4336-4c34-82fb-f17f2f444eef",
+      "symbol": "XAUUSD",
+      "type": "BUY",
+      "entryPrice": 4591.46,
+      "initialSize": 0.01,
+      "currentSize": 0.01,
+      "stopLoss": 4584.572810000001,
+      "tpLevels": [
+        {
+          "id": 1,
+          "price": 4619.00876,
+          "percentage": 0.4,
+          "hit": false
+        },
+        {
+          "id": 2,
+          "price": 4637.3746,
+          "percentage": 0.4,
+          "hit": false
+        },
+        {
+          "id": 3,
+          "price": 4729.2038,
+          "percentage": 0.2,
+          "hit": false
+        }
+      ],
+      "openTime": 1768216472738,
+      "status": "OPEN",
+      "strategy": "AI_AGENT",
+      "pnl": 0,
+      "entryReason": "AI Agent: The main trend on the bigger chart (M15) is clearly going up, which means we prefer to buy. Even though the price is resting right now, the overall direction is still strongly up, making it a good time to look for buying opportunities.",
+      "confidence": 85
+    },
     {
       "id": "04fd5a82-963f-4763-a07c-428e64ea2a75",
       "symbol": "NAS100",
@@ -41,7 +76,7 @@
       "pnl": 0,
       "entryReason": "AI Agent: The big trend on the 15-minute chart is clearly going up. The price has dipped a little bit, which is a great time to look for opportunities to buy and go with the main upward flow.",
       "confidence": 88,
-      "floatingPnl": -1.5714471026444046
+      "floatingPnl": 3.402448664516589
     },
     {
       "id": "0bff4229-c0dd-48a0-a736-ce26f215ae48",
