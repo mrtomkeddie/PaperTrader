@@ -554,12 +554,10 @@ if (initFirebase()) {
 }
 
 // Load cloud state initially
-loadStateFromCloud().then(data => {
-  if (data) {
-    console.log('[CLOUD] Initial state loaded from cloud.');
-    // Optional: Merge logic here if needed, but handled in /cloud/merge
-  }
-}).catch(e => console.error('[CLOUD] Initial load failed:', e.message));
+// Load cloud state immediately on startup
+cloudLoadState().then(() => {
+  console.log(`[SYSTEM] Initial cloud hydration constant: ${trades.length} trades managed.`);
+}).catch(e => console.error('[CLOUD] Initial hydration failed:', e.message));
 
 setInterval(() => { try { cloudLoadState(); } catch { } }, 10 * 60 * 1000);
 
