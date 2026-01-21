@@ -100,15 +100,16 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                             <th className="py-3 px-4">Symbol</th>
                             <th className="py-3 px-4">Entry</th>
                             <th className="py-3 px-4">Qty</th>
-                            <th className="py-3 px-4">P&L</th>
+                            <th className="py-3 px-4">Realized</th>
+                            <th className="py-3 px-4">Floating</th>
                             <th className="py-3 px-4">Open Time</th>
                             <th className="py-3 px-4">Close Time</th>
                         </tr>
                     </thead>
                     <tbody className="text-sm font-medium">
                         {data.map(trade => {
-                            const isProfit = (trade.pnl || trade.floatingPnl || 0) >= 0;
-                            const pnlVal = trade.status === 'OPEN' ? (trade.floatingPnl || 0) : trade.pnl;
+                            const realized = trade.pnl || 0;
+                            const floating = trade.status === 'OPEN' ? (trade.floatingPnl || 0) : 0;
                             const isSelected = selectedTradeId === trade.id;
 
                             return (
@@ -121,8 +122,11 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                                     <td className="py-3 px-4 text-white font-bold">{trade.symbol}</td>
                                     <td className="py-3 px-4 text-gray-300">{trade.entryPrice.toFixed(2)}</td>
                                     <td className="py-3 px-4 text-gray-300">{trade.currentSize.toFixed(2)}</td>
-                                    <td className={`py-3 px-4 ${isProfit ? 'text-green-500' : 'text-red-500'}`}>
-                                        {isProfit ? '+' : ''}{pnlVal.toFixed(2)}
+                                    <td className={`py-3 px-4 ${realized >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                        {realized >= 0 ? '+' : ''}{realized.toFixed(2)}
+                                    </td>
+                                    <td className={`py-3 px-4 ${floating >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                        {trade.status === 'OPEN' ? (floating >= 0 ? '+' : '') + floating.toFixed(2) : '-'}
                                     </td>
                                     <td className="py-3 px-4 text-gray-500 text-xs font-mono">
                                         {new Date(trade.openTime).toLocaleString('en-GB', {
@@ -152,8 +156,8 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
     );
 
     const renderMobileCard = (trade: Trade) => {
-        const isProfit = (trade.pnl || trade.floatingPnl || 0) >= 0;
-        const pnlVal = trade.status === 'OPEN' ? (trade.floatingPnl || 0) : trade.pnl;
+        const realized = trade.pnl || 0;
+        const floating = trade.status === 'OPEN' ? (trade.floatingPnl || 0) : 0;
         const isSelected = selectedTradeId === trade.id;
 
         return (
@@ -191,21 +195,25 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                     </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 text-xs">
-                    <div className="bg-black/20 rounded-lg p-2 border border-white/5">
-                        <div className="text-gray-500 mb-1">Entry</div>
-                        <div className="text-white font-mono">{trade.entryPrice.toFixed(2)}</div>
-                    </div>
-                    <div className="bg-black/20 rounded-lg p-2 border border-white/5">
-                        <div className="text-gray-500 mb-1">Size</div>
-                        <div className="text-white font-mono">{trade.currentSize.toFixed(2)}</div>
-                    </div>
-                    <div className={`bg-black/20 rounded-lg p-2 border ${isProfit ? 'border-green-500/20 bg-green-500/5' : 'border-red-500/20 bg-red-500/5'}`}>
-                        <div className="text-gray-500 mb-1 text-right">P&L</div>
-                        <div className={`font-bold font-mono text-right ${isProfit ? 'text-green-500' : 'text-red-500'}`}>
-                            {isProfit ? '+' : ''}{pnlVal.toFixed(2)}
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className={`bg-black/20 rounded-lg p-2 border ${realized >= 0 ? 'border-green-500/10' : 'border-red-500/10'}`}>
+                        <div className="text-gray-500 mb-1 text-center uppercase text-[10px] font-bold">Realized</div>
+                        <div className={`font-bold font-mono text-center text-sm ${realized >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {realized >= 0 ? '+' : ''}{realized.toFixed(2)}
                         </div>
                     </div>
+
+                    <div className={`bg-black/20 rounded-lg p-2 border ${floating >= 0 ? 'border-green-500/10' : 'border-red-500/10'} ${trade.status === 'CLOSED' ? 'opacity-30' : ''}`}>
+                        <div className="text-gray-500 mb-1 text-center uppercase text-[10px] font-bold">Floating</div>
+                        <div className={`font-bold font-mono text-center text-sm ${floating >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {trade.status === 'OPEN' ? (floating >= 0 ? '+' : '') + floating.toFixed(2) : '-'}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex justify-between mt-3 text-[10px] text-gray-500 font-mono px-1">
+                    <span>Lot: {trade.currentSize.toFixed(2)}</span>
+                    <span>@{trade.entryPrice.toFixed(2)}</span>
                 </div>
             </div>
         );

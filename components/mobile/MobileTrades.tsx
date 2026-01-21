@@ -31,13 +31,13 @@ const MobileTrades: React.FC<Props> = ({ trades, onSelectTrade }) => {
 
         setSelectedFilters(prev => {
             let newFilters = prev.filter(f => f !== 'ALL');
-            
+
             const timeFilters: FilterType[] = ['TODAY', 'WEEK', 'MONTH'];
-            
+
             if (timeFilters.includes(filter)) {
                 // If clicking a time filter, remove other time filters first
                 newFilters = newFilters.filter(f => !timeFilters.includes(f));
-                
+
                 // If the clicked filter wasn't already selected, add it
                 // (If it was selected, it's effectively toggled off by the exclusion above and not adding it back)
                 if (!prev.includes(filter)) {
@@ -57,9 +57,9 @@ const MobileTrades: React.FC<Props> = ({ trades, onSelectTrade }) => {
     };
 
     const openTrades = trades.filter(t => t.status === 'OPEN').sort((a, b) => b.openTime - a.openTime);
-    
+
     const allClosedTrades = trades.filter(t => t.status !== 'OPEN');
-    
+
     const filteredClosedTrades = allClosedTrades.filter(t => {
         if (selectedFilters.includes('ALL')) return true;
 
@@ -73,7 +73,7 @@ const MobileTrades: React.FC<Props> = ({ trades, onSelectTrade }) => {
         if (activeTime) {
             const now = new Date();
             const closeTime = t.closeTime || 0;
-            
+
             if (activeTime === 'TODAY') {
                 const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
                 matchesTime = closeTime >= startOfDay;
@@ -87,7 +87,7 @@ const MobileTrades: React.FC<Props> = ({ trades, onSelectTrade }) => {
         }
 
         // Asset Logic (OR within assets)
-        const matchesAsset = activeAssets.length === 0 || 
+        const matchesAsset = activeAssets.length === 0 ||
             (activeAssets.includes('NAS100') && t.symbol === AssetSymbol.NAS100) ||
             (activeAssets.includes('GOLD') && t.symbol === AssetSymbol.XAUUSD);
 
@@ -114,11 +114,11 @@ const MobileTrades: React.FC<Props> = ({ trades, onSelectTrade }) => {
     const netPnL = filteredClosedTrades.reduce((sum, t) => sum + t.pnl, 0);
 
     const TradeCard = ({ trade, isActive }: { trade: Trade, isActive?: boolean }) => {
-        const pnl = isActive ? (trade.floatingPnl || 0) : trade.pnl;
-        const isWin = pnl >= 0;
-        
+        const realized = trade.pnl || 0;
+        const floating = trade.status === 'OPEN' ? (trade.floatingPnl || 0) : 0;
+
         return (
-            <div 
+            <div
                 onClick={() => onSelectTrade(trade)}
                 className="bg-[#13141b] rounded-2xl p-4 border border-white/5 mb-2 flex items-center justify-between active:scale-[0.98] transition-transform"
             >
@@ -139,8 +139,15 @@ const MobileTrades: React.FC<Props> = ({ trades, onSelectTrade }) => {
 
                 <div className="flex items-center gap-3">
                     <div className="text-right flex flex-col items-end gap-0.5">
-                        <div className={`text-sm font-bold font-mono ${isWin ? 'text-green-500' : 'text-red-500'}`}>
-                            {isWin ? '+' : ''}{pnl.toFixed(2)}
+                        <div className="flex flex-col items-end">
+                            <span className={`text-xs font-bold font-mono ${realized >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                R: {realized >= 0 ? '+' : ''}{realized.toFixed(2)}
+                            </span>
+                            {isActive && (
+                                <span className={`text-xs font-bold font-mono ${floating >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    F: {floating >= 0 ? '+' : ''}{floating.toFixed(2)}
+                                </span>
+                            )}
                         </div>
                         <div className="text-[9px] text-gray-500 font-mono">
                             O: {new Date(trade.openTime).toLocaleString('en-GB', {
@@ -174,8 +181,8 @@ const MobileTrades: React.FC<Props> = ({ trades, onSelectTrade }) => {
             {/* Filter Pills */}
             <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
                 {filters.map((f) => (
-                    <button 
-                        key={f} 
+                    <button
+                        key={f}
                         onClick={() => toggleFilter(f)}
                         className={`px-4 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors ${selectedFilters.includes(f) ? 'bg-white text-black' : 'bg-[#1C1C1E] text-gray-500 border border-white/5'}`}
                     >
