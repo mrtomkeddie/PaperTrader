@@ -599,8 +599,11 @@ async function githubLoadState() {
       if (!existing) {
         mergedByKey.set(k, t);
       } else {
-        const preferRemote = (existing.status !== 'CLOSED' && t.status === 'CLOSED') ||
-          (typeof t.closeTime === 'number' && typeof existing.closeTime === 'number' && t.closeTime > existing.closeTime);
+        // [FIX] Immutable History: If local is already closed, NEVER overwrite it.
+        if (existing.status === 'CLOSED') {
+          continue;
+        }
+        const preferRemote = (existing.status !== 'CLOSED' && t.status === 'CLOSED');
         if (preferRemote) mergedByKey.set(k, t);
       }
     }
@@ -2454,8 +2457,12 @@ async function cloudLoadState() {
           mergedByKey.set(k, t);
         } else {
           try {
-            const preferCloud = (existing.status !== 'CLOSED' && t.status === 'CLOSED') ||
-              (typeof t.closeTime === 'number' && typeof existing.closeTime === 'number' && t.closeTime > existing.closeTime);
+            // [FIX] Immutable History: If local is already closed, NEVER overwrite it.
+            // Only accept updates if local is OPEN and cloud is CLOSED.
+            if (existing.status === 'CLOSED') {
+              continue;
+            }
+            const preferCloud = (existing.status !== 'CLOSED' && t.status === 'CLOSED');
             if (preferCloud) mergedByKey.set(k, t);
           } catch { }
         }
