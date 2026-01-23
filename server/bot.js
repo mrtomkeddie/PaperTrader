@@ -152,11 +152,6 @@ if (API_KEY) {
 
 // --- TYPES & CONFIG ---
 const ASSET_CONFIG = {
-  'NAS100': {
-    startPrice: 18500, volatility: 0.0015, decimals: 1,
-    lotSize: 1, valuePerPoint: 1, minLot: 0.01, maxLot: 100, lotStep: 0.01,
-    pointSize: 1, valuePerPointPerLot: 1
-  },
   'XAUUSD': {
     startPrice: 2600, volatility: 0.002, decimals: 2,
     lotSize: 1, valuePerPoint: 1, minLot: 0.01, maxLot: 100, lotStep: 0.01,
@@ -190,7 +185,6 @@ const sseClients = new Set();
 // --- GBP & FX HELPERS ---
 const fxRates = {}; // { 'GBP_USD': { mid: 1.25, time: ... } }
 const aiState = {
-  'NAS100': { lastCheck: 0, sentiment: 'NEUTRAL', confidence: 0, reason: '' },
   'XAUUSD': { lastCheck: 0, sentiment: 'NEUTRAL', confidence: 0, reason: '' }
 };
 
@@ -481,18 +475,15 @@ function cloudSaveState() {
 
 // CANDLE STORAGE (Symbol -> M5 Candles [])
 let candlesM5 = {
-  'NAS100': [],
   'XAUUSD': []
 };
 let candlesM15 = {
-  'NAS100': [],
   'XAUUSD': []
 };
 
 // MARKET STATE (bid/ask/mid per symbol)
-const SPREAD_PCT = { 'NAS100': 0.0005, 'XAUUSD': 0.0003 };
+const SPREAD_PCT = { 'XAUUSD': 0.0003 };
 let market = {
-  'NAS100': { bid: ASSET_CONFIG['NAS100'].startPrice * (1 - SPREAD_PCT['NAS100'] / 2), ask: ASSET_CONFIG['NAS100'].startPrice * (1 + SPREAD_PCT['NAS100'] / 2), mid: ASSET_CONFIG['NAS100'].startPrice },
   'XAUUSD': { bid: ASSET_CONFIG['XAUUSD'].startPrice * (1 - 0.0003 / 2), ask: ASSET_CONFIG['XAUUSD'].startPrice * (1 + 0.0003 / 2), mid: ASSET_CONFIG['XAUUSD'].startPrice }
 };
 
@@ -539,7 +530,7 @@ function logSystemPulse() {
     const ts = Date.now();
     const timeStr = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date(ts));
     const phase = getMarketPhase(ts);
-    const price = (market['NAS100'] && market['NAS100'].mid) ? market['NAS100'].mid : (assets['NAS100'] ? assets['NAS100'].currentPrice : 0);
+    const price = (market['XAUUSD'] && market['XAUUSD'].mid) ? market['XAUUSD'].mid : (assets['XAUUSD'] ? assets['XAUUSD'].currentPrice : 0);
     const priceStr = (typeof price === 'number' && isFinite(price) && price > 0) ? price.toFixed(2) : 'N/A';
     console.log(`[SYSTEM PULSE] Status: ONLINE\nTime: ${timeStr}\nMarket Phase: ${phase}\nLast Price: ${priceStr}`);
   } catch { }
@@ -552,7 +543,6 @@ setInterval(() => { try { logSystemPulse(); } catch { } }, 15 * 60 * 1000);
 
 // INITIALIZE ASSETS
 let assets = {
-  'NAS100': createAsset('NAS100', ['NY_ORB', 'AI_AGENT', 'TREND_FOLLOW']),
   'XAUUSD': createAsset('XAUUSD', ['LONDON_SWEEP', 'TREND_FOLLOW', 'AI_AGENT'])
 };
 
@@ -774,6 +764,7 @@ async function consultGemini(symbol, asset) {
     aiState[symbol] = { lastCheck: 0, sentiment: 'NEUTRAL', confidence: 0, reason: '' };
   }
 
+  // Rate Limit: 5 minutes between checks
   if (now - aiState[symbol].lastCheck < 5 * 60 * 1000) {
     return null;
   }
@@ -826,7 +817,13 @@ Return ONLY this JSON:
     });
 
     const text = response.text;
-    const decision = JSON.parse(text);
+    let decision;
+    try {
+      decision = JSON.parse(text);
+    } catch (e) {
+      console.warn(`[AI] Failed to parse JSON response: ${text.substring(0, 50)}...`);
+      decision = { sentiment: 'NEUTRAL', confidence: 0, reason: 'AI Response Error' };
+    }
 
     aiState[symbol] = {
       lastCheck: now,
@@ -843,7 +840,11 @@ Return ONLY this JSON:
     console.log(`[AI] Decision for ${symbol}: ${decision.sentiment} (${decision.confidence}%)`);
 
   } catch (error) {
-    console.error(`[AI] Error consulting Gemini:`, error);
+    if (error.name === 'ClientError') {
+      console.warn(`[AI] Gemini ClientError (likely safety/network): ${error.message}`);
+    } else {
+      console.error(`[AI] Error consulting Gemini:`, error);
+    }
     // [FIX] Update lastCheck to prevent infinite retry loop on error
     aiState[symbol].lastCheck = Date.now();
   } finally {
@@ -1052,6 +1053,19 @@ function connectLiveFeed() {
     try { process.exit(0); } catch { }
     return;
   }
+
+  // Cleanup prior connections
+  if (ws) {
+    try { ws.close(); } catch { }
+    ws = null;
+  }
+  if (oandaReq) {
+    try { oandaReq.destroy(); } catch { }
+    oandaReq = null;
+  }
+
+  console.log(`[FEED] Connecting (${feedSource || 'INIT'})...`);
+
   if (USE_OANDA) {
     connectOanda();
   } else {

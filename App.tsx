@@ -16,7 +16,7 @@ import { DEFAULT_REMOTE_URL } from './constants';
 
 const App: React.FC = () => {
   const { assets, account, trades, toggleBot, setStrategy, resetAccount, brokerMode, oandaConfig, configureOanda, isConnected } = useTradingEngine();
-  const [activeSymbol, setActiveSymbol] = useState<AssetSymbol>(AssetSymbol.NAS100);
+  const [activeSymbol, setActiveSymbol] = useState<AssetSymbol>(AssetSymbol.XAUUSD);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<'dashboard' | 'trades'>('dashboard');
@@ -36,17 +36,17 @@ const App: React.FC = () => {
       try {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
         const reg = await navigator.serviceWorker.register('/sw.js');
-        try { await reg.update(); } catch {}
-        
+        try { await reg.update(); } catch { }
+
         const perm = await Notification.requestPermission();
         if (perm !== 'granted') return;
-        
+
         const vapid = (import.meta as any)?.env?.VITE_VAPID_PUBLIC_KEY;
         if (!vapid) return;
-        
+
         const existing = await reg.pushManager.getSubscription();
         const sub = existing || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapid) });
-        
+
         const base = typeof window !== 'undefined' ? (localStorage.getItem('remoteUrl') || DEFAULT_REMOTE_URL) : DEFAULT_REMOTE_URL;
         await fetch(`${base.replace(/\/$/, '')}/push/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
       } catch { }
@@ -58,7 +58,7 @@ const App: React.FC = () => {
   const openTrade = trades.find(t => t.symbol === activeSymbol && t.status === 'OPEN');
   // Only show trade details if explicitly selected. 
   // If Live View (selectedTrade is null), we pass openTrade separately so SignalPanel can show a summary/status but not the full card.
-  
+
   const handleTradeSelect = (trade: Trade) => {
     setSelectedTrade(trade);
     setActiveSymbol(trade.symbol as AssetSymbol);
@@ -77,87 +77,87 @@ const App: React.FC = () => {
       />
 
       <div className="hidden md:block">
-        <DashboardHeader 
-            account={account} 
-            toggleAsset={(s) => {
+        <DashboardHeader
+          account={account}
+          toggleAsset={(s) => {
             setActiveSymbol(s);
             setSelectedTrade(null); // Clear selection when manually changing asset
-            }} 
-            activeAsset={activeSymbol}
-            onOpenSettings={() => setIsSettingsOpen(true)}
+          }}
+          activeAsset={activeSymbol}
+          onOpenSettings={() => setIsSettingsOpen(true)}
         />
       </div>
 
       {/* Mobile Header */}
       <div className="md:hidden">
-        <MobileHeader 
-            title={activeMobileTab === 'dashboard' ? 'INDICES DASHBOARD' : 'INDICES HISTORY'}
-            account={account}
-            onOpenSettings={() => setIsSettingsOpen(true)}
-            activeAsset={activeMobileTab === 'dashboard' ? activeSymbol : undefined}
-            onToggleAsset={activeMobileTab === 'dashboard' ? (s) => {
-              setActiveSymbol(s);
-              setMobileSelectedTrade(null); // Clear selection when manually changing asset
-            } : undefined}
+        <MobileHeader
+          title={activeMobileTab === 'dashboard' ? 'INDICES DASHBOARD' : 'INDICES HISTORY'}
+          account={account}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          activeAsset={activeMobileTab === 'dashboard' ? activeSymbol : undefined}
+          onToggleAsset={activeMobileTab === 'dashboard' ? (s) => {
+            setActiveSymbol(s);
+            setMobileSelectedTrade(null); // Clear selection when manually changing asset
+          } : undefined}
         />
       </div>
 
       <main className="flex-1 p-0 md:p-6 overflow-y-auto">
         {/* Desktop Layout */}
         <div className="hidden md:block max-w-[1600px] mx-auto space-y-6">
-            <div className="grid grid-cols-12 gap-6 min-h-[500px]">
-                <div className="col-span-4 h-full">
-                    {activeAssetData ? (
-                        <SignalPanel 
-                            asset={activeAssetData} 
-                            trade={selectedTrade} 
-                            activeOpenTrade={openTrade}
-                            onToggleStrategy={setStrategy} 
-                            onClearSelection={() => setSelectedTrade(null)}
-                        />
-                    ) : (
-                        <div className="h-full flex items-center justify-center bg-[#13141b] rounded-2xl border border-white/5">
-                            <span className="text-gray-500">Loading Asset Data...</span>
-                        </div>
-                    )}
-                </div>
-                <div className="col-span-8 h-full">
-                    {activeAssetData ? (
-                         <ChartPanel asset={activeAssetData} />
-                    ) : (
-                        <div className="h-full flex items-center justify-center bg-[#13141b] rounded-2xl border border-white/5">
-                            <span className="text-gray-500">Loading Chart...</span>
-                        </div>
-                    )}
-                </div>
-            </div>
-            <div className="h-[800px]">
-                <PositionsTable 
-                    trades={trades} 
-                    onSelectTrade={handleTradeSelect}
-                    selectedTradeId={selectedTrade?.id}
+          <div className="grid grid-cols-12 gap-6 min-h-[500px]">
+            <div className="col-span-4 h-full">
+              {activeAssetData ? (
+                <SignalPanel
+                  asset={activeAssetData}
+                  trade={selectedTrade}
+                  activeOpenTrade={openTrade}
+                  onToggleStrategy={setStrategy}
+                  onClearSelection={() => setSelectedTrade(null)}
                 />
+              ) : (
+                <div className="h-full flex items-center justify-center bg-[#13141b] rounded-2xl border border-white/5">
+                  <span className="text-gray-500">Loading Asset Data...</span>
+                </div>
+              )}
             </div>
+            <div className="col-span-8 h-full">
+              {activeAssetData ? (
+                <ChartPanel asset={activeAssetData} />
+              ) : (
+                <div className="h-full flex items-center justify-center bg-[#13141b] rounded-2xl border border-white/5">
+                  <span className="text-gray-500">Loading Chart...</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="h-[800px]">
+            <PositionsTable
+              trades={trades}
+              onSelectTrade={handleTradeSelect}
+              selectedTradeId={selectedTrade?.id}
+            />
+          </div>
         </div>
 
         {/* Mobile Layout */}
         <div className="md:hidden pb-20">
-             {activeMobileTab === 'dashboard' ? (
-                activeAssetData ? (
-                    <MobileDashboard 
-                    assets={assets}
-                    onToggleStrategy={setStrategy}
-                    onToggleAuto={toggleBot}
-                />
-                ) : (
-                    <div className="flex items-center justify-center h-64 text-gray-500">Loading...</div>
-                )
-             ) : (
-                 <MobileTrades 
-                    trades={trades}
-                    onSelectTrade={handleTradeSelect}
-                 />
-             )}
+          {activeMobileTab === 'dashboard' ? (
+            activeAssetData ? (
+              <MobileDashboard
+                assets={assets}
+                onToggleStrategy={setStrategy}
+                onToggleAuto={toggleBot}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-64 text-gray-500">Loading...</div>
+            )
+          ) : (
+            <MobileTrades
+              trades={trades}
+              onSelectTrade={handleTradeSelect}
+            />
+          )}
         </div>
       </main>
 
@@ -166,7 +166,7 @@ const App: React.FC = () => {
         <MobileBottomNav activeTab={activeMobileTab} onTabChange={setActiveMobileTab} />
       </div>
 
-      <MobileTradeModal 
+      <MobileTradeModal
         isOpen={!!mobileSelectedTrade}
         onClose={() => setMobileSelectedTrade(null)}
         trade={mobileSelectedTrade}

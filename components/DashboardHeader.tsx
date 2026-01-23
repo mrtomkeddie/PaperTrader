@@ -30,18 +30,11 @@ const DashboardHeader: React.FC<Props> = ({ account, toggleAsset, activeAsset, o
             {/* Bottom Row: Controls & Stats */}
             <div className="flex items-center justify-between w-full md:w-auto md:gap-6">
                 <div className="flex bg-[#1C1C1E] rounded-lg p-1 border border-white/5">
-                    <button
-                        onClick={() => toggleAsset(AssetSymbol.NAS100)}
-                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${activeAsset === AssetSymbol.NAS100 ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
-                    >
-                        NAS100
-                    </button>
-                    <button
-                        onClick={() => toggleAsset(AssetSymbol.XAUUSD)}
-                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${activeAsset === AssetSymbol.XAUUSD ? 'bg-yellow-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+                    <div
+                        className="px-4 py-1.5 rounded-md text-xs font-bold bg-yellow-600 text-white shadow cursor-default"
                     >
                         GOLD
-                    </button>
+                    </div>
                 </div>
 
                 {/* Desktop Settings & Stats */}

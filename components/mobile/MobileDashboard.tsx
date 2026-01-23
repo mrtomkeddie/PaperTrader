@@ -10,7 +10,7 @@ interface Props {
 }
 
 const STRATEGY_CONFIG: Record<string, StrategyType[]> = {
-    [AssetSymbol.NAS100]: [StrategyType.AI_AGENT, StrategyType.NY_ORB, StrategyType.TREND_FOLLOW, StrategyType.MEAN_REVERT],
+
     [AssetSymbol.XAUUSD]: [StrategyType.AI_AGENT, StrategyType.LONDON_SWEEP, StrategyType.TREND_FOLLOW, StrategyType.MEAN_REVERT],
 };
 
@@ -22,8 +22,8 @@ const AVAILABLE_STRATEGIES = [
     { type: StrategyType.LONDON_SWEEP, label: 'London', icon: Activity, color: 'yellow' },
 ];
 
-const AssetCard: React.FC<{ 
-    asset: AssetData; 
+const AssetCard: React.FC<{
+    asset: AssetData;
     onToggleStrategy: (symbol: AssetSymbol, strategy: StrategyType) => void;
     onToggleAuto: (symbol: AssetSymbol) => void;
 }> = ({ asset, onToggleStrategy, onToggleAuto }) => {
@@ -60,16 +60,16 @@ const AssetCard: React.FC<{
                     <AreaChart data={data}>
                         <defs>
                             <linearGradient id={`mobileChartColor-${asset.symbol}`} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                                <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                                <stop offset="95%" stopColor={color} stopOpacity={0} />
                             </linearGradient>
                         </defs>
-                        <Area 
-                            type="monotone" 
-                            dataKey="value" 
-                            stroke={color} 
+                        <Area
+                            type="monotone"
+                            dataKey="value"
+                            stroke={color}
                             strokeWidth={2}
-                            fill={`url(#mobileChartColor-${asset.symbol})`} 
+                            fill={`url(#mobileChartColor-${asset.symbol})`}
                         />
                         <YAxis domain={['dataMin', 'dataMax']} hide />
                     </AreaChart>
@@ -84,7 +84,7 @@ const AssetCard: React.FC<{
                         .filter(s => STRATEGY_CONFIG[asset.symbol]?.includes(s.type))
                         .map((strat) => {
                             const isActive = activeStrategies.includes(strat.type);
-                            
+
                             // Determine active color classes based on asset
                             const activeClasses = asset.symbol === AssetSymbol.XAUUSD
                                 ? 'bg-yellow-600 text-white border-yellow-500 shadow-lg shadow-yellow-900/20'
@@ -113,7 +113,7 @@ const AssetCard: React.FC<{
                     <div className="text-white font-bold text-sm">Auto-Trading</div>
                     <div className="text-[10px] text-gray-500">{asset.botActive ? 'Engine is running' : 'Engine paused'}</div>
                 </div>
-                <button 
+                <button
                     onClick={() => onToggleAuto(asset.symbol)}
                     className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 ${asset.botActive ? 'bg-green-500' : 'bg-gray-600'}`}
                 >
@@ -128,17 +128,11 @@ const MobileDashboard: React.FC<Props> = ({ assets, onToggleStrategy, onToggleAu
     return (
         <div className="px-4 pb-24">
             {/* Render both cards explicitly for requested layout */}
-            {assets[AssetSymbol.NAS100] && (
-                <AssetCard 
-                    asset={assets[AssetSymbol.NAS100]} 
-                    onToggleStrategy={onToggleStrategy}
-                    onToggleAuto={onToggleAuto}
-                />
-            )}
-            
+
+
             {assets[AssetSymbol.XAUUSD] && (
-                <AssetCard 
-                    asset={assets[AssetSymbol.XAUUSD]} 
+                <AssetCard
+                    asset={assets[AssetSymbol.XAUUSD]}
                     onToggleStrategy={onToggleStrategy}
                     onToggleAuto={onToggleAuto}
                 />

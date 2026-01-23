@@ -34,23 +34,9 @@ The "AI Guardian" feature actively monitors open trades:
 
 ## 2. Active Strategies
 
-### A. NY ORB (New York Opening Range Breakout)
-*Target Asset: NAS100*
 
-Designed to capture volatility expansion during the New York session open.
 
-- **Time Window:** **14:30 - 15:30 UTC** (New York Open).
-- **Hard Close:** All open NY ORB positions are forced closed at **21:00 UTC**.
-- **Trigger Conditions:**
-    1.  **Volatility Expansion:** Bollinger Band width must exceed **0.12%** of the current price.
-    2.  **Long Trigger:** Price breaks above the **Upper Bollinger Band**.
-    3.  **Short Trigger:** Price closes below the **Lower Bollinger Band**.
-- **Stop Loss:**
-    - *Long:* Standard 0.15%.
-    - *Short:* High of the breakout candle.
-- **Risk Profile:** Aggressive.
-
-### B. London Sweep
+### A. London Sweep
 *Target Asset: XAUUSD (Gold)*
 
 A mean-reversion strategy targeting liquidity sweeps during the London session.
@@ -62,8 +48,8 @@ A mean-reversion strategy targeting liquidity sweeps during the London session.
 - **Direction:** **Long (Buy)** (Buying the dip/sweep).
 - **Risk Profile:** Conservative.
 
-### C. Trend Follow
-*Target Asset: NAS100, XAUUSD (Gold)*
+### B. Trend Follow
+*Target Asset: XAUUSD (Gold)*
 
 A classic trend-following strategy that enters on pullbacks.
 
@@ -71,7 +57,6 @@ A classic trend-following strategy that enters on pullbacks.
     - **Uptrend:** Price is above the **200 EMA**.
     - **Downtrend:** Price is below the **200 EMA**.
 - **Time Restrictions:**
-    - **NAS100:** No specific time restriction.
     - **XAUUSD (Gold):** **Restricted to AFTER 12:00 UTC** to avoid conflict with the *London Sweep* strategy.
 - **Trigger Conditions (Buy):**
     1.  Asset is in an **Uptrend**.
@@ -83,8 +68,8 @@ A classic trend-following strategy that enters on pullbacks.
     3.  **Momentum:** Price Slope is negative (< -0.1).
 - **Risk Profile:** Aggressive.
 
-### D. Gemini AI Agent
-*Target Asset: Configurable (Default: NAS100, XAUUSD)*
+### C. Gemini AI Agent
+*Target Asset: Connects to configurable assets (Default: XAUUSD)*
 
 Uses Google's Gemini AI to analyze market structure and sentiment.
 
@@ -97,8 +82,7 @@ Uses Google's Gemini AI to analyze market structure and sentiment.
     - **Buy:** AI Sentiment is **BULLISH** AND Asset is in an **Uptrend** (Price > 200 EMA).
     - **Sell:** AI Sentiment is **BEARISH** AND Asset is in a **Downtrend** (Price < 200 EMA).
 - **Confidence Thresholds:**
-    - **NAS100:** Requires **>85%** confidence.
-    - **Other Assets (including XAUUSD):** Requires **>65%** confidence.
+    - **XAUUSD:** Requires **>65%** confidence.
 
 ---
 
