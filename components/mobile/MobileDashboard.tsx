@@ -91,17 +91,16 @@ const AssetCard: React.FC<{
                                 : 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-900/20';
 
                             return (
-                                <button
+                                <div
                                     key={strat.type}
-                                    onClick={() => onToggleStrategy(asset.symbol, strat.type)}
                                     className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 border
                                 ${isActive
                                             ? activeClasses
-                                            : 'bg-[#1C1C1E] text-gray-500 border-white/5 hover:bg-white/5'}`}
+                                            : 'bg-[#1C1C1E] text-gray-600 border-white/5 opacity-50'}`}
                                 >
                                     <strat.icon size={14} className={isActive ? 'text-white' : 'text-gray-500'} />
                                     {strat.label}
-                                </button>
+                                </div>
                             );
                         })}
                 </div>

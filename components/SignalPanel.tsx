@@ -195,12 +195,11 @@ const SignalPanel: React.FC<Props> = ({ asset, trade, activeOpenTrade, onToggleS
                                         <span className={`text-sm transition-colors ${isActive ? 'text-white font-medium' : 'text-gray-500'}`}>
                                             {strat.label}
                                         </span>
-                                        <button
-                                            onClick={() => onToggleStrategy(asset.symbol, strat.type)}
-                                            className={`w-9 h-5 rounded-full relative transition-all duration-300 focus:outline-none ${isActive ? 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-gray-800 border border-gray-700'}`}
+                                        <div
+                                            className={`w-9 h-5 rounded-full relative transition-all duration-300 ${isActive ? 'bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-gray-800 border border-gray-700'}`}
                                         >
                                             <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${isActive ? 'translate-x-4' : 'translate-x-0'}`} />
-                                        </button>
+                                        </div>
                                     </div>
                                 );
                             })}

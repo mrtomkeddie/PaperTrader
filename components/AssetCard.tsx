@@ -172,14 +172,12 @@ const AssetCard: React.FC<Props> = ({ asset, trades, toggleBot, setStrategy }) =
                             }
 
                             return (
-                                <button
+                                <div
                                     key={strat}
-                                    type="button"
-                                    onClick={() => setStrategy(asset.symbol, strat)}
-                                    className={`flex-1 py-2 px-3 min-w-[80px] rounded-[9px] text-[10px] font-bold transition-all duration-200 flex items-center justify-center gap-1.5 border
+                                    className={`flex-1 py-2 px-3 min-w-[80px] rounded-[9px] text-[10px] font-bold transition-all duration-200 flex items-center justify-center gap-1.5 border cursor-default
                                 ${isActive
-                                            ? `${activeColor} ${textColor} border-white/10 shadow-md scale-[1.02]`
-                                            : 'bg-[#1C1C1E] text-neutral-500 border-transparent hover:bg-white/5'}`}
+                                            ? `${activeColor} ${textColor} border-white/10 shadow-md`
+                                            : 'bg-[#1C1C1E] text-neutral-600 border-transparent opacity-50'}`}
                                 >
                                     {strat === StrategyType.AI_AGENT && <Sparkles size={10} className={isActive ? 'text-white' : ''} />}
                                     {(strat === StrategyType.LONDON_SWEEP || strat === StrategyType.LONDON_CONTINUATION) && <Landmark size={10} className={isActive ? 'text-white' : ''} />}
@@ -187,7 +185,7 @@ const AssetCard: React.FC<Props> = ({ asset, trades, toggleBot, setStrategy }) =
                                     {strat === StrategyType.TREND_FOLLOW && <TrendingUp size={10} className={isActive ? 'text-white' : ''} />}
                                     {strat === StrategyType.MEAN_REVERT && <TrendingDown size={10} className={isActive ? 'text-white' : ''} />}
                                     {label}
-                                </button>
+                                </div>
                             );
                         })}
                     </div>
