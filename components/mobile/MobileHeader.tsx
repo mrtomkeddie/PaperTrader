@@ -16,7 +16,7 @@ const MobileHeader: React.FC<Props> = ({ title, account, onOpenSettings, activeA
     const isPositive = pnl >= 0;
 
     return (
-        <div className="pt-12 pb-2 px-6 bg-[#0a0b14] flex flex-col items-center relative">
+        <div className="pt-16 pb-2 px-6 bg-[#0a0b14] flex flex-col items-center relative">
             {/* Top Bar */}
             <div className="w-full flex justify-between items-center mb-1">
                 <div className="flex items-center gap-2">
