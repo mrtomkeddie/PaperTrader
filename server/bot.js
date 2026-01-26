@@ -258,7 +258,8 @@ function checkRiskLimits(symbol, newTradeRiskPct) {
     return { allowed: false, reason: `Daily Loss Limit Hit (PnL £${account.dayPnL.toFixed(2)} <= -£${maxDailyLoss.toFixed(2)})` };
   }
 
-  // 2. Consecutive Losses
+  // 2. Consecutive Losses (DISABLED)
+  /*
   let consecutiveLosses = 0;
   const closedTrades = trades.filter(t => t.symbol === symbol && t.status === 'CLOSED').sort((a, b) => (b.closeTime || 0) - (a.closeTime || 0));
   for (const t of closedTrades) {
@@ -268,6 +269,7 @@ function checkRiskLimits(symbol, newTradeRiskPct) {
   if (consecutiveLosses >= RISK_CONFIG.MAX_CONSEC_LOSSES_PER_SYMBOL) {
     return { allowed: false, reason: `Max Consecutive Losses (${consecutiveLosses}) Hit` };
   }
+  */
 
   // 3. Total Open Risk (GBP)
   let currentOpenRiskPct = 0;
