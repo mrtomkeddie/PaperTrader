@@ -1516,7 +1516,33 @@ function processTicks(symbol) {
       sendSms(`CLOSE ${symbol} ${trade.type} @ ${currentPrice.toFixed(2)} (STOP_LOSS) PnL £${pnlGBP.toFixed(2)}`);
       notifyAll('Trade Closed', `${symbol} ${trade.type} @ ${currentPrice.toFixed(2)} (STOP_LOSS) PnL £${pnlGBP.toFixed(2)}`);
     }
+
+    // D. AUTO-CLOSE: If all TP levels hit and currentSize <= 0, close the trade
+    if (trade.status === 'OPEN' && trade.currentSize <= 0) {
+      trade.status = 'CLOSED';
+      trade.closeReason = 'TP_COMPLETE';
+      trade.closeTime = Date.now();
+      trade.closePrice = currentPrice;
+      trade.floatingPnl = 0;
+      trade.outcomeReason = trade.outcomeReason || 'All Take Profit levels hit. Trade complete.';
+      closedAnyTrade = true;
+      console.log(`[MGMT] ${symbol} Trade ${trade.id} auto-closed (all TP levels filled).`);
+    }
+
+    // E. SAFETY: Auto-close trades with invalid/missing entry data
+    if (trade.status === 'OPEN' && (!trade.entryPrice || trade.entryPrice <= 0)) {
+      trade.status = 'CLOSED';
+      trade.closeReason = 'INVALID_DATA';
+      trade.closeTime = Date.now();
+      trade.closePrice = currentPrice;
+      trade.floatingPnl = 0;
+      trade.pnl = 0;
+      trade.outcomeReason = 'Auto-closed: Trade had invalid entry data.';
+      closedAnyTrade = true;
+      console.warn(`[SAFETY] ${symbol} Trade ${trade.id} auto-closed due to invalid entry data.`);
+    }
   }
+
 
   for (const t of openTrades) {
     if (t.status !== 'OPEN') continue;

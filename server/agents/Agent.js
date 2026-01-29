@@ -40,6 +40,20 @@ export class Agent {
      * @param {Object} snapshot - specific data points (rsi, sentiment, etc.)
      */
     executeTrade(symbol, type, size, entryPrice, stopLoss, tpLevels, reason, snapshot = {}) {
+        // VALIDATION: Reject trades with invalid data
+        if (!entryPrice || isNaN(entryPrice) || entryPrice <= 0) {
+            console.warn(`[AGENT: ${this.name}] REJECTED TRADE: Invalid entryPrice (${entryPrice})`);
+            return null;
+        }
+        if (!size || isNaN(size) || size < 0.01) {
+            console.warn(`[AGENT: ${this.name}] REJECTED TRADE: Invalid size (${size})`);
+            return null;
+        }
+        if (!stopLoss || isNaN(stopLoss) || stopLoss <= 0) {
+            console.warn(`[AGENT: ${this.name}] REJECTED TRADE: Invalid stopLoss (${stopLoss})`);
+            return null;
+        }
+
         const trade = {
             id: `${this.id}-${Date.now()}`,
             agentId: this.id,
@@ -64,6 +78,7 @@ export class Agent {
         console.log(`[AGENT: ${this.name}] Executed Trade: ${type} ${symbol} @ ${entryPrice}`);
         return trade;
     }
+
 
     getNewTrades() {
         const t = [...this.newTrades];

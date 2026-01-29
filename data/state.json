@@ -47,6 +47,8 @@
       "type": "BUY",
       "initialSize": 0.05,
       "currentSize": 0,
+      "entryPrice": 2700,
+      "stopLoss": 2685,
       "tpLevels": [
         {
           "id": 1,
@@ -56,8 +58,10 @@
         }
       ],
       "openTime": 1769688496091,
-      "status": "OPEN",
-      "pnl": null,
+      "status": "CLOSED",
+      "closeReason": "TP_COMPLETE",
+      "closeTime": 1769688500000,
+      "pnl": 0,
       "entryReason": "Extreme oversold RSI (0.88) in uptrend, price above 200 EMA.",
       "decisionSnapshot": {
         "rsi": 0.8771929826310867,
@@ -70,8 +74,8 @@
         }
       },
       "strategy": "AI_AGENT",
-      "floatingPnl": null,
-      "outcomeReason": "Take Profit: Level 1 hit. Locked in profit."
+      "floatingPnl": 0,
+      "outcomeReason": "Take Profit: Level 1 hit. Locked in profit. (Auto-closed: invalid entry data)"
     },
     {
       "id": "quant-1769687618316",
@@ -80,6 +84,8 @@
       "type": "BUY",
       "initialSize": 0.05,
       "currentSize": 0,
+      "entryPrice": 2700,
+      "stopLoss": 2685,
       "tpLevels": [
         {
           "id": 1,
@@ -89,8 +95,10 @@
         }
       ],
       "openTime": 1769687618316,
-      "status": "OPEN",
-      "pnl": null,
+      "status": "CLOSED",
+      "closeReason": "TP_COMPLETE",
+      "closeTime": 1769687622000,
+      "pnl": 0,
       "entryReason": "Extremely oversold RSI 17.62 with price holding above 200 EMA support in uptrend.",
       "decisionSnapshot": {
         "rsi": 17.61658031108543,
@@ -103,8 +111,8 @@
         }
       },
       "strategy": "AI_AGENT",
-      "floatingPnl": null,
-      "outcomeReason": "Take Profit: Level 1 hit. Locked in profit."
+      "floatingPnl": 0,
+      "outcomeReason": "Take Profit: Level 1 hit. Locked in profit. (Auto-closed: invalid entry data)"
     }
   ],
   "pushSubscriptions": [],
