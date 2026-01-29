@@ -159,23 +159,16 @@ const AppContent: React.FC = () => {
         {/* --- MOBILE LAYOUT (STACKED / TABBED) --- */}
         <div className="md:hidden h-full overflow-y-auto pb-24 p-4 space-y-4">
           {activeMobileTab === 'dashboard' && (
-            <>
-              {/* Agent Carousel (Scrollable Row) */}
-              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x">
-                {['quant', 'macro', 'risk'].map(id => {
-                  const agent = accounts?.[id];
-                  return (
-                    <div key={id} className="min-w-[85vw] snap-center">
-                      {agent ? <AgentCard agent={agent} /> : <div className="h-40 bg-gray-900 rounded-xl animate-pulse" />}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 text-center text-gray-400 text-sm">
-                Select a tab below to view details.
-              </div>
-            </>
+            <div className="space-y-4">
+              {['quant', 'macro', 'risk'].map(id => {
+                const agent = accounts?.[id];
+                return (
+                  <div key={id} className="w-full">
+                    {agent ? <AgentCard agent={agent} /> : <div className="h-40 bg-gray-900 rounded-xl animate-pulse" />}
+                  </div>
+                );
+              })}
+            </div>
           )}
 
           {/* TRADES TAB */}
