@@ -189,7 +189,7 @@ const AppContent: React.FC = () => {
       </main>
 
       {/* Mobile Bottom Nav Override */}
-      <div className="md:hidden fixed bottom-0 w-full bg-premium-bg/90 backdrop-blur-lg border-t border-premium-border flex justify-around p-4 z-50 safe-area-bottom">
+      <div className="md:hidden fixed bottom-0 w-full bg-premium-bg/90 backdrop-blur-lg border-t border-premium-border flex justify-around pt-4 pb-8 z-50 safe-area-bottom">
         <button
           onClick={() => setActiveMobileTab('dashboard')}
           className={`flex flex-col items-center gap-1 ${activeMobileTab === 'dashboard' ? 'text-cyan-400' : 'text-gray-600'}`}

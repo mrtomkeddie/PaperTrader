@@ -60,8 +60,18 @@ export const AgentCard: React.FC<AgentCardProps> = ({
     // For this change, we'll use a generic Activity icon if a specific one isn't provided
     const Icon = Activity;
 
+    const getBorderColor = (agentId: string, thinking: boolean) => {
+        const colors = {
+            quant: thinking ? 'border-premium-cyan shadow-[0_0_30px_rgba(0,240,255,0.15)] bg-premium-cyan/5' : 'border-premium-cyan/30 hover:border-premium-cyan/50 bg-premium-cyan/5',
+            macro: thinking ? 'border-premium-gold shadow-[0_0_30px_rgba(255,215,0,0.15)] bg-premium-gold/5' : 'border-premium-gold/30 hover:border-premium-gold/50 bg-premium-gold/5',
+            risk: thinking ? 'border-premium-red shadow-[0_0_30px_rgba(255,0,0,0.15)] bg-premium-red/5' : 'border-premium-red/30 hover:border-premium-red/50 bg-premium-red/5'
+        }[agentId] || 'border-white/10 bg-white/5';
+
+        return colors;
+    };
+
     return (
-        <div className={`p-4 rounded-xl border relative overflow-hidden transition-all duration-300 ${isThinking ? 'bg-premium-cyan/5 border-premium-cyan shadow-[0_0_30px_rgba(0,240,255,0.15)]' : 'bg-white/5 border-white/10 hover:border-white/20'}`}>
+        <div className={`p-4 rounded-xl border relative overflow-hidden transition-all duration-300 ${getBorderColor(id, isThinking)}`}>
 
             {/* Header */}
             <div className="flex justify-between items-start mb-4">
@@ -74,8 +84,8 @@ export const AgentCard: React.FC<AgentCardProps> = ({
                             {name}
                             {isThinking && (
                                 <span className="relative flex h-2 w-2">
-                                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-premium-cyan`}></span>
-                                    <span className={`relative inline-flex rounded-full h-2 w-2 bg-premium-cyan`}></span>
+                                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${id === 'quant' ? 'bg-premium-cyan' : id === 'macro' ? 'bg-premium-gold' : 'bg-premium-red'}`}></span>
+                                    <span className={`relative inline-flex rounded-full h-2 w-2 ${id === 'quant' ? 'bg-premium-cyan' : id === 'macro' ? 'bg-premium-gold' : 'bg-premium-red'}`}></span>
                                 </span>
                             )}
                         </h3>
