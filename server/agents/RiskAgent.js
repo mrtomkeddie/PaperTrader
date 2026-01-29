@@ -76,14 +76,14 @@ Output a JSON object ONLY:
             this.lastAction = decision.action;
 
             // Risk agent ONLY trades if high confidence "Contrarian" signal
-            if (decision.action !== 'HOLD' && decision.confidence > 50) {
+            if (decision.action !== 'HOLD' && decision.confidence > 85) {
                 // Hedge size?
-                const size = 0.05;
+                // Size is now calculated dynamically by the base Agent class based on Risk/StopLoss
 
                 this.executeTrade(
                     symbol,
                     decision.action,
-                    size,
+                    0, // Size ignored (calculated dynamically)
                     currentPrice,
                     decision.stopLoss,
                     [{ id: 1, price: decision.takeProfit, percentage: 1.0, hit: false }],

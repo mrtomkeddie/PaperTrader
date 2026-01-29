@@ -84,14 +84,14 @@ Output a JSON object ONLY:
             this.lastAction = decision.action;
             this.latestDecision = decision; // Save for Manager
 
-            if (decision.action !== 'HOLD' && decision.confidence > 50) {
+            if (decision.action !== 'HOLD' && decision.confidence > 80) {
                 // Macro takes larger swings but wider stops? Or maybe just normal sizing.
-                const size = 0.1;
+                // Size is now calculated dynamically by the base Agent class based on Risk/StopLoss
 
                 this.executeTrade(
                     symbol,
                     decision.action,
-                    size,
+                    0, // Size ignored (calculated dynamically)
                     currentPrice,
                     decision.stopLoss,
                     [{ id: 1, price: decision.takeProfit, percentage: 1.0, hit: false }],

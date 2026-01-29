@@ -129,6 +129,125 @@ export class Agent {
     updateTrades(marketData) {
         // Basic PnL update logic would go here, or be handled centrally
     }
+    /**
+     * Calculate Safe Lot Size based on Risk %
+     * Formula: (Equity * RiskDecimal) / (StopLossDistance * PipValue)
+     * @param {number} entryPrice
+     * @param {number} stopLoss
+     * @param {number} riskPercent (default 1%)
+     * @returns {number} lots
+     */
+    calculateSafeLotSize(entryPrice, stopLoss, riskPercent = 1) {
+        if (!entryPrice || !stopLoss) return 0.01;
+
+        const riskAmount = this.equity * (riskPercent / 100);
+        const pips = Math.abs(entryPrice - stopLoss) * 10; // Approx for XAUUSD (0.10 scale? No XAU is 0.01 tick usually, but let's assume standard forex calc for now: 10 points = 1 pip)
+
+        // STANDARD LOT (1.00) on XAUUSD:
+        // 1 pip ($0.10 move) = $1 profit/loss per lot? 
+        // Actually: 1 Lot of Gold = 100 oz. 
+        // $1 move in price = $100 PnL.
+        // If entry 2600, SL 2590 ($10 move).
+        // Loss = $10 * 100oz = $1000 per 1 Lot.
+
+        // Let's stick to a simpler math for this Paper Trader:
+        // Contract Size 100. 
+        // Loss = |Entry - SL| * ContractSize * Lots
+        // safeLots = RiskAmount / (|Entry - SL| * 100)
+
+        const priceDiff = Math.abs(entryPrice - stopLoss);
+        if (priceDiff === 0) return 0.01;
+
+        const contractSize = 100; // XAUUSD Standard
+        const maxLossPerLot = priceDiff * contractSize;
+
+        let safeLots = riskAmount / maxLossPerLot;
+
+        // Clamp to min/max
+        if (safeLots < 0.01) safeLots = 0.01;
+        if (safeLots > 5.0) safeLots = 5.0; // Hard cap
+
+        return Number(safeLots.toFixed(2));
+    }
+
+    checkMargin(size, price) {
+        // Simple Leverage Check: 100:1 leverage
+        // Required Margin = (Price * Size * 100) / 100
+        // Approx = Price * Size
+        const requiredMargin = price * size * 100 * 0.01; // 1:100 leverage
+        const freeMargin = this.equity - requiredMargin;
+
+        // Safety: ensure we don't use more than 50% of free equity on one trade?
+        // Actually, just ensure positive free margin.
+
+        // CRITICAL: Margin Call Check
+        if (this.equity < (this.balance * 0.80)) {
+            console.warn(`[AGENT: ${this.name}] MARGIN CALL WARNING: Equity < 80%. Trading Halted.`);
+            return false;
+        }
+
+        return freeMargin > 0;
+    }
+
+    /**
+     * Execute a trade
+     */
+    executeTrade(symbol, type, size, entryPrice, stopLoss, tpLevels, reason, snapshot = {}) {
+        // 1. RE-CALCULATE SIZE based on Risk Management (Override AI's prompt if unsafe)
+        // We trust the AI for direction/SL, but NOT for sizing.
+        const safeSize = this.calculateSafeLotSize(entryPrice, stopLoss, 1.0); // 1% Risk
+
+        // 2. CHECK MARGIN & STOP DRAWDOWN
+        if (!this.checkMargin(safeSize, entryPrice)) {
+            console.warn(`[AGENT: ${this.name}] Trade Rejected: Insufficient Margin or Drawdown Limit.`);
+            return null;
+        }
+
+        // CHECK COOLDOWN & LIMITS
+        if (!this.canTrade()) {
+            return null;
+        }
+
+        // VALIDATION
+        if (!entryPrice || isNaN(entryPrice) || entryPrice <= 0) return null;
+        if (!stopLoss || isNaN(stopLoss) || stopLoss <= 0) return null;
+
+        const trade = {
+            id: `${this.id}-${Date.now()}`,
+            agentId: this.id,
+            symbol,
+            type,
+            initialSize: safeSize, // Use Calculated Safe Size
+            currentSize: safeSize,
+            entryPrice,
+            stopLoss,
+            tpLevels: tpLevels || [],
+            openTime: Date.now(),
+            status: 'OPEN',
+            pnl: 0,
+            entryReason: reason,
+            decisionSnapshot: snapshot,
+            strategy: 'AI_AGENT'
+        };
+
+        this.trades.push(trade);
+        this.newTrades.push(trade);
+        this.lastAction = `OPEN ${type} ${symbol} (${safeSize} lots)`;
+        this.lastTradeTime = Date.now();
+        console.log(`[AGENT: ${this.name}] Executed Trade: ${type} ${symbol} @ ${entryPrice} [Risk Adjusted: ${safeSize} lots]`);
+        return trade;
+    }
+
+
+    getNewTrades() {
+        const t = [...this.newTrades];
+        this.newTrades = [];
+        return t;
+    }
+
+    updateTrades(marketData) {
+        // PnL updates handled by Manager
+    }
 
     toJson() {
         return {

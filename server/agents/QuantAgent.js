@@ -89,14 +89,12 @@ Output a JSON object ONLY:
             this.lastThought = decision.reason;
             this.lastAction = decision.action;
 
-            if (decision.action !== 'HOLD' && decision.confidence > 50) {
-                // Calculate dynamic size based on risk (simplified for now)
-                const size = 0.05; // Default scalp size
-
+            if (decision.action !== 'HOLD' && decision.confidence > 75) {
+                // Size is now calculated dynamically by the base Agent class based on Risk/StopLoss
                 this.executeTrade(
                     symbol,
                     decision.action,
-                    size,
+                    0, // Size ignored (calculated dynamically)
                     currentPrice,
                     decision.stopLoss,
                     [{ id: 1, price: decision.takeProfit, percentage: 1.0, hit: false }],
