@@ -15,7 +15,7 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
 
 
 
-    const renderDesktopTable = (data: Trade[], title: string) => (
+    const renderDesktopTable = (data: Trade[], title: string, isHistory: boolean = false) => (
         <div className="mb-6">
             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 sticky top-0 bg-[#13141b] z-10 py-2">{title}</h4>
             <div className="overflow-x-auto">
@@ -23,13 +23,12 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                     <thead>
                         <tr className="border-b border-white/5 text-xs font-bold text-gray-500 uppercase tracking-wider">
                             <th className="py-3 px-4">Type</th>
-                            <th className="py-3 px-4">Symbol</th>
                             <th className="py-3 px-4">Entry</th>
                             <th className="py-3 px-4">Qty</th>
                             <th className="py-3 px-4">Realized</th>
                             <th className="py-3 px-4">Floating</th>
                             <th className="py-3 px-4">Open Time</th>
-                            <th className="py-3 px-4">Close Time</th>
+                            {isHistory && <th className="py-3 px-4">Close Time</th>}
                         </tr>
                     </thead>
                     <tbody className="text-sm font-medium">
@@ -45,7 +44,6 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                                     className={`border-b border-white/5 cursor-pointer transition-colors ${isSelected ? 'bg-white/10' : 'hover:bg-white/5'}`}
                                 >
                                     <td className={`py-3 px-4 ${trade.type === 'BUY' ? 'text-green-500' : 'text-red-500'}`}>{trade.type}</td>
-                                    <td className="py-3 px-4 text-white font-bold">{trade.symbol}</td>
                                     <td className="py-3 px-4 text-gray-300">{formatNumber(trade?.entryPrice, 2)}</td>
                                     <td className="py-3 px-4 text-gray-300">{formatNumber(trade?.currentSize, 2)}</td>
                                     <td className={`py-3 px-4 ${realized >= 0 ? 'text-green-500' : 'text-red-500'}`}>
@@ -63,15 +61,17 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                                             minute: '2-digit'
                                         })}
                                     </td>
-                                    <td className="py-3 px-4 text-gray-500 text-xs font-mono">
-                                        {trade.status === 'CLOSED' && trade.closeTime ? formatDate(trade.closeTime, 'en-GB', {
-                                            day: '2-digit',
-                                            month: '2-digit',
-                                            year: '2-digit',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        }) : '-'}
-                                    </td>
+                                    {isHistory && (
+                                        <td className="py-3 px-4 text-gray-500 text-xs font-mono">
+                                            {trade.status === 'CLOSED' && trade.closeTime ? formatDate(trade.closeTime, 'en-GB', {
+                                                day: '2-digit',
+                                                month: '2-digit',
+                                                year: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            }) : '-'}
+                                        </td>
+                                    )}
                                 </tr>
                             );
                         })}
@@ -93,10 +93,7 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                 className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer mb-3 ${isSelected ? 'bg-white/10 border-white/20 shadow-lg' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}
             >
                 <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-lg">{trade.symbol}</span>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
+                    <div className="flex flex-col items-start gap-1">
                         <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${trade.type === 'BUY' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                             {trade.type}
                         </span>
@@ -159,8 +156,8 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 {/* Desktop View */}
                 <div className="hidden md:block">
-                    {openTrades.length > 0 && renderDesktopTable(openTrades, "Open Positions")}
-                    {closedTrades.length > 0 && renderDesktopTable(closedTrades, "History")}
+                    {openTrades.length > 0 && renderDesktopTable(openTrades, "Open Positions", false)}
+                    {closedTrades.length > 0 && renderDesktopTable(closedTrades, "History", true)}
                     {openTrades.length === 0 && closedTrades.length === 0 && (
                         <div className="py-12 text-center text-gray-600 italic">No trades found</div>
                     )}
