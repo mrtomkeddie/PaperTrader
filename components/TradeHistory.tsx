@@ -8,48 +8,60 @@ interface TradeHistoryProps {
   trades: Trade[];
 }
 
-const AGENT_FILTERS = ['ALL', 'quant', 'macro', 'risk'];
+const AGENT_IDS = ['quant', 'macro', 'risk'];
 
 export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
-  const [filter, setFilter] = useState('ALL');
+  const [activeAgents, setActiveAgents] = useState<string[]>(['quant', 'macro', 'risk']);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+
+  const toggleAgent = (id: string) => {
+    setActiveAgents(prev =>
+      prev.includes(id)
+        ? (prev.length > 1 ? prev.filter(a => a !== id) : prev) // keep at least one
+        : [...prev, id]
+    );
+  };
+
+  const isAllSelected = activeAgents.length === AGENT_IDS.length;
 
   // Sorting: Newest first
   const sortedTrades = [...trades].sort((a, b) => b.openTime - a.openTime);
 
-  const filteredTrades = filter === 'ALL'
-    ? sortedTrades
-    : sortedTrades.filter(t => t.agentId === filter);
+  const filteredTrades = sortedTrades.filter(t => activeAgents.includes(t.agentId));
 
   return (
     <div className="h-full flex flex-col bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden backdrop-blur-sm">
       {/* Header / Filter Bar */}
-      <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/80">
+      <div className="p-4 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-900/80">
         <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
           <Search className="w-4 h-4 text-cyan-500" />
           Trade Audit Log
         </h2>
 
-        <div className="relative group">
-          <button className="flex items-center gap-2 px-3 py-1.5 bg-[#0a0f1e] border border-gray-700 rounded text-xs font-mono text-cyan-400 hover:border-cyan-500 transition-colors">
-            <Filter className="w-3 h-3" />
-            Agent: {filter.toUpperCase()}
-            <ChevronDown className="w-3 h-3" />
+        <div className="flex items-center gap-2 bg-black/40 p-1 rounded-lg border border-gray-800">
+          <button
+            onClick={() => setActiveAgents(AGENT_IDS)}
+            className={`px-3 py-1 rounded text-[10px] font-mono transition-all ${isAllSelected ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            ALL
           </button>
+          <div className="w-px h-4 bg-gray-800 mx-1" />
+          {AGENT_IDS.map(id => {
+            const isActive = activeAgents.includes(id);
+            const colorClass = id === 'quant' ? 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10' :
+              id === 'macro' ? 'text-blue-400 border-blue-500/30 bg-blue-500/10' :
+                'text-orange-400 border-orange-500/30 bg-orange-500/10';
 
-          {/* Dropdown Menu */}
-          <div className="absolute right-0 mt-2 w-32 bg-[#0a0f1e] border border-gray-700 rounded shadow-xl z-20 hidden group-hover:block animate-in fade-in zoom-in-95 duration-100">
-            {AGENT_FILTERS.map(f => (
+            return (
               <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`w-full text-left px-3 py-2 text-xs font-mono hover:bg-gray-800 transition-colors flex items-center justify-between ${filter === f ? 'text-cyan-400' : 'text-gray-400'}`}
+                key={id}
+                onClick={() => toggleAgent(id)}
+                className={`px-3 py-1 rounded text-[10px] font-mono border transition-all ${isActive ? colorClass : 'border-transparent text-gray-600 hover:text-gray-400'}`}
               >
-                {f.toUpperCase()}
-                {filter === f && <CheckCircle2 className="w-3 h-3" />}
+                {id.toUpperCase()}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
 

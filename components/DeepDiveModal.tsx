@@ -13,58 +13,134 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, trade })
 
     const data: any = trade.decisionSnapshot || { error: "No detailed log captured for this trade." };
 
+    // Theme colors matching the Agent Cards - Use literal values for Tailwind
+    const themes = {
+        quant: {
+            accent: 'text-cyan-400',
+            border: 'border-cyan-500/30',
+            glow: 'shadow-[0_0_30px_rgba(6,182,212,0.15)]',
+            bg: 'bg-cyan-500/10'
+        },
+        macro: {
+            accent: 'text-blue-400',
+            border: 'border-blue-500/30',
+            glow: 'shadow-[0_0_30px_rgba(59,130,246,0.15)]',
+            bg: 'bg-blue-500/10'
+        },
+        risk: {
+            accent: 'text-orange-400',
+            border: 'border-orange-500/30',
+            glow: 'shadow-[0_0_30px_rgba(249,115,22,0.15)]',
+            bg: 'bg-orange-500/10'
+        }
+    };
+
+    const currentTheme = themes[trade.agentId as keyof typeof themes] || themes.quant;
+
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
             <div
-                className="w-full max-w-2xl bg-[#0a0f1e] border border-cyan-500/30 rounded-lg shadow-[0_0_30px_rgba(6,182,212,0.15)] flex flex-col max-h-[85vh] overflow-hidden"
+                className={`w-full max-w-2xl bg-[#0a0f1e] border ${currentTheme.border} rounded-2xl ${currentTheme.glow} flex flex-col max-h-[90vh] overflow-hidden`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-gray-900/50">
-                    <div className="flex items-center gap-2">
-                        <Terminal className="text-cyan-400 w-5 h-5" />
-                        <h2 className="text-lg font-mono font-bold text-cyan-400 tracking-wider">
-                            DECISION_LOG // {trade.agentId?.toUpperCase()}
-                        </h2>
+                <div className="flex items-center justify-between p-5 border-b border-gray-800 bg-gray-900/50">
+                    <div className="flex items-center gap-3">
+                        <Terminal className={`${currentTheme.accent} w-5 h-5`} />
+                        <div>
+                            <h2 className={`text-lg font-mono font-bold ${currentTheme.accent} tracking-wider`}>
+                                DECISION_LOG // {trade.agentId?.toUpperCase()}
+                            </h2>
+                            <div className="text-[10px] text-gray-500 font-mono">ENCRYPTED_SYNAPSE_STREAM</div>
+                        </div>
                     </div>
-                    <button onClick={onClose} className="p-1 hover:bg-gray-800 rounded text-gray-400 hover:text-white transition-colors">
+                    <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-full text-gray-400 hover:text-white transition-all">
                         <X size={20} />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-auto p-6 font-mono text-sm relative">
-                    {/* Matrix rain effect background (simplified as subtle grid for now) */}
-                    <div className="absolute inset-0 bg-[linear-gradient(rgba(18,18,18,0)_1px,transparent_1px),linear-gradient(90deg,rgba(18,18,18,0)_1px,transparent_1px)] bg-[size:20px_20px] opacity-20 pointer-events-none"></div>
+                <div className="flex-1 overflow-auto p-6 font-mono text-sm relative custom-scrollbar">
+                    {/* Grid background */}
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:30px_30px] opacity-20 pointer-events-none"></div>
 
-                    <div className="relative z-10 space-y-6">
-                        {/* Meta Data */}
-                        <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 mb-4 border-b border-gray-800 pb-4">
-                            <div>TIMESTAMP: <span className="text-gray-300">{new Date(trade.openTime).toISOString()}</span></div>
-                            <div>SYMBOL: <span className="text-gray-300">{trade.symbol}</span></div>
-                            <div>ACTION: <span className={trade.type === 'BUY' ? 'text-green-400' : 'text-red-400'}>{trade.type}</span></div>
-                            <div>EXEC PRICE: <span className="text-gray-300">{trade.entryPrice}</span></div>
+                    <div className="relative z-10 space-y-8">
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div className="p-3 bg-black/40 rounded-xl border border-gray-800/50">
+                                <div className="text-[10px] text-gray-500 uppercase mb-1">Status</div>
+                                <div className={`text-xs font-bold ${trade.status === 'OPEN' ? 'text-cyan-400' : 'text-gray-400'}`}>{trade.status}</div>
+                            </div>
+                            <div className="p-3 bg-black/40 rounded-xl border border-gray-800/50">
+                                <div className="text-[10px] text-gray-500 uppercase mb-1">Type</div>
+                                <div className={`text-xs font-bold ${trade.type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>{trade.type}</div>
+                            </div>
+                            <div className="p-3 bg-black/40 rounded-xl border border-gray-800/50">
+                                <div className="text-[10px] text-gray-500 uppercase mb-1">Entry Price</div>
+                                <div className="text-xs font-bold text-gray-200">${trade.entryPrice.toFixed(2)}</div>
+                            </div>
+                            <div className="p-3 bg-black/40 rounded-xl border border-gray-800/50">
+                                <div className="text-[10px] text-gray-500 uppercase mb-1">Size</div>
+                                <div className="text-xs font-bold text-gray-200">{trade.initialSize} Lot</div>
+                            </div>
                         </div>
 
-                        {/* Specific Agent Data Formatting */}
-                        {trade.agentId === 'quant' && (
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                <div className="p-3 bg-gray-900/50 rounded border border-gray-800">
-                                    <div className="text-cyan-500 text-xs mb-1">RSI (14)</div>
-                                    <div className="text-xl font-bold">{data.rsi?.toFixed(2) || 'N/A'}</div>
-                                </div>
-                                <div className="p-3 bg-gray-900/50 rounded border border-gray-800">
-                                    <div className="text-cyan-500 text-xs mb-1">TREND (200EMA)</div>
-                                    <div className="text-xl font-bold">{data.trend || 'N/A'}</div>
-                                </div>
+                        {/* Reasoning Snippet */}
+                        <div className="space-y-2">
+                            <div className={`${currentTheme.accent} text-[10px] font-bold uppercase tracking-widest`}>Thinking Process</div>
+                            <div className="p-4 bg-[#050510] rounded-xl border border-gray-800 italic text-gray-300 leading-relaxed ring-1 ring-inset ring-white/5">
+                                "{trade.entryReason || 'No reasoning captured.'}"
                             </div>
-                        )}
+                        </div>
+
+                        {/* Agent Specific Data Formatting */}
+                        <div className="space-y-4">
+                            <div className={`${currentTheme.accent} text-[10px] font-bold uppercase tracking-widest flex items-center gap-2`}>
+                                <div className={`w-1 h-1 rounded-full bg-current pulse`}></div>
+                                Signal Parameters
+                            </div>
+
+                            {trade.agentId === 'quant' && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-4 bg-gray-900/30 rounded-xl border border-gray-800 flex justify-between items-center">
+                                        <span className="text-gray-500 text-xs">RSI (14)</span>
+                                        <span className="text-lg font-bold text-cyan-400">{data.rsi?.toFixed(2) || 'N/A'}</span>
+                                    </div>
+                                    <div className="p-4 bg-gray-900/30 rounded-xl border border-gray-800 flex justify-between items-center">
+                                        <span className="text-gray-500 text-xs">Trend</span>
+                                        <span className="text-lg font-bold text-cyan-400 uppercase">{data.trend || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {trade.agentId === 'macro' && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-4 bg-gray-900/30 rounded-xl border border-gray-800 flex justify-between items-center">
+                                        <span className="text-gray-500 text-xs">Sentiment</span>
+                                        <span className={`text-lg font-bold ${data.sentiment_score >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                            {data.sentiment_score > 0 ? '+' : ''}{data.sentiment_score || '0'}
+                                        </span>
+                                    </div>
+                                    <div className="p-4 bg-gray-900/30 rounded-xl border border-gray-800 flex justify-between items-center">
+                                        <span className="text-gray-500 text-xs">Outlook</span>
+                                        <span className="text-lg font-bold text-blue-400">{data.timeframe || 'Mid-Term'}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {trade.agentId === 'risk' && (
+                                <div className="p-4 bg-gray-900/30 rounded-xl border border-gray-800 flex justify-between items-center">
+                                    <span className="text-gray-500 text-xs">Risk Tolerance</span>
+                                    <span className="text-lg font-bold text-orange-400">Low-Risk Hedge</span>
+                                </div>
+                            )}
+                        </div>
 
                         {/* Raw JSON View */}
-                        <div>
-                            <div className="text-gray-500 text-xs mb-2 uppercase tracking-widest">Raw Synapse Output</div>
-                            <div className="bg-[#05050a] p-4 rounded border border-gray-800 overflow-x-auto">
-                                <pre className="text-green-500/90 leading-relaxed custom-scrollbar">
+                        <div className="space-y-2">
+                            <div className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Full Synapse Payload</div>
+                            <div className="bg-black/60 p-5 rounded-xl border border-gray-800/80 max-h-48 overflow-y-auto custom-scrollbar">
+                                <pre className={`${currentTheme.accent} text-[11px] leading-relaxed opacity-80`}>
                                     {JSON.stringify(data, null, 2)}
                                 </pre>
                             </div>
@@ -73,9 +149,15 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, trade })
                 </div>
 
                 {/* Footer */}
-                <div className="p-3 border-t border-gray-800 bg-gray-900/50 text-[10px] text-gray-500 font-mono flex justify-between">
-                    <span>LOG ID: {trade.id}</span>
-                    <span className="animate-pulse">● SYSTEM_AUDIT_MODE</span>
+                <div className="p-4 border-t border-gray-800 bg-gray-900/50 text-[9px] text-gray-500 font-mono flex justify-between items-center">
+                    <div className="flex gap-4">
+                        <span>ID: {trade.id}</span>
+                        <span>NODE: BRAIN_01</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                        <span className="tracking-tighter uppercase">Verifying_Signature_Success</span>
+                    </div>
                 </div>
             </div>
         </div>
