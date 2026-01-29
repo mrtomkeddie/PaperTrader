@@ -6,6 +6,7 @@ import { AgentCard } from './components/AgentCard';
 import { TradingViewWidget } from './components/TradingViewWidget'; // Kept generic import but not used in visual
 import SettingsModal from './components/SettingsModal';
 import MobileHeader from './components/mobile/MobileHeader';
+import { Sidebar } from './components/Sidebar';
 import { AssetSymbol, StrategyType, Trade } from './types';
 import { DEFAULT_REMOTE_URL } from './constants';
 import PositionsTable from './components/PositionsTable';
@@ -60,18 +61,17 @@ const AppContent: React.FC = () => {
   const { assets, account, accounts, decisions, trades, toggleBot, setStrategy, resetAccount, brokerMode, oandaConfig, configureOanda, isConnected, toggleMaster } = useTradingEngine();
   const [activeSymbol, setActiveSymbol] = useState<AssetSymbol>(AssetSymbol.XAUUSD);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [showHistory, setShowHistory] = useState(false); // Desktop Toggle
+
+  // Unified View State: 'dashboard' | 'history'
+  const [activeView, setActiveView] = useState<'dashboard' | 'history' | 'settings'>('dashboard');
 
   // Mobile Tabs: 'dashboard' | 'trades' | 'history'
   const [activeMobileTab, setActiveMobileTab] = useState<'dashboard' | 'trades' | 'history'>('dashboard');
 
-  const activeAssetData = assets ? assets[activeSymbol] : null;
-
-  // Prepare Agent Data for Rendering
-  const agentList = accounts ? Object.values(accounts) : [];
+  const activeAssetData = assets ? assets[activeSymbol] : null; // activeSymbol likely redundant for now but keeping it
 
   return (
-    <div className="min-h-screen bg-premium-bg text-white font-sans selection:bg-premium-cyan/30 flex flex-col bg-[url('/grid.svg')] bg-fixed">
+    <div className="min-h-screen bg-premium-bg text-white font-sans selection:bg-premium-cyan/30 flex md:flex-row flex-col bg-[url('/grid.svg')] bg-fixed">
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -81,35 +81,12 @@ const AppContent: React.FC = () => {
         isIndicesConnected={isConnected}
       />
 
-      {/* --- Desktop Header --- */}
-      <div className="hidden md:block sticky top-0 z-50">
-        <div className="flex justify-between items-center px-6 py-4 bg-premium-bg/80 backdrop-blur-md border-b border-premium-border shadow-2xl">
-          <DashboardHeader
-            account={account}
-            accounts={accounts}
-            assets={assets}
-            toggleAsset={(s) => setActiveSymbol(s)}
-            activeAsset={activeSymbol}
-            onOpenSettings={() => setIsSettingsOpen(true)}
-            toggleMaster={toggleMaster}
-          />
-          {/* Desktop View Toggle */}
-          <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-800 ml-4">
-            <button
-              onClick={() => setShowHistory(false)}
-              className={`px-3 py-1 rounded text-xs font-bold uppercase transition-all ${!showHistory ? 'bg-cyan-500/20 text-cyan-400' : 'text-gray-500 hover:text-gray-300'}`}
-            >
-              Terminal
-            </button>
-            <button
-              onClick={() => setShowHistory(true)}
-              className={`px-3 py-1 rounded text-xs font-bold uppercase transition-all ${showHistory ? 'bg-cyan-500/20 text-cyan-400' : 'text-gray-500 hover:text-gray-300'}`}
-            >
-              Trade History
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* --- Desktop Sidebar --- */}
+      <Sidebar
+        activeView={activeView}
+        setActiveView={setActiveView}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+      />
 
       {/* --- Mobile Header --- */}
       <div className="md:hidden">
@@ -121,10 +98,24 @@ const AppContent: React.FC = () => {
         />
       </div>
 
-      <main className="flex-1 relative">
-        {/* --- DESKTOP LAYOUT (FLEXIBLE) --- */}
-        <div className="hidden md:block p-6 max-w-[1920px] mx-auto space-y-6">
-          {!showHistory ? (
+      <main className="flex-1 relative flex flex-col h-screen overflow-y-auto custom-scrollbar">
+
+        {/* --- Desktop Status Header (Moved inside main content area) --- */}
+        <div className="hidden md:block sticky top-0 z-40 px-6 py-4 bg-premium-bg/80 backdrop-blur-md border-b border-premium-border/50">
+          <DashboardHeader
+            account={account}
+            accounts={accounts}
+            assets={assets}
+            toggleAsset={(s) => setActiveSymbol(s)}
+            activeAsset={activeSymbol}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            toggleMaster={toggleMaster}
+          />
+        </div>
+
+        {/* --- DESKTOP LAYOUT --- */}
+        <div className="hidden md:block p-6 max-w-[1920px] mx-auto space-y-6 w-full">
+          {activeView === 'dashboard' ? (
             <>
               {/* ROW 1: AGENT CARDS */}
               <div className="grid grid-cols-3 gap-6">
@@ -138,10 +129,8 @@ const AppContent: React.FC = () => {
                 })}
               </div>
 
-              {/* ROW 2: MAIN CONTENT (Positions & Feed) */}
+              {/* ROW 2: MAIN CONTENT (Positions) */}
               <div className="grid grid-cols-12 gap-6 min-h-[600px]">
-
-                {/* ACTIVE POSITIONS - Full Width */}
                 {/* ACTIVE POSITIONS - Full Width */}
                 <GlassCard className="col-span-12 flex flex-col min-h-[500px]">
                   <div className="px-6 py-4 border-b border-premium-border bg-premium-bg/40 flex items-center justify-between">
@@ -168,8 +157,6 @@ const AppContent: React.FC = () => {
 
         {/* --- MOBILE LAYOUT (STACKED / TABBED) --- */}
         <div className="md:hidden h-full overflow-y-auto pb-24 p-4 space-y-4">
-
-          {/* DASHBOARD TAB */}
           {activeMobileTab === 'dashboard' && (
             <>
               {/* Agent Carousel (Scrollable Row) */}
@@ -189,8 +176,6 @@ const AppContent: React.FC = () => {
               </div>
             </>
           )}
-
-          {/* FEED TAB removed */}
 
           {/* TRADES TAB */}
           {activeMobileTab === 'trades' && (

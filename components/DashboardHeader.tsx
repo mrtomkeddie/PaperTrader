@@ -46,7 +46,7 @@ const DashboardHeader: React.FC<Props> = ({ account, accounts, assets, toggleAss
             <header className="flex items-center justify-between w-full">
                 {/* LEFT: Logo & Kill Switch */}
                 <div className="flex items-center gap-6">
-                    <img src="/pt2logo.png" alt="Paper Trader 2.0" className="h-10 w-auto object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]" />
+
 
                     <div className="flex items-center gap-3 px-4 py-2 bg-premium-card rounded-xl border border-premium-border shadow-inner backdrop-blur-sm">
                         <div className="flex flex-col">
@@ -80,16 +80,7 @@ const DashboardHeader: React.FC<Props> = ({ account, accounts, assets, toggleAss
 
                 </div>
 
-                {/* RIGHT: Settings */}
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={onOpenSettings}
-                        className="p-2 bg-premium-card rounded-lg border border-premium-border text-gray-400 hover:text-white hover:border-premium-cyan/50 hover:shadow-glow-cyan/20 transition-all"
-                        title="Settings"
-                    >
-                        <Settings size={18} />
-                    </button>
-                </div>
+
             </header>
         </div>
     );
