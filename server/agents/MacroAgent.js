@@ -97,7 +97,8 @@ Output a JSON object ONLY:
                     currentPrice,
                     decision.stopLoss,
                     [{ id: 1, price: decision.takeProfit, percentage: 1.0, hit: false }],
-                    decision.reason
+                    decision.reason,
+                    this.latestDecision // Pass full decision object as snapshot
                 );
             }
         } catch (e) {

@@ -70,7 +70,7 @@ Output a JSON object ONLY:
             });
 
             const response = completion.choices[0].message.content;
-            this.processDecision(response, symbol, currentPrice);
+            this.processDecision(response, symbol, currentPrice, { rsi, trend, ema200, bollinger });
 
         } catch (error) {
             console.error('[QUANT] Error thinking:', error.message);
@@ -79,7 +79,7 @@ Output a JSON object ONLY:
         }
     }
 
-    processDecision(responseText, symbol, currentPrice) {
+    processDecision(responseText, symbol, currentPrice, snapshot) {
         try {
             // Basic JSON extraction cleanup
             const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -100,7 +100,8 @@ Output a JSON object ONLY:
                     currentPrice,
                     decision.stopLoss,
                     [{ id: 1, price: decision.takeProfit, percentage: 1.0, hit: false }],
-                    decision.reason
+                    decision.reason,
+                    snapshot // Pass Technical Data
                 );
             }
         } catch (e) {

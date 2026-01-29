@@ -37,8 +37,9 @@ export class Agent {
      * @param {number} stopLoss
      * @param {Object} tpLevels - Optional Take Profit configuration
      * @param {string} reason - AI reasoning
+     * @param {Object} snapshot - specific data points (rsi, sentiment, etc.)
      */
-    executeTrade(symbol, type, size, entryPrice, stopLoss, tpLevels, reason) {
+    executeTrade(symbol, type, size, entryPrice, stopLoss, tpLevels, reason, snapshot = {}) {
         const trade = {
             id: `${this.id}-${Date.now()}`,
             agentId: this.id,
@@ -53,6 +54,7 @@ export class Agent {
             status: 'OPEN',
             pnl: 0,
             entryReason: reason,
+            decisionSnapshot: snapshot,
             strategy: 'AI_AGENT' // Can be customized per agent
         };
 

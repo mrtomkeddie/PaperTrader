@@ -69,6 +69,7 @@ export interface Trade {
   outcomeReason?: string; // Analysis of the result (what worked/failed)
   closeReason?: 'TAKE_PROFIT' | 'STOP_LOSS' | 'MANUAL' | 'PARTIAL_CLOSE' | 'AI_GUARDIAN'; // Why it closed
   brokerId?: string; // ID from Oanda if applicable
+  decisionSnapshot?: any; // Full JSON log of the decision reasoning
 }
 
 export interface Candle {
