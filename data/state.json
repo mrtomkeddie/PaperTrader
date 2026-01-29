@@ -13,9 +13,9 @@
       "role": "Technical Scalper (DeepSeek R1)",
       "balance": 1000,
       "equity": 1000,
-      "isThinking": false,
-      "lastAction": "WAITING",
-      "lastThought": "",
+      "isThinking": true,
+      "lastAction": "OPEN BUY XAUUSD",
+      "lastThought": "Extreme oversold RSI (0.88) in uptrend, price above 200 EMA.",
       "latestDecision": null
     },
     "macro": {
@@ -23,7 +23,7 @@
       "role": "Global Macro (Gemini)",
       "balance": 1000,
       "equity": 1000,
-      "isThinking": false,
+      "isThinking": true,
       "lastAction": "WAITING",
       "lastThought": "",
       "latestDecision": null
@@ -33,13 +33,45 @@
       "role": "Risk Manager (Claude)",
       "balance": 1000,
       "equity": 1000,
-      "isThinking": false,
+      "isThinking": true,
       "lastAction": "WAITING",
       "lastThought": "",
       "latestDecision": null
     }
   },
   "trades": [
+    {
+      "id": "quant-1769688496091",
+      "agentId": "quant",
+      "symbol": "XAUUSD",
+      "type": "BUY",
+      "initialSize": 0.05,
+      "currentSize": 0.05,
+      "stopLoss": 5516,
+      "tpLevels": [
+        {
+          "id": 1,
+          "price": 5529,
+          "percentage": 1,
+          "hit": false
+        }
+      ],
+      "openTime": 1769688496091,
+      "status": "OPEN",
+      "pnl": 0,
+      "entryReason": "Extreme oversold RSI (0.88) in uptrend, price above 200 EMA.",
+      "decisionSnapshot": {
+        "rsi": 0.8771929826310867,
+        "trend": "UP",
+        "ema200": 5517.054265153745,
+        "bollinger": {
+          "upper": 5544.916858830613,
+          "middle": 5522.827438830613,
+          "lower": 5500.738018830612
+        }
+      },
+      "strategy": "AI_AGENT"
+    },
     {
       "id": "quant-1769687618316",
       "agentId": "quant",

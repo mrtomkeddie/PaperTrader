@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
 import { useTradingEngine } from './hooks/useTradingEngine';
 import DashboardHeader from './components/DashboardHeader';
 import { AgentCard } from './components/AgentCard';
@@ -9,10 +9,53 @@ import MobileHeader from './components/mobile/MobileHeader';
 import { AssetSymbol, StrategyType, Trade } from './types';
 import { DEFAULT_REMOTE_URL } from './constants';
 import PositionsTable from './components/PositionsTable';
-import { Activity, Layers, Receipt, History } from 'lucide-react';
+import { Activity, Layers, Receipt, History, AlertTriangle } from 'lucide-react';
 import { TradeHistory } from './components/TradeHistory';
 
-const App: React.FC = () => {
+// --- Error Boundary ---
+interface EBProps { children: ReactNode; }
+interface EBState { hasError: boolean; error: Error | null; }
+
+class ErrorBoundary extends Component<EBProps, EBState> {
+  constructor(props: EBProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#0a0b14] text-white flex flex-col items-center justify-center p-10 font-sans">
+          <AlertTriangle className="w-16 h-16 text-red-500 mb-6 animate-pulse" />
+          <h1 className="text-2xl font-bold mb-2 uppercase tracking-tighter">Neural System Failure</h1>
+          <p className="text-gray-400 mb-8 max-w-md text-center">A critical error occurred in the trading interface. Remote logs have been captured.</p>
+          <div className="bg-red-950/20 border border-red-900/50 rounded-lg p-6 w-full max-w-2xl overflow-auto">
+            <pre className="text-red-400 text-xs font-mono whitespace-pre-wrap">
+              {this.state.error?.stack || this.state.error?.message}
+            </pre>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-8 px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold uppercase text-sm transition-colors"
+          >
+            Reboot System
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const AppContent: React.FC = () => {
   const { assets, account, accounts, decisions, trades, toggleBot, setStrategy, resetAccount, brokerMode, oandaConfig, configureOanda, isConnected } = useTradingEngine();
   const [activeSymbol, setActiveSymbol] = useState<AssetSymbol>(AssetSymbol.XAUUSD);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -21,7 +64,7 @@ const App: React.FC = () => {
   // Mobile Tabs: 'dashboard' | 'trades' | 'feed' | 'history'
   const [activeMobileTab, setActiveMobileTab] = useState<'dashboard' | 'trades' | 'feed' | 'history'>('dashboard');
 
-  const activeAssetData = assets[activeSymbol];
+  const activeAssetData = assets ? assets[activeSymbol] : null;
 
   // Prepare Agent Data for Rendering
   const agentList = accounts ? Object.values(accounts) : [];
@@ -213,5 +256,13 @@ const App: React.FC = () => {
 function LayoutDashboard({ size, className }: { size: number, className?: string }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></svg>
 }
+
+const App: React.FC = () => {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
+  );
+};
 
 export default App;
