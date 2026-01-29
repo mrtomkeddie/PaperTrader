@@ -93,6 +93,7 @@ const AppContent: React.FC = () => {
         <MobileHeader
           title={activeMobileTab === 'history' ? 'TRADE HISTORY' : 'TERMINAL'}
           account={account}
+          accounts={accounts}
           onOpenSettings={() => setIsSettingsOpen(true)}
           activeAsset={activeSymbol}
         />
