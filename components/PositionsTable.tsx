@@ -1,6 +1,5 @@
 import React from 'react';
 import { Trade, TimeFilter } from '../types';
-import PerformanceSummary from './PerformanceSummary';
 import { formatDate, formatNumber } from '../utils/formatters';
 
 interface Props {
@@ -155,10 +154,7 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                 </span>
             </h3>
 
-            <PerformanceSummary
-                trades={closedTrades}
-                filter="ALL"
-            />
+
 
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 {/* Desktop View */}
