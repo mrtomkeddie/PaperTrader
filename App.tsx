@@ -6,19 +6,20 @@ import { NeuralFeed } from './components/NeuralFeed';
 import { TradingViewWidget } from './components/TradingViewWidget';
 import SettingsModal from './components/SettingsModal';
 import MobileHeader from './components/mobile/MobileHeader';
-import MobileBottomNav from './components/mobile/MobileBottomNav';
 import { AssetSymbol, StrategyType, Trade } from './types';
 import { DEFAULT_REMOTE_URL } from './constants';
 import PositionsTable from './components/PositionsTable';
-import { Activity, Layers, Receipt } from 'lucide-react';
+import { Activity, Layers, Receipt, History } from 'lucide-react';
+import { TradeHistory } from './components/TradeHistory';
 
 const App: React.FC = () => {
   const { assets, account, accounts, decisions, trades, toggleBot, setStrategy, resetAccount, brokerMode, oandaConfig, configureOanda, isConnected } = useTradingEngine();
   const [activeSymbol, setActiveSymbol] = useState<AssetSymbol>(AssetSymbol.XAUUSD);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showHistory, setShowHistory] = useState(false); // Desktop Toggle
 
-  // Mobile Tabs: 'dashboard' | 'trades' | 'feed'
-  const [activeMobileTab, setActiveMobileTab] = useState<'dashboard' | 'trades' | 'feed'>('dashboard');
+  // Mobile Tabs: 'dashboard' | 'trades' | 'feed' | 'history'
+  const [activeMobileTab, setActiveMobileTab] = useState<'dashboard' | 'trades' | 'feed' | 'history'>('dashboard');
 
   const activeAssetData = assets[activeSymbol];
 
@@ -38,18 +39,35 @@ const App: React.FC = () => {
 
       {/* --- Desktop Header --- */}
       <div className="hidden md:block">
-        <DashboardHeader
-          account={account}
-          toggleAsset={(s) => setActiveSymbol(s)}
-          activeAsset={activeSymbol}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-        />
+        <div className="flex justify-between items-center px-6 py-4 bg-[#0a0f1e] border-b border-gray-800">
+          <DashboardHeader
+            account={account}
+            toggleAsset={(s) => setActiveSymbol(s)}
+            activeAsset={activeSymbol}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+          />
+          {/* Desktop View Toggle */}
+          <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-800 ml-4">
+            <button
+              onClick={() => setShowHistory(false)}
+              className={`px-3 py-1 rounded text-xs font-bold uppercase transition-all ${!showHistory ? 'bg-cyan-500/20 text-cyan-400' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              Terminal
+            </button>
+            <button
+              onClick={() => setShowHistory(true)}
+              className={`px-3 py-1 rounded text-xs font-bold uppercase transition-all ${showHistory ? 'bg-cyan-500/20 text-cyan-400' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              Audit Log
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* --- Mobile Header --- */}
       <div className="md:hidden">
         <MobileHeader
-          title="TERMINAL"
+          title={activeMobileTab === 'history' ? 'AUDIT LOG' : 'TERMINAL'}
           account={account}
           onOpenSettings={() => setIsSettingsOpen(true)}
           activeAsset={activeSymbol}
@@ -58,51 +76,57 @@ const App: React.FC = () => {
 
       <main className="flex-1 overflow-hidden relative">
         {/* --- DESKTOP LAYOUT (GRID) --- */}
-        <div className="hidden md:grid grid-cols-12 grid-rows-12 gap-6 p-6 h-full max-w-[1920px] mx-auto">
+        <div className="hidden md:block h-full p-6 max-w-[1920px] mx-auto">
+          {!showHistory ? (
+            <div className="grid grid-cols-12 grid-rows-12 gap-6 h-full">
+              {/* ROW 1: AGENT CARDS (Top) - Span 12 */}
+              <div className="col-span-12 row-span-2 grid grid-cols-3 gap-6">
+                {['quant', 'macro', 'risk'].map(id => {
+                  const agent = accounts?.[id];
+                  return agent ? <AgentCard key={id} agent={agent} /> : (
+                    <div key={id} className="bg-gray-900/50 border border-gray-800 rounded-xl animate-pulse flex items-center justify-center">
+                      <span className="text-gray-600 font-mono text-sm">Initializing {id.toUpperCase()}...</span>
+                    </div>
+                  );
+                })}
+              </div>
 
-          {/* ROW 1: AGENT CARDS (Top) - Span 12 */}
-          <div className="col-span-12 row-span-2 grid grid-cols-3 gap-6">
-            {['quant', 'macro', 'risk'].map(id => {
-              const agent = accounts?.[id];
-              return agent ? <AgentCard key={id} agent={agent} /> : (
-                <div key={id} className="bg-gray-900/50 border border-gray-800 rounded-xl animate-pulse flex items-center justify-center">
-                  <span className="text-gray-600 font-mono text-sm">Initializing {id.toUpperCase()}...</span>
+              {/* ROW 2: MAIN CONTENT (Chart & Feed) */}
+
+              {/* CHART AREA - Span 9 cols, row span 6 */}
+              <div className="col-span-9 row-span-7 bg-gray-900 rounded-xl overflow-hidden border border-gray-800 shadow-2xl relative group">
+                <div className="absolute top-4 left-4 z-10 bg-black/50 backdrop-blur px-3 py-1 rounded text-xs font-mono text-gray-400 border border-gray-700">
+                  XAUUSD [LIVE]
                 </div>
-              );
-            })}
-          </div>
+                <TradingViewWidget />
+              </div>
 
-          {/* ROW 2: MAIN CONTENT (Chart & Feed) */}
+              {/* NEURAL FEED - Span 3 cols, row span 10 (Full Height side panel) */}
+              <div className="col-span-3 row-span-10">
+                <NeuralFeed decisions={decisions || []} />
+              </div>
 
-          {/* CHART AREA - Span 9 cols, row span 6 */}
-          <div className="col-span-9 row-span-7 bg-gray-900 rounded-xl overflow-hidden border border-gray-800 shadow-2xl relative group">
-            <div className="absolute top-4 left-4 z-10 bg-black/50 backdrop-blur px-3 py-1 rounded text-xs font-mono text-gray-400 border border-gray-700">
-              XAUUSD [LIVE]
-            </div>
-            <TradingViewWidget />
-          </div>
-
-          {/* NEURAL FEED - Span 3 cols, row span 10 (Full Height side panel) */}
-          <div className="col-span-3 row-span-10">
-            <NeuralFeed decisions={decisions || []} />
-          </div>
-
-          {/* ROW 3: BOTTOM PANEL (Positions / Controls) */}
-          <div className="col-span-9 row-span-3 bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden flex flex-col">
-            <div className="px-4 py-2 border-b border-gray-800 bg-gray-900/80 flex items-center justify-between">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                <Activity className="w-3 h-3" />
-                Active Positions
-              </h3>
-              <div className="text-xs font-mono text-cyan-500">
-                OPEN PL: £{(trades.reduce((acc, t) => acc + (t.floatingPnl || 0), 0)).toFixed(2)}
+              {/* ROW 3: BOTTOM PANEL (Positions / Controls) */}
+              <div className="col-span-9 row-span-3 bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden flex flex-col">
+                <div className="px-4 py-2 border-b border-gray-800 bg-gray-900/80 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                    <Activity className="w-3 h-3" />
+                    Active Positions
+                  </h3>
+                  <div className="text-xs font-mono text-cyan-500">
+                    OPEN PL: £{(trades.reduce((acc, t) => acc + (t.floatingPnl || 0), 0)).toFixed(2)}
+                  </div>
+                </div>
+                <div className="flex-1 overflow-auto">
+                  <PositionsTable trades={trades} onSelectTrade={() => { }} selectedTradeId={null} />
+                </div>
               </div>
             </div>
-            <div className="flex-1 overflow-auto">
-              <PositionsTable trades={trades} onSelectTrade={() => { }} selectedTradeId={null} />
+          ) : (
+            <div className="h-full animate-in fade-in zoom-in-95 duration-300">
+              <TradeHistory trades={trades} />
             </div>
-          </div>
-
+          )}
         </div>
 
         {/* --- MOBILE LAYOUT (STACKED / TABBED) --- */}
@@ -144,6 +168,13 @@ const App: React.FC = () => {
             </div>
           )}
 
+          {/* HISTORY TAB */}
+          {activeMobileTab === 'history' && (
+            <div className="h-full min-h-[70vh]">
+              <TradeHistory trades={trades} />
+            </div>
+          )}
+
         </div>
       </main>
 
@@ -169,6 +200,13 @@ const App: React.FC = () => {
         >
           <Receipt size={20} />
           <span className="text-[10px] uppercase font-bold">Trades</span>
+        </button>
+        <button
+          onClick={() => setActiveMobileTab('history')}
+          className={`flex flex-col items-center gap-1 ${activeMobileTab === 'history' ? 'text-cyan-400' : 'text-gray-600'}`}
+        >
+          <History size={20} />
+          <span className="text-[10px] uppercase font-bold">Log</span>
         </button>
       </div>
 
