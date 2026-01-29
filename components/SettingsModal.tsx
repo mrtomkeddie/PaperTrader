@@ -145,12 +145,12 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, oandaConfig, onSave, 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
 
-      <div className="bg-[#13141b] w-full max-w-md rounded-2xl border border-white/5 overflow-hidden shadow-2xl relative z-10 animate-fade-in-up flex flex-col max-h-[85vh]">
+      <div className="bg-premium-card w-full max-w-md rounded-2xl border border-premium-border overflow-hidden shadow-glass relative z-10 animate-slide-up flex flex-col max-h-[85vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center">
-          <h2 className="text-lg font-bold text-white tracking-tight">Connection Status</h2>
+        <div className="px-6 py-4 border-b border-premium-border flex justify-between items-center bg-premium-bg/50">
+          <h2 className="text-lg font-bold text-white tracking-tight font-mono uppercase">Connection Status</h2>
           <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
             <X size={16} className="text-white" />
           </button>
@@ -158,16 +158,16 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, oandaConfig, onSave, 
 
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
 
-          <div className="flex flex-col items-center justify-center py-6 text-center space-y-3 bg-white/5 rounded-2xl border border-white/5">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 transition-colors ${!isIndicesConnected ? 'bg-ios-red/20 text-ios-red' : 'bg-ios-blue/20 text-ios-blue'}`}>
+          <div className="flex flex-col items-center justify-center py-6 text-center space-y-3 bg-white/5 rounded-2xl border border-premium-border/50 shadow-inner">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 transition-colors ${!isIndicesConnected ? 'bg-premium-red/20 text-premium-red' : 'bg-premium-cyan/20 text-premium-cyan shadow-glow-cyan/50'}`}>
               <Cloud size={32} />
             </div>
             <div>
-              <h3 className="text-white font-bold text-lg">Production Bot</h3>
-              <p className="text-xs text-ios-gray mt-1">Hosted on Render Cloud (24/7)</p>
+              <h3 className="text-white font-bold text-lg font-mono tracking-wide">Production Bot</h3>
+              <p className="text-xs text-gray-400 mt-1">Hosted on Render Cloud (24/7)</p>
             </div>
 
-            <div className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-lg mt-2 ${!isIndicesConnected ? 'text-ios-red bg-ios-red/10' : 'text-ios-green bg-ios-green/10'}`}>
+            <div className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-lg mt-2 ${!isIndicesConnected ? 'text-premium-red bg-premium-red/10' : 'text-premium-green bg-premium-green/10 border border-premium-green/20'}`}>
               {isIndicesConnected ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
               {isIndicesConnected ? 'Connected' : 'Disconnected'}
             </div>
@@ -180,7 +180,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, oandaConfig, onSave, 
             <label className="text-[10px] text-ios-gray ml-1">Notifications</label>
             <button
               onClick={enablePush}
-              className={`w-full mt-1 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-white/5 ${pushStatus === 'enabled' ? 'bg-ios-green text-white' : 'bg-white/5 text-white hover:bg-white/10'}`}
+              className={`w-full mt-1 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-premium-border ${pushStatus === 'enabled' ? 'bg-premium-green text-black font-mono' : 'bg-premium-bg/50 text-white hover:bg-white/10'}`}
             >
               <Bell size={16} /> {pushStatus === 'enabled' ? 'Enabled' : 'Enable Push'}
             </button>
@@ -205,7 +205,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, oandaConfig, onSave, 
             </a>
             <button
               onClick={() => setShowResetConfirm(true)}
-              className="w-full mt-2 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-ios-red/30 bg-ios-red/10 text-ios-red hover:bg-ios-red/20"
+              className="w-full mt-2 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border border-premium-red/30 bg-premium-red/10 text-premium-red hover:bg-premium-red/20 hover:shadow-glow-red/30"
             >
               Reset All Trades
             </button>
@@ -256,7 +256,7 @@ const SettingsModal: React.FC<Props> = ({ isOpen, onClose, oandaConfig, onSave, 
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-white/5">
-                   <button
+                  <button
                     onClick={handleRestartIndices}
                     disabled={rebootStatus === 'loading'}
                     className={`w-full font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border ${rebootStatus === 'error' ? 'border-ios-red/30 bg-ios-red/10 text-ios-red' : rebootStatus === 'success' ? 'border-ios-green/30 bg-ios-green/10 text-ios-green' : 'border-white/5 bg-white/5 text-white hover:bg-white/10'}`}

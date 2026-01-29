@@ -17,11 +17,11 @@ const MobileHeader: React.FC<Props> = ({ title, account, onOpenSettings, activeA
     const isPositive = pnl >= 0;
 
     return (
-        <div className="pt-16 pb-2 px-6 bg-[#0a0b14] flex flex-col items-center relative">
+        <div className="pt-16 pb-2 px-6 bg-premium-bg/95 backdrop-blur-md flex flex-col items-center relative border-b border-premium-border">
             {/* Top Bar */}
             <div className="w-full flex justify-between items-center mb-1">
                 <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-premium-green animate-pulse shadow-glow-green" />
                     <span className="text-[10px] font-bold text-gray-500 tracking-widest uppercase">{title}</span>
                 </div>
                 <button onClick={onOpenSettings} className="text-gray-500 hover:text-white transition-colors">
@@ -30,7 +30,7 @@ const MobileHeader: React.FC<Props> = ({ title, account, onOpenSettings, activeA
             </div>
 
             {/* Balance */}
-            <h1 className="text-3xl font-black text-white tracking-tight mb-2">
+            <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 tracking-tight mb-2 font-mono">
                 {formatCurrency(account.balance)}
             </h1>
 

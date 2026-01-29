@@ -14,7 +14,9 @@
   <title>Paper Trader 2.0</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/pt2appicon.svg" />
   <link rel="apple-touch-icon" href="/pt2appicon.svg" />
   <link rel="manifest" href="/manifest.json" />
@@ -27,35 +29,49 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
             sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', 'monospace'],
           },
           colors: {
-            ios: {
-              bg: '#000000',
-              card: '#1C1C1E',
-              separator: '#38383A',
-              blue: '#0A84FF',
-              green: '#30D158',
-              red: '#FF453A',
-              gray: '#8E8E93',
-              lightGray: '#C7C7CC',
+            premium: {
+              bg: '#050505', // Deep black for OLED
+              card: 'rgba(20, 20, 25, 0.6)', // Glassy dark
+              border: 'rgba(255, 255, 255, 0.08)',
+              gold: '#D4AF37',
+              'gold-dim': '#AA8C2C',
+              cyan: '#00F0FF',
+              'cyan-dim': '#008F99',
+              green: '#00FFA3',
+              red: '#FF4D4D',
             }
           },
+          backgroundImage: {
+            'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+            'glass-gradient': 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
+            'gold-gradient': 'linear-gradient(135deg, #D4AF37 0%, #AA8C2C 100%)',
+          },
+          boxShadow: {
+            'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+            'glow-gold': '0 0 15px rgba(212, 175, 55, 0.3)',
+            'glow-cyan': '0 0 15px rgba(0, 240, 255, 0.3)',
+          },
           animation: {
-            'fade-in': 'fadeIn 0.5s ease-out',
-            'fade-in-up': 'fadeInUp 0.5s ease-out',
+            'fade-in': 'fadeIn 0.6s ease-out forwards',
+            'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
           },
           keyframes: {
             fadeIn: {
               '0%': { opacity: '0' },
               '100%': { opacity: '1' },
             },
-            fadeInUp: {
-              '0%': { opacity: '0', transform: 'translateY(10px)' },
-              '100%': { opacity: '1' },
+            slideUp: {
+              '0%': { opacity: '0', transform: 'translateY(20px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
             }
           }
         }

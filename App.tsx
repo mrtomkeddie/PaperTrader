@@ -11,6 +11,7 @@ import { DEFAULT_REMOTE_URL } from './constants';
 import PositionsTable from './components/PositionsTable';
 import { Layers, Receipt, History, AlertTriangle } from 'lucide-react';
 import { TradeHistory } from './components/TradeHistory';
+import { GlassCard } from './components/ui/GlassCard';
 
 // --- Error Boundary ---
 interface EBProps { children: ReactNode; }
@@ -35,10 +36,10 @@ class ErrorBoundary extends Component<EBProps, EBState> {
       return (
         <div className="min-h-screen bg-[#0a0b14] text-white flex flex-col items-center justify-center p-10 font-sans">
           <AlertTriangle className="w-16 h-16 text-red-500 mb-6 animate-pulse" />
-          <h1 className="text-2xl font-bold mb-2 uppercase tracking-tighter">Neural System Failure</h1>
+          <h1 className="text-2xl font-bold mb-2 uppercase tracking-tighter text-premium-red">Neural System Failure</h1>
           <p className="text-gray-400 mb-8 max-w-md text-center">A critical error occurred in the trading interface. Remote logs have been captured.</p>
-          <div className="bg-red-950/20 border border-red-900/50 rounded-lg p-6 w-full max-w-2xl overflow-auto">
-            <pre className="text-red-400 text-xs font-mono whitespace-pre-wrap">
+          <div className="bg-red-950/20 border border-red-900/50 rounded-lg p-6 w-full max-w-2xl overflow-auto font-mono text-xs text-red-400">
+            <pre className="whitespace-pre-wrap">
               {this.state.error?.stack || this.state.error?.message}
             </pre>
           </div>
@@ -70,7 +71,7 @@ const AppContent: React.FC = () => {
   const agentList = accounts ? Object.values(accounts) : [];
 
   return (
-    <div className="min-h-screen bg-[#0a0b14] text-white font-sans selection:bg-cyan-500/30 flex flex-col">
+    <div className="min-h-screen bg-premium-bg text-white font-sans selection:bg-premium-cyan/30 flex flex-col bg-[url('/grid.svg')] bg-fixed">
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -82,7 +83,7 @@ const AppContent: React.FC = () => {
 
       {/* --- Desktop Header --- */}
       <div className="hidden md:block sticky top-0 z-50">
-        <div className="flex justify-between items-center px-6 py-4 bg-[#0a0f1e]/95 backdrop-blur border-b border-gray-800 shadow-lg">
+        <div className="flex justify-between items-center px-6 py-4 bg-premium-bg/80 backdrop-blur-md border-b border-premium-border shadow-2xl">
           <DashboardHeader
             account={account}
             accounts={accounts}
@@ -130,9 +131,9 @@ const AppContent: React.FC = () => {
                 {['quant', 'macro', 'risk'].map(id => {
                   const agent = accounts?.[id];
                   return agent ? <AgentCard key={id} agent={agent} /> : (
-                    <div key={id} className="bg-gray-900/50 border border-gray-800 rounded-xl animate-pulse h-32 flex items-center justify-center">
-                      <span className="text-gray-600 font-mono text-sm">Initializing {id.toUpperCase()}...</span>
-                    </div>
+                    <GlassCard key={id} className="h-32 flex items-center justify-center animate-pulse">
+                      <span className="text-gray-500 font-mono text-xs tracking-widest uppercase">Initializing {id}...</span>
+                    </GlassCard>
                   );
                 })}
               </div>
@@ -141,20 +142,21 @@ const AppContent: React.FC = () => {
               <div className="grid grid-cols-12 gap-6 min-h-[600px]">
 
                 {/* ACTIVE POSITIONS - Full Width */}
-                <div className="col-span-12 bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden flex flex-col shadow-xl">
-                  <div className="px-6 py-4 border-b border-gray-800 bg-gray-900/80 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-cyan-400" />
+                {/* ACTIVE POSITIONS - Full Width */}
+                <GlassCard className="col-span-12 flex flex-col min-h-[500px]">
+                  <div className="px-6 py-4 border-b border-premium-border bg-premium-bg/40 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-premium-gold uppercase tracking-widest flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-premium-cyan" />
                       Active Positions
                     </h3>
-                    <div className="text-xs font-mono text-cyan-500 bg-cyan-950/30 px-3 py-1 rounded border border-cyan-900/50">
+                    <div className="text-xs font-mono text-premium-cyan bg-premium-cyan/10 px-3 py-1 rounded border border-premium-cyan/20 shadow-glow-cyan">
                       OPEN PL: £{((trades || []).filter(t => t && t.status === 'OPEN').reduce((acc, t) => acc + (t.floatingPnl || 0), 0)).toFixed(2)}
                     </div>
                   </div>
-                  <div className="flex-1 min-h-[500px]">
+                  <div className="flex-1">
                     <PositionsTable trades={(trades || []).filter(t => t && t.status === 'OPEN')} onSelectTrade={() => { }} selectedTradeId={null} />
                   </div>
-                </div>
+                </GlassCard>
               </div>
             </>
           ) : (
@@ -208,7 +210,7 @@ const AppContent: React.FC = () => {
       </main>
 
       {/* Mobile Bottom Nav Override */}
-      <div className="md:hidden fixed bottom-0 w-full bg-[#0a0b14] border-t border-gray-800 flex justify-around p-4 z-50 safe-area-bottom">
+      <div className="md:hidden fixed bottom-0 w-full bg-premium-bg/90 backdrop-blur-lg border-t border-premium-border flex justify-around p-4 z-50 safe-area-bottom">
         <button
           onClick={() => setActiveMobileTab('dashboard')}
           className={`flex flex-col items-center gap-1 ${activeMobileTab === 'dashboard' ? 'text-cyan-400' : 'text-gray-600'}`}

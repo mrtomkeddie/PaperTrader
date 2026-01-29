@@ -8,20 +8,21 @@ interface Props {
     selectedTradeId?: string | null;
 }
 
+// PositionsTable is now a pure table renderer, container handled by parent
 const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeId }) => {
     const safeTrades = trades || [];
-    const openTrades = safeTrades.filter(t => t && t.status === 'OPEN').sort((a, b) => b.openTime - a.openTime);
-    const closedTrades = safeTrades.filter(t => t && t.status !== 'OPEN').sort((a, b) => (b.closeTime || 0) - (a.closeTime || 0));
+    // Since App.tsx filters trades, we just render what's passed
+    const displayTrades = safeTrades.sort((a, b) => b.openTime - a.openTime);
 
 
 
     const renderDesktopTable = (data: Trade[], title: string, isHistory: boolean = false) => (
-        <div className="mb-6">
-            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 sticky top-0 bg-[#13141b] z-10 py-2">{title}</h4>
-            <div className="overflow-x-auto">
+        <div className="mb-0">
+            {/* Title removed, handled by parent */}
+            <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse">
-                    <thead>
-                        <tr className="border-b border-white/5 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    <thead className="sticky top-0 bg-premium-bg/50 backdrop-blur-sm z-10">
+                        <tr className="border-b border-premium-border text-xs font-bold text-gray-500 uppercase tracking-wider">
                             <th className="py-3 px-4">Type</th>
                             <th className="py-3 px-4">Entry</th>
                             <th className="py-3 px-4">Qty</th>
@@ -43,13 +44,13 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                                     onClick={() => onSelectTrade(trade)}
                                     className={`border-b border-white/5 cursor-pointer transition-colors ${isSelected ? 'bg-white/10' : 'hover:bg-white/5'}`}
                                 >
-                                    <td className={`py-3 px-4 ${trade.type === 'BUY' ? 'text-green-500' : 'text-red-500'}`}>{trade.type}</td>
-                                    <td className="py-3 px-4 text-gray-300">{formatNumber(trade?.entryPrice, 2)}</td>
-                                    <td className="py-3 px-4 text-gray-300">{formatNumber(trade?.currentSize, 2)}</td>
-                                    <td className={`py-3 px-4 ${realized >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    <td className={`py-3 px-4 font-bold ${trade.type === 'BUY' ? 'text-premium-green/90' : 'text-premium-red/90'}`}>{trade.type}</td>
+                                    <td className="py-3 px-4 text-gray-300 font-mono">{formatNumber(trade?.entryPrice, 2)}</td>
+                                    <td className="py-3 px-4 text-gray-300 font-mono">{formatNumber(trade?.currentSize, 2)}</td>
+                                    <td className={`py-3 px-4 font-mono ${realized >= 0 ? 'text-premium-green' : 'text-premium-red'}`}>
                                         {realized >= 0 ? '+' : ''}{formatNumber(realized, 2)}
                                     </td>
-                                    <td className={`py-3 px-4 ${floating >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    <td className={`py-3 px-4 font-mono ${floating >= 0 ? 'text-premium-green shadow-glow-green' : 'text-premium-red'}`}>
                                         {trade?.status === 'OPEN' ? (floating >= 0 ? '+' : '') + formatNumber(floating, 2) : '-'}
                                     </td>
                                     <td className="py-3 px-4 text-gray-500 text-xs font-mono">
@@ -143,44 +144,24 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
     };
 
     return (
-        <div className="bg-[#13141b] rounded-2xl p-4 md:p-6 border border-white/5 h-full flex flex-col">
-            <h3 className="text-lg font-bold text-white mb-4 flex justify-between items-center">
-                <span>Positions</span>
-                <span className="text-xs font-normal text-gray-500">
-                    {openTrades.length} Active | {closedTrades.length} Recent
-                </span>
-            </h3>
-
-
-
+        <div className="h-full flex flex-col">
+            {/* Legacy container removed */}
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 {/* Desktop View */}
                 <div className="hidden md:block">
-                    {openTrades.length > 0 && renderDesktopTable(openTrades, "Open Positions", false)}
-                    {closedTrades.length > 0 && renderDesktopTable(closedTrades, "History", true)}
-                    {openTrades.length === 0 && closedTrades.length === 0 && (
-                        <div className="py-12 text-center text-gray-600 italic">No trades found</div>
+                    {displayTrades.length > 0 ? renderDesktopTable(displayTrades, "", false) : (
+                        <div className="py-20 text-center text-gray-600 font-mono text-sm tracking-widest animate-pulse">NO ACTIVE TRADES</div>
                     )}
                 </div>
 
                 {/* Mobile View */}
                 <div className="md:hidden">
-                    {openTrades.length > 0 && (
+                    {displayTrades.length > 0 ? (
                         <div className="mb-6">
-                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Open Positions</h4>
-                            {openTrades.map(renderMobileCard)}
+                            {displayTrades.map(renderMobileCard)}
                         </div>
-                    )}
-
-                    {closedTrades.length > 0 && (
-                        <div>
-                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">History</h4>
-                            {closedTrades.map(renderMobileCard)}
-                        </div>
-                    )}
-
-                    {openTrades.length === 0 && closedTrades.length === 0 && (
-                        <div className="py-12 text-center text-gray-600 italic">No trades found</div>
+                    ) : (
+                        <div className="py-12 text-center text-gray-600 italic">No active trades</div>
                     )}
                 </div>
             </div>

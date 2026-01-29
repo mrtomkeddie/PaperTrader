@@ -3,8 +3,7 @@
     "balance": 1000,
     "equity": 1000,
     "dayPnL": 0,
-    "totalPnL": 0,
-    "winRate": 0
+    "totalPnL": 0
   },
   "accounts": {
     "quant": {
@@ -12,9 +11,9 @@
       "role": "Technical Scalper (DeepSeek R1)",
       "balance": 1000,
       "equity": 1000,
-      "isThinking": false,
-      "lastAction": "WAITING",
-      "lastThought": "",
+      "isThinking": true,
+      "lastAction": "BUY",
+      "lastThought": "Extreme oversold RSI, bullish close above 200 EMA, scalping bounce.",
       "latestDecision": null
     },
     "macro": {
@@ -22,19 +21,27 @@
       "role": "Global Macro (Gemini)",
       "balance": 1000,
       "equity": 1000,
-      "isThinking": false,
-      "lastAction": "WAITING",
-      "lastThought": "",
-      "latestDecision": null
+      "isThinking": true,
+      "lastAction": "HOLD",
+      "lastThought": "Mixed signals: Strong dollar and rate concerns offset geopolitical risks. Technical trend unclear, awaiting more data.",
+      "latestDecision": {
+        "action": "HOLD",
+        "confidence": 60,
+        "sentiment_score": 3,
+        "reason": "Mixed signals: Strong dollar and rate concerns offset geopolitical risks. Technical trend unclear, awaiting more data.",
+        "stopLoss": 5200,
+        "takeProfit": 5450,
+        "timeframe": "2 weeks"
+      }
     },
     "risk": {
       "name": "The Skeptic",
       "role": "Risk Manager (Claude)",
       "balance": 1000,
       "equity": 1000,
-      "isThinking": false,
-      "lastAction": "WAITING",
-      "lastThought": "",
+      "isThinking": true,
+      "lastAction": "HOLD",
+      "lastThought": "No extreme conditions met. Neutral RSI, mild sentiment, downtrend lacks panic signals.",
       "latestDecision": null
     }
   },
