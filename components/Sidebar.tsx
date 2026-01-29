@@ -18,11 +18,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, onO
     return (
         <div className="hidden md:flex flex-col w-64 h-screen sticky top-0 p-4 border-r border-premium-border bg-black/40 backdrop-blur-xl">
             {/* Logo Area */}
-            <div className="flex items-center gap-3 px-2 mb-10 mt-2">
-                <img src="/pt2logo.png" alt="Paper Trader 2.0" className="h-8 w-auto object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]" />
-                <span className="font-bold text-lg tracking-tight text-white font-sans">
-                    Paper<span className="text-premium-cyan">Trader</span>
-                </span>
+            <div className="flex items-center justify-center p-4 mb-6 mt-2">
+                <img src="/pt2logo.png" alt="Paper Trader 2.0" className="h-12 w-auto object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
             </div>
 
             {/* Navigation */}
@@ -43,8 +40,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, onO
                             key={item.id}
                             onClick={() => setActiveView(item.view as any)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${isSelected
-                                    ? 'bg-premium-cyan/10 text-premium-cyan shadow-[0_0_15px_rgba(0,240,255,0.15)] border border-premium-cyan/20'
-                                    : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+                                ? 'bg-premium-cyan/10 text-premium-cyan shadow-[0_0_15px_rgba(0,240,255,0.15)] border border-premium-cyan/20'
+                                : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
                                 }`}
                         >
                             {isSelected && (
