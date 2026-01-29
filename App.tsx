@@ -56,7 +56,7 @@ class ErrorBoundary extends Component<EBProps, EBState> {
 }
 
 const AppContent: React.FC = () => {
-  const { assets, account, accounts, decisions, trades, toggleBot, setStrategy, resetAccount, brokerMode, oandaConfig, configureOanda, isConnected } = useTradingEngine();
+  const { assets, account, accounts, decisions, trades, toggleBot, setStrategy, resetAccount, brokerMode, oandaConfig, configureOanda, isConnected, toggleMaster } = useTradingEngine();
   const [activeSymbol, setActiveSymbol] = useState<AssetSymbol>(AssetSymbol.XAUUSD);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false); // Desktop Toggle
@@ -86,9 +86,11 @@ const AppContent: React.FC = () => {
           <DashboardHeader
             account={account}
             accounts={accounts}
+            assets={assets}
             toggleAsset={(s) => setActiveSymbol(s)}
             activeAsset={activeSymbol}
             onOpenSettings={() => setIsSettingsOpen(true)}
+            toggleMaster={toggleMaster}
           />
           {/* Desktop View Toggle */}
           <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-800 ml-4">
@@ -102,7 +104,7 @@ const AppContent: React.FC = () => {
               onClick={() => setShowHistory(true)}
               className={`px-3 py-1 rounded text-xs font-bold uppercase transition-all ${showHistory ? 'bg-cyan-500/20 text-cyan-400' : 'text-gray-500 hover:text-gray-300'}`}
             >
-              Audit Log
+              Trade History
             </button>
           </div>
         </div>
@@ -111,7 +113,7 @@ const AppContent: React.FC = () => {
       {/* --- Mobile Header --- */}
       <div className="md:hidden">
         <MobileHeader
-          title={activeMobileTab === 'history' ? 'AUDIT LOG' : 'TERMINAL'}
+          title={activeMobileTab === 'history' ? 'TRADE HISTORY' : 'TERMINAL'}
           account={account}
           onOpenSettings={() => setIsSettingsOpen(true)}
           activeAsset={activeSymbol}
@@ -226,7 +228,7 @@ const AppContent: React.FC = () => {
           className={`flex flex-col items-center gap-1 ${activeMobileTab === 'history' ? 'text-cyan-400' : 'text-gray-600'}`}
         >
           <History size={20} />
-          <span className="text-[10px] uppercase font-bold">Log</span>
+          <span className="text-[10px] uppercase font-bold">History</span>
         </button>
       </div>
 

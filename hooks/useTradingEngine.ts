@@ -236,8 +236,19 @@ export const useTradingEngine = () => {
     return true;
   }, []);
 
+  const toggleMaster = useCallback(async (active: boolean) => {
+    const cleanUrl = remoteUrl.trim().replace(/\/$/, "");
+    try {
+      await fetch(`${cleanUrl}/master_toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active })
+      });
+    } catch (e) { }
+  }, [remoteUrl]);
+
   // Return remoteUrl so UI can display it for debug
-  return { assets, account, accounts, decisions, trades, toggleBot, setStrategy: toggleStrategy, resetAccount, brokerMode, oandaConfig, configureOanda, isConnected, remoteUrl };
+  return { assets, account, accounts, decisions, trades, toggleBot, setStrategy: toggleStrategy, resetAccount, brokerMode, oandaConfig, configureOanda, isConnected, remoteUrl, toggleMaster };
 };
 
 function createInitialAsset(symbol: AssetSymbol): AssetData {

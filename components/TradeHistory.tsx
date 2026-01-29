@@ -35,7 +35,7 @@ export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
       <div className="p-4 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-900/80">
         <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
           <Search className="w-4 h-4 text-cyan-500" />
-          Trade Audit Log
+          Trade History
         </h2>
 
         <div className="flex items-center gap-2 bg-black/40 p-1 rounded-lg border border-gray-800">
@@ -81,7 +81,9 @@ export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
         {filteredTrades.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-600 space-y-2">
             <Search className="w-8 h-8 opacity-20" />
-            <span className="text-xs font-mono">No audit records found.</span>
+            <h2 className="text-xs font-mono font-bold text-gray-400 tracking-[0.2em]">
+              TRADE_HISTORY // SYSTEM_LOG
+            </h2>
           </div>
         ) : (
           filteredTrades.map((t) => {

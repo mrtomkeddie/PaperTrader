@@ -1976,6 +1976,48 @@ app.post('/toggle/:symbol', (req, res) => {
   res.sendStatus(200);
 });
 
+app.post('/master_toggle', (req, res) => {
+  const { active } = req.body;
+  console.log(`[SYSTEM] Master Toggle: ${active ? 'ACTIVE' : 'PAUSED'}`);
+
+  Object.keys(assets).forEach(sym => {
+    assets[sym].botActive = active;
+  });
+
+  if (!active) {
+    // Liquidate all open trades
+    trades.forEach(t => {
+      if (t.status === 'OPEN') {
+        const m = market[t.symbol];
+        if (m) {
+          const isBuy = t.type === 'BUY';
+          const exitPrice = isBuy ? m.bid : m.ask;
+          t.status = 'CLOSED';
+          t.closeTime = Date.now();
+          t.closeReason = 'MASTER_PAUSE';
+          t.pnl = (isBuy ? exitPrice - t.entryPrice : t.entryPrice - exitPrice) * (t.currentSize || t.initialSize || 1);
+
+          // Sync with manager agents
+          if (manager && manager.agents) {
+            manager.agents.forEach(agent => {
+              const agentTrade = agent.trades.find(at => at.id === t.id);
+              if (agentTrade) {
+                agentTrade.status = 'CLOSED';
+                agentTrade.closeTime = t.closeTime;
+                agentTrade.pnl = t.pnl;
+              }
+            });
+          }
+        }
+      }
+    });
+    if (manager) manager.recalculateState(trades);
+  }
+
+  saveState();
+  res.json({ success: true, botActive: active });
+});
+
 app.post('/strategy/:symbol', (req, res) => {
   const { symbol } = req.params;
   const { strategy } = req.body; // Strategy to toggle
