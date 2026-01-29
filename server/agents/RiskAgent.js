@@ -21,22 +21,23 @@ export class RiskAgent extends Agent {
         this.isThinking = true;
 
         try {
-            const { symbol, currentPrice, rsi, trend, sentiment } = marketData;
+            const { symbol, currentPrice, rsi, trend, sentiment, globalSentiment } = marketData;
 
             const prompt = `
 You are a Contrarian and Risk Manager. Your job is to find the flaw.
 If the market feels euphoric, you sell. If the market is panic-selling, you buy.
-You are the safety net.
 
 Market Data for ${symbol}:
 - Price: ${currentPrice}
 - RSI: ${rsi}
 - Market Trend: ${trend}
 - General Sentiment: ${sentiment || 'Unknown'}
+- global_macro_sentiment_score: ${globalSentiment !== null ? globalSentiment : 'Unknown'} (-10 to +10)
 
-Is the market Irrational?
-Is RSI > 80 (Euphoria)?
-Is RSI < 20 (Panic)?
+Risk Logic:
+1. "Bubble Check": If RSI > 80 AND global_macro_sentiment_score > 8, the crowd is manic. SHORT.
+2. "Panic Check": If RSI < 20 AND global_macro_sentiment_score < -8, the crowd is panicking. LONG.
+3. "Trend Confirmation": If RSI is neutral but Sentiment is Extreme, simple profit taking?
 
 Output a JSON object ONLY:
 {

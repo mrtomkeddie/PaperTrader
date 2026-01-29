@@ -37,8 +37,12 @@ BEFORE making any trading decision, you must perform a Google Search for these s
 3. "Latest geopolitical tensions Middle East Russia Ukraine" (Fear drives Gold).
 4. "Gold price XAUUSD news analysis today".
 
-Step 1: Summarize the "Global Sentiment" as a score from -10 (Extreme Bearish) to +10 (Extreme Bullish).
-Step 2: Only THEN look at the price chart.
+Process:
+1. List 3 reasons why Gold might CRASH (Bear Case).
+2. List 3 reasons why Gold might RALLY (Bull Case).
+3. Weigh the evidence neutrally.
+4. Summarize the "Global Sentiment" as a score from -10 (Extreme Bearish) to +10 (Extreme Bullish).
+5. Only THEN look at the price chart.
 
 Task:
 Assess the global macro environment based on your findings and the price trend.
@@ -48,6 +52,7 @@ Output a JSON object ONLY:
 {
   "action": "BUY" | "SELL" | "HOLD",
   "confidence": number (0-100),
+  "sentiment_score": number (-10 to +10),
   "reason": "String (max 20 words)",
   "stopLoss": number, 
   "takeProfit": number,
@@ -56,7 +61,7 @@ Output a JSON object ONLY:
 `;
 
             const response = await this.client.models.generateContent({
-                model: 'gemini-1.5-flash',
+                model: 'gemini-1.5-pro',
                 contents: [{ role: 'user', parts: [{ text: prompt }] }],
                 tools: [{ googleSearch: {} }]
             });
@@ -79,6 +84,7 @@ Output a JSON object ONLY:
             const decision = JSON.parse(jsonMatch[0]);
             this.lastThought = decision.reason;
             this.lastAction = decision.action;
+            this.latestDecision = decision; // Save for Manager
 
             if (decision.action !== 'HOLD' && decision.confidence > 80) {
                 // Macro takes larger swings but wider stops? Or maybe just normal sizing.

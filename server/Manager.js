@@ -43,6 +43,13 @@ export class Manager {
     onTick(symbol, data) {
         this.marketData[symbol] = data;
 
+        // Specific: Get Global Sentiment from Macro Agent if available
+        const macroAgent = this.agents.find(a => a.id === 'macro');
+        const globalSentiment = macroAgent && macroAgent.latestDecision ? macroAgent.latestDecision.sentiment_score : null;
+
+        // Enrich data with global sentiment for Risk Agent
+        data.globalSentiment = globalSentiment;
+
         // Trigger agents
         this.agents.forEach(agent => {
             try {
@@ -97,7 +104,8 @@ export class Manager {
                 equity: agent.equity,
                 isThinking: agent.isThinking,
                 lastAction: agent.lastAction,
-                lastThought: agent.lastThought
+                lastThought: agent.lastThought,
+                latestDecision: agent.latestDecision // Include full decision object
             };
             allTrades = allTrades.concat(agent.trades);
         });

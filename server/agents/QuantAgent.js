@@ -27,7 +27,12 @@ export class QuantAgent extends Agent {
         this.isThinking = true;
 
         try {
-            const { symbol, currentPrice, rsi, trend, ema200, bollinger } = marketData;
+            const { symbol, currentPrice, rsi, trend, ema200, bollinger, candles } = marketData;
+
+            // Format last 50 candles for DeepSeek
+            const ohlcvHistory = (candles || []).slice(-50).map(c =>
+                `[${new Date(c.time).toISOString().substr(11, 5)}] O:${c.open} H:${c.high} L:${c.low} C:${c.close} V:${c.volume}`
+            ).join('\n');
 
             const prompt = `
 You are a pure mathematician and technical scalper. You DO NOT care about news. You only care about Price Action, Volume, and Probability.
@@ -40,10 +45,14 @@ Market Data for ${symbol}:
 - Volatility (BB Width): ${(bollinger.upper - bollinger.lower).toFixed(2)}
 - 200 EMA Level: ${ema200.toFixed(2)}
 
+Recent Price Action (Last 50 Candles - M5):
+${ohlcvHistory}
+
 Math/Logic:
-1. If RSI > 70, is momentum exhausting?
-2. If RSI < 30, is it oversold?
-3. Are we bouncing off the 200 EMA?
+1. Analyze the OHLCV sequence for hidden patterns (Divergence, Exhaustion, Breakouts).
+2. If RSI > 70, is momentum exhausting?
+3. If RSI < 30, is it oversold?
+4. Are we bouncing off the 200 EMA?
 
 Output a JSON object ONLY:
 {

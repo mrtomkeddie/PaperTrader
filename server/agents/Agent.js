@@ -16,6 +16,7 @@ export class Agent {
         this.lastThought = "";
         this.lastAction = "WAITING";
         this.newTrades = [];
+        this.latestDecision = null; // Store full JSON decision
     }
 
     /**
