@@ -1313,31 +1313,33 @@ function processTicks(symbol) {
   }
 
   // --- MULTI-AGENT START ---
-  // Tick the manager (Quant, Macro, Risk)
-  const agentData = {
-    price: asset.currentPrice,
-    rsi: asset.rsi,
-    slope: asset.slope,
-    trend: asset.trend,
-    structure: structure,
-    adx: adx,
-    candles: candlesM5[symbol],
-    symbol: symbol
-  };
-  manager.onTick(symbol, agentData);
+  // Tick the manager (Quant, Macro, Risk) ONLY if bot is active
+  if (asset.botActive) {
+    const agentData = {
+      price: asset.currentPrice,
+      rsi: asset.rsi,
+      slope: asset.slope,
+      trend: asset.trend,
+      structure: structure,
+      adx: adx,
+      candles: candlesM5[symbol],
+      symbol: symbol
+    };
+    manager.onTick(symbol, agentData);
 
-  // Consume new trades from agents
-  const newAgentTrades = manager.consumeNewTrades();
-  if (newAgentTrades.length > 0) {
-    for (const t of newAgentTrades) {
-      // Ensure unique ID
-      t.id = t.id || uuidv4();
-      // Ensure in global trades list
-      if (!trades.find(ex => ex.id === t.id)) {
-        trades.unshift(t);
-        console.log(`[MANAGER] Added new trade from ${t.agentId}: ${t.type} ${t.symbol}`);
-        notifyAll('Trade Opened', `[${t.agentId.toUpperCase()}] ${t.symbol} ${t.type} @ ${t.entryPrice}`);
-        saveState();
+    // Consume new trades from agents
+    const newAgentTrades = manager.consumeNewTrades();
+    if (newAgentTrades.length > 0) {
+      for (const t of newAgentTrades) {
+        // Ensure unique ID
+        t.id = t.id || uuidv4();
+        // Ensure in global trades list
+        if (!trades.find(ex => ex.id === t.id)) {
+          trades.unshift(t);
+          console.log(`[MANAGER] Added new trade from ${t.agentId}: ${t.type} ${t.symbol}`);
+          notifyAll('Trade Opened', `[${t.agentId.toUpperCase()}] ${t.symbol} ${t.type} @ ${t.entryPrice}`);
+          saveState();
+        }
       }
     }
   }
