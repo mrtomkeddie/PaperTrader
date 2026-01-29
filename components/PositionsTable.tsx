@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import { Trade, TimeFilter } from '../types';
 import PerformanceSummary from './PerformanceSummary';
 
@@ -9,86 +9,11 @@ interface Props {
 }
 
 const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeId }) => {
-    const [assetFilter, setAssetFilter] = useState<string>('ALL');
-    const [strategyFilter, setStrategyFilter] = useState<string>('ALL');
-    const [timeFilter, setTimeFilter] = useState<TimeFilter>('ALL');
-
     const safeTrades = trades || [];
-    const uniqueAssets = useMemo(() => Array.from(new Set(safeTrades.map(t => t?.symbol))).filter(Boolean).sort(), [safeTrades]);
-    const uniqueStrategies = useMemo(() => Array.from(new Set(safeTrades.map(t => t?.strategy || 'MANUAL'))).filter(Boolean).sort(), [safeTrades]);
+    const openTrades = safeTrades.filter(t => t && t.status === 'OPEN').sort((a, b) => b.openTime - a.openTime);
+    const closedTrades = safeTrades.filter(t => t && t.status !== 'OPEN').sort((a, b) => (b.closeTime || 0) - (a.closeTime || 0));
 
-    const filteredTrades = useMemo(() => {
-        return trades.filter(t => {
-            const matchAsset = assetFilter === 'ALL' || t.symbol === assetFilter;
-            const matchStrategy = strategyFilter === 'ALL' || (t.strategy || 'MANUAL') === strategyFilter;
 
-            // Time Filter
-            let matchTime = true;
-            if (timeFilter !== 'ALL' && t.status !== 'OPEN') {
-                const now = Date.now();
-                const oneDay = 24 * 60 * 60 * 1000;
-                const time = t.closeTime || t.openTime || 0;
-
-                if (time === 0) matchTime = false;
-                else {
-                    const tradeDate = new Date(time);
-                    const currentDate = new Date(now);
-
-                    if (timeFilter === 'TODAY') {
-                        matchTime = tradeDate.toDateString() === currentDate.toDateString();
-                    } else if (timeFilter === 'WEEK') {
-                        matchTime = (now - time) < (oneDay * 7);
-                    } else if (timeFilter === 'MONTH') {
-                        matchTime = (now - time) < (oneDay * 30);
-                    }
-                }
-            }
-
-            return matchAsset && matchStrategy && matchTime;
-        });
-    }, [trades, assetFilter, strategyFilter, timeFilter]);
-
-    const openTrades = filteredTrades.filter(t => t.status === 'OPEN').sort((a, b) => b.openTime - a.openTime);
-    const closedTrades = filteredTrades.filter(t => t.status !== 'OPEN').sort((a, b) => (b.closeTime || 0) - (a.closeTime || 0));
-
-    const renderFilterBar = () => (
-        <div className="flex gap-2 mb-4">
-            <div className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-lg border border-white/5">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">Asset</span>
-                <select
-                    value={assetFilter}
-                    onChange={(e) => setAssetFilter(e.target.value)}
-                    className="bg-transparent text-xs font-bold text-white outline-none cursor-pointer [&>option]:bg-[#13141b] [&>option]:text-white"
-                >
-                    <option value="ALL">All</option>
-                    {uniqueAssets.map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
-            </div>
-            <div className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-lg border border-white/5">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">Strategy</span>
-                <select
-                    value={strategyFilter}
-                    onChange={(e) => setStrategyFilter(e.target.value)}
-                    className="bg-transparent text-xs font-bold text-white outline-none cursor-pointer [&>option]:bg-[#13141b] [&>option]:text-white"
-                >
-                    <option value="ALL">All</option>
-                    {uniqueStrategies.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-            </div>
-            <div className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-lg border border-white/5">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">Time</span>
-                <select
-                    value={timeFilter}
-                    onChange={(e) => setTimeFilter(e.target.value as TimeFilter)}
-                    className="bg-transparent text-xs font-bold text-white outline-none cursor-pointer [&>option]:bg-[#13141b] [&>option]:text-white"
-                >
-                    {(['TODAY', 'WEEK', 'MONTH', 'ALL'] as TimeFilter[]).map(t => (
-                        <option key={t} value={t}>{t}</option>
-                    ))}
-                </select>
-            </div>
-        </div>
-    );
 
     const renderDesktopTable = (data: Trade[], title: string) => (
         <div className="mb-6">
@@ -229,11 +154,9 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                 </span>
             </h3>
 
-            {renderFilterBar()}
-
             <PerformanceSummary
                 trades={closedTrades}
-                filter={timeFilter}
+                filter="ALL"
             />
 
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
