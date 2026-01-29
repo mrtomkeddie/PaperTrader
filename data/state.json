@@ -2,9 +2,10 @@
   "account": {
     "balance": 500,
     "equity": 500,
-    "dayPnL": 0,
     "totalPnL": 0,
-    "winRate": 0
+    "winRate": 0,
+    "trades_count": 0,
+    "dayPnL": 0
   },
   "accounts": {
     "quant": {

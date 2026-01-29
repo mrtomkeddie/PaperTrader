@@ -42,6 +42,7 @@ const App: React.FC = () => {
         <div className="flex justify-between items-center px-6 py-4 bg-[#0a0f1e]/95 backdrop-blur border-b border-gray-800 shadow-lg">
           <DashboardHeader
             account={account}
+            accounts={accounts}
             toggleAsset={(s) => setActiveSymbol(s)}
             activeAsset={activeSymbol}
             onOpenSettings={() => setIsSettingsOpen(true)}
@@ -101,122 +102,121 @@ const App: React.FC = () => {
                       <Activity className="w-4 h-4 text-cyan-400" />
                       Active Positions
                     </h3>
-                    <div className="text-xs font-mono text-cyan-500 bg-cyan-950/30 px-3 py-1 rounded border border-cyan-900/50">
-                      OPEN PL: £{(trades.reduce((acc, t) => acc + (t.floatingPnl || 0), 0)).toFixed(2)}
-                    </div>
+                    {/* Calculated from ONLY open trades */}
+                    OPEN PL: £{(trades.filter(t => t.status === 'OPEN').reduce((acc, t) => acc + (t.floatingPnl || 0), 0)).toFixed(2)}
                   </div>
                   <div className="flex-1 min-h-[500px]">
-                    <PositionsTable trades={trades} onSelectTrade={() => { }} selectedTradeId={null} />
+                    <PositionsTable trades={trades.filter(t => t.status === 'OPEN')} onSelectTrade={() => { }} selectedTradeId={null} />
                   </div>
                 </div>
-
-                {/* RIGHT COLUMN: NEURAL FEED (Span 4) */}
-                <div className="col-span-4 h-full">
-                  {/* Wrapped in a container to match the height style if needed, but NeuralFeed usually handles its own */}
-                  <NeuralFeed decisions={decisions || []} />
-                </div>
               </div>
-            </>
-          ) : (
-            <div className="animate-in fade-in zoom-in-95 duration-300 min-h-[80vh]">
-              <TradeHistory trades={trades} />
+
+              {/* RIGHT COLUMN: NEURAL FEED (Span 4) */}
+              <div className="col-span-4 h-full">
+                {/* Wrapped in a container to match the height style if needed, but NeuralFeed usually handles its own */}
+                <NeuralFeed decisions={decisions || []} />
+              </div>
             </div>
+        </>
+        ) : (
+        <div className="animate-in fade-in zoom-in-95 duration-300 min-h-[80vh]">
+          <TradeHistory trades={trades} />
+        </div>
           )}
+    </div>
+
+        {/* --- MOBILE LAYOUT (STACKED / TABBED) --- */ }
+  <div className="md:hidden h-full overflow-y-auto pb-24 p-4 space-y-4">
+
+    {/* DASHBOARD TAB */}
+    {activeMobileTab === 'dashboard' && (
+      <>
+        {/* Agent Carousel (Scrollable Row) */}
+        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x">
+          {['quant', 'macro', 'risk'].map(id => {
+            const agent = accounts?.[id];
+            return (
+              <div key={id} className="min-w-[85vw] snap-center">
+                {agent ? <AgentCard agent={agent} /> : <div className="h-40 bg-gray-900 rounded-xl animate-pulse" />}
+              </div>
+            );
+          })}
         </div>
 
-        {/* --- MOBILE LAYOUT (STACKED / TABBED) --- */}
-        <div className="md:hidden h-full overflow-y-auto pb-24 p-4 space-y-4">
-
-          {/* DASHBOARD TAB */}
-          {activeMobileTab === 'dashboard' && (
-            <>
-              {/* Agent Carousel (Scrollable Row) */}
-              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x">
-                {['quant', 'macro', 'risk'].map(id => {
-                  const agent = accounts?.[id];
-                  return (
-                    <div key={id} className="min-w-[85vw] snap-center">
-                      {agent ? <AgentCard agent={agent} /> : <div className="h-40 bg-gray-900 rounded-xl animate-pulse" />}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Chart Area - Keeping for mobile as it was usually separate or small, but user asked to remove. 
+        {/* Chart Area - Keeping for mobile as it was usually separate or small, but user asked to remove. 
                         Let's remove it from Mobile Dashboard too to be consistent with "I dont need a live chart". 
                     */}
-              {/* 
+        {/* 
                     <div className="h-[400px] bg-gray-900 rounded-xl overflow-hidden border border-gray-800">
                         <TradingViewWidget />
                     </div> 
                     */}
 
-              {/* Instead of empty space, show Positions summary or Feed snippet? 
+        {/* Instead of empty space, show Positions summary or Feed snippet? 
                         The tabs handle full views. Let's just show Agents on Dash.
                     */}
-              <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 text-center text-gray-400 text-sm">
-                Select a tab below to view details.
-              </div>
-            </>
-          )}
-
-          {/* FEED TAB */}
-          {activeMobileTab === 'feed' && (
-            <div className="h-full min-h-[70vh]">
-              <NeuralFeed decisions={decisions || []} />
-            </div>
-          )}
-
-          {/* TRADES TAB */}
-          {activeMobileTab === 'trades' && (
-            <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800 min-h-[50vh]">
-              <PositionsTable trades={trades} onSelectTrade={() => { }} selectedTradeId={null} />
-            </div>
-          )}
-
-          {/* HISTORY TAB */}
-          {activeMobileTab === 'history' && (
-            <div className="h-full min-h-[70vh]">
-              <TradeHistory trades={trades} />
-            </div>
-          )}
-
+        <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 text-center text-gray-400 text-sm">
+          Select a tab below to view details.
         </div>
-      </main>
+      </>
+    )}
 
-      {/* Mobile Bottom Nav Override */}
-      <div className="md:hidden fixed bottom-0 w-full bg-[#0a0b14] border-t border-gray-800 flex justify-around p-4 z-50 safe-area-bottom">
-        <button
-          onClick={() => setActiveMobileTab('dashboard')}
-          className={`flex flex-col items-center gap-1 ${activeMobileTab === 'dashboard' ? 'text-cyan-400' : 'text-gray-600'}`}
-        >
-          <LayoutDashboard size={20} />
-          <span className="text-[10px] uppercase font-bold">Dash</span>
-        </button>
-        <button
-          onClick={() => setActiveMobileTab('feed')}
-          className={`flex flex-col items-center gap-1 ${activeMobileTab === 'feed' ? 'text-cyan-400' : 'text-gray-600'}`}
-        >
-          <Activity size={20} />
-          <span className="text-[10px] uppercase font-bold">Neural</span>
-        </button>
-        <button
-          onClick={() => setActiveMobileTab('trades')}
-          className={`flex flex-col items-center gap-1 ${activeMobileTab === 'trades' ? 'text-cyan-400' : 'text-gray-600'}`}
-        >
-          <Receipt size={20} />
-          <span className="text-[10px] uppercase font-bold">Trades</span>
-        </button>
-        <button
-          onClick={() => setActiveMobileTab('history')}
-          className={`flex flex-col items-center gap-1 ${activeMobileTab === 'history' ? 'text-cyan-400' : 'text-gray-600'}`}
-        >
-          <History size={20} />
-          <span className="text-[10px] uppercase font-bold">Log</span>
-        </button>
+    {/* FEED TAB */}
+    {activeMobileTab === 'feed' && (
+      <div className="h-full min-h-[70vh]">
+        <NeuralFeed decisions={decisions || []} />
       </div>
+    )}
 
-    </div>
+    {/* TRADES TAB */}
+    {activeMobileTab === 'trades' && (
+      <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800 min-h-[50vh]">
+        <PositionsTable trades={trades} onSelectTrade={() => { }} selectedTradeId={null} />
+      </div>
+    )}
+
+    {/* HISTORY TAB */}
+    {activeMobileTab === 'history' && (
+      <div className="h-full min-h-[70vh]">
+        <TradeHistory trades={trades} />
+      </div>
+    )}
+
+  </div>
+
+  {/* Mobile Bottom Nav Override */ }
+  <div className="md:hidden fixed bottom-0 w-full bg-[#0a0b14] border-t border-gray-800 flex justify-around p-4 z-50 safe-area-bottom">
+    <button
+      onClick={() => setActiveMobileTab('dashboard')}
+      className={`flex flex-col items-center gap-1 ${activeMobileTab === 'dashboard' ? 'text-cyan-400' : 'text-gray-600'}`}
+    >
+      <LayoutDashboard size={20} />
+      <span className="text-[10px] uppercase font-bold">Dash</span>
+    </button>
+    <button
+      onClick={() => setActiveMobileTab('feed')}
+      className={`flex flex-col items-center gap-1 ${activeMobileTab === 'feed' ? 'text-cyan-400' : 'text-gray-600'}`}
+    >
+      <Activity size={20} />
+      <span className="text-[10px] uppercase font-bold">Neural</span>
+    </button>
+    <button
+      onClick={() => setActiveMobileTab('trades')}
+      className={`flex flex-col items-center gap-1 ${activeMobileTab === 'trades' ? 'text-cyan-400' : 'text-gray-600'}`}
+    >
+      <Receipt size={20} />
+      <span className="text-[10px] uppercase font-bold">Trades</span>
+    </button>
+    <button
+      onClick={() => setActiveMobileTab('history')}
+      className={`flex flex-col items-center gap-1 ${activeMobileTab === 'history' ? 'text-cyan-400' : 'text-gray-600'}`}
+    >
+      <History size={20} />
+      <span className="text-[10px] uppercase font-bold">Log</span>
+    </button>
+  </div>
+
+    </div >
   );
 };
 

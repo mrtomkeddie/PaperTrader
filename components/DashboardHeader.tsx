@@ -1,15 +1,30 @@
 import React from 'react';
 import { Search, HelpCircle, Sun, Moon, ToggleLeft, ToggleRight, Settings } from 'lucide-react';
-import { AccountState, AssetSymbol } from '../types';
+import { AccountState, AssetSymbol, AgentAccount } from '../types';
 
 interface Props {
     account: AccountState;
+    accounts?: Record<string, AgentAccount>; // Add accounts for aggregation
     toggleAsset: (s: AssetSymbol) => void;
     activeAsset: AssetSymbol;
     onOpenSettings: () => void;
 }
 
-const DashboardHeader: React.FC<Props> = ({ account, toggleAsset, activeAsset, onOpenSettings }) => {
+const DashboardHeader: React.FC<Props> = ({ account, accounts, toggleAsset, activeAsset, onOpenSettings }) => {
+    // Aggregate data from Agents if available, otherwise fallback
+    const agentValues = accounts ? Object.values(accounts) : [];
+    const hasAgents = agentValues.length > 0;
+
+    const totalBalance = hasAgents
+        ? agentValues.reduce((acc, a) => acc + a.balance, 0)
+        : account.balance;
+
+    const totalEquity = hasAgents
+        ? agentValues.reduce((acc, a) => acc + a.equity, 0)
+        : account.equity;
+
+    const totalOpenPnL = totalEquity - totalBalance;
+
     return (
         <header className="flex flex-col md:flex-row md:items-center justify-between px-4 md:px-6 py-4 border-b border-white/5 bg-[#0a0b14] gap-4 md:gap-0">
             {/* Top Row: Logo & Mobile Settings */}
@@ -29,13 +44,6 @@ const DashboardHeader: React.FC<Props> = ({ account, toggleAsset, activeAsset, o
 
             {/* Bottom Row: Controls & Stats */}
             <div className="flex items-center justify-between w-full md:w-auto md:gap-6">
-                <div className="flex bg-[#1C1C1E] rounded-lg p-1 border border-white/5">
-                    <div
-                        className="px-4 py-1.5 rounded-md text-xs font-bold bg-yellow-600 text-white shadow cursor-default"
-                    >
-                        GOLD
-                    </div>
-                </div>
 
                 {/* Desktop Settings & Stats */}
                 <div className="flex items-center gap-4 md:gap-6">
@@ -49,7 +57,7 @@ const DashboardHeader: React.FC<Props> = ({ account, toggleAsset, activeAsset, o
 
                     <div className="text-right">
                         <div className="text-lg md:text-xl font-bold text-white tabular-nums">
-                            £{account.balance.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            £{totalBalance.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                         <div className="flex justify-end mt-1">
                             <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-green-500/10 border border-green-500/20">
@@ -59,17 +67,10 @@ const DashboardHeader: React.FC<Props> = ({ account, toggleAsset, activeAsset, o
                         </div>
                     </div>
 
-                    <div className="text-right hidden xl:block">
+                    <div className="text-right">
                         <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Open P&L</div>
-                        <div className={`text-xl font-bold tabular-nums ${account.totalPnL && account.totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {account.totalPnL && account.totalPnL >= 0 ? '+' : ''}£{(account.totalPnL || 0).toFixed(2)}
-                        </div>
-                    </div>
-
-                    <div className="text-right hidden lg:block">
-                        <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Win Rate</div>
-                        <div className={`text-xl font-bold tabular-nums ${(account.winRate || 0) >= 50 ? 'text-green-500' : 'text-orange-500'}`}>
-                            {(account.winRate || 0).toFixed(1)}%
+                        <div className={`text-xl font-bold tabular-nums ${totalOpenPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {totalOpenPnL >= 0 ? '+' : ''}£{totalOpenPnL.toFixed(2)}
                         </div>
                     </div>
                 </div>
