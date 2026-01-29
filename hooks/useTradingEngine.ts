@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { AssetSymbol, StrategyType, Trade, AssetData, AccountState, BrokerMode, OandaConfig } from '../types';
+import { AssetSymbol, StrategyType, Trade, AssetData, AccountState, BrokerMode, OandaConfig, AgentAccount } from '../types';
 import { INITIAL_BALANCE, TICK_RATE_MS, ASSET_CONFIG, DEFAULT_REMOTE_URL } from '../constants';
 
 export const useTradingEngine = () => {
@@ -28,6 +28,7 @@ export const useTradingEngine = () => {
 
   // --- ACCOUNT STATE ---
   const [account, setAccount] = useState<AccountState>({ balance: INITIAL_BALANCE, equity: INITIAL_BALANCE, dayPnL: 0, totalPnL: 0 });
+  const [accounts, setAccounts] = useState<Record<string, AgentAccount>>({}); // New
   const [trades, setTrades] = useState<Trade[]>([]);
   const [isConnected, setIsConnected] = useState(false); // New connection state
 
@@ -51,6 +52,7 @@ export const useTradingEngine = () => {
             const state = JSON.parse(ev.data);
             if (state.assets) setAssets(state.assets);
             if (state.account) setAccount(state.account);
+            if (state.accounts) setAccounts(state.accounts);
             if (state.trades) setTrades(state.trades);
             setIsConnected(true);
             lastUpdateRef.current = Date.now();
@@ -91,6 +93,7 @@ export const useTradingEngine = () => {
           const s = await r.json();
           if (s.assets) setAssets(s.assets);
           if (s.account) setAccount(s.account);
+          if (s.accounts) setAccounts(s.accounts);
           if (s.trades) setTrades(s.trades);
           setIsConnected(true);
           lastUpdateRef.current = Date.now();
@@ -112,6 +115,7 @@ export const useTradingEngine = () => {
           const state = await res.json();
           if (state.assets) setAssets(state.assets);
           if (state.account) setAccount(state.account);
+          if (state.accounts) setAccounts(state.accounts);
           if (state.trades) setTrades(state.trades);
           setIsConnected(true);
         } else {
@@ -229,7 +233,7 @@ export const useTradingEngine = () => {
   }, []);
 
   // Return remoteUrl so UI can display it for debug
-  return { assets, account, trades, toggleBot, setStrategy: toggleStrategy, resetAccount, brokerMode, oandaConfig, configureOanda, isConnected, remoteUrl };
+  return { assets, account, accounts, trades, toggleBot, setStrategy: toggleStrategy, resetAccount, brokerMode, oandaConfig, configureOanda, isConnected, remoteUrl };
 };
 
 function createInitialAsset(symbol: AssetSymbol): AssetData {

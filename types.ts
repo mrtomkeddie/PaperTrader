@@ -120,11 +120,22 @@ export interface AccountState {
   winRate?: number;
 }
 
+export interface AgentAccount {
+  name: string;
+  role: string;
+  balance: number;
+  equity: number;
+  isThinking: boolean;
+  lastAction: string;
+  lastThought: string;
+}
+
 export interface MarketContextType {
   assets: Record<AssetSymbol, AssetData>;
   account: AccountState;
+  accounts?: Record<string, AgentAccount>; // New Support
   trades: Trade[];
   toggleBot: (symbol: AssetSymbol) => void;
-  toggleStrategy: (symbol: AssetSymbol, strategy: StrategyType) => void; // CHANGED: Renamed to toggle
+  toggleStrategy: (symbol: AssetSymbol, strategy: StrategyType) => void;
   resetAccount: () => void;
 }

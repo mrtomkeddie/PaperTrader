@@ -10,7 +10,7 @@ const DOC_ID = 'state';
 export function initFirebase() {
     try {
         let serviceAccount;
-        
+
         // Option 1: Full JSON in one variable
         if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
             try {
@@ -44,7 +44,7 @@ export function initFirebase() {
                 credential: admin.credential.cert(serviceAccount)
             });
         }
-        
+
         db = admin.firestore();
         console.log('[FIREBASE] Firestore initialized successfully');
         return true;
@@ -107,7 +107,8 @@ export async function saveStateToCloud(state) {
         for (const s of newSubs) if (s && s.endpoint) subsByEndpoint.set(s.endpoint, s);
 
         const payload = {
-            account: state.account,
+            account: state.account, // Legacy/Global support
+            accounts: state.accounts, // New Multi-Agent support
             trades: Array.from(mergedByKey.values()),
             pushSubscriptions: Array.from(subsByEndpoint.values()),
             updatedAt: admin.firestore.FieldValue.serverTimestamp()

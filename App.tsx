@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTradingEngine } from './hooks/useTradingEngine';
 import { LayoutDashboard, List } from 'lucide-react';
 import DashboardHeader from './components/DashboardHeader';
+import AgentStatusPanel from './components/AgentStatusPanel';
 import SignalPanel from './components/SignalPanel';
 import ChartPanel from './components/ChartPanel';
 import PositionsTable from './components/PositionsTable';
@@ -15,7 +16,7 @@ import { AssetSymbol, StrategyType, Trade } from './types';
 import { DEFAULT_REMOTE_URL } from './constants';
 
 const App: React.FC = () => {
-  const { assets, account, trades, toggleBot, setStrategy, resetAccount, brokerMode, oandaConfig, configureOanda, isConnected } = useTradingEngine();
+  const { assets, account, accounts, trades, toggleBot, setStrategy, resetAccount, brokerMode, oandaConfig, configureOanda, isConnected } = useTradingEngine();
   const [activeSymbol, setActiveSymbol] = useState<AssetSymbol>(AssetSymbol.XAUUSD);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -105,6 +106,7 @@ const App: React.FC = () => {
       <main className="flex-1 p-0 md:p-6 overflow-y-auto">
         {/* Desktop Layout */}
         <div className="hidden md:block max-w-[1600px] mx-auto space-y-6">
+          <AgentStatusPanel accounts={accounts} />
           <div className="grid grid-cols-12 gap-6 min-h-[500px]">
             <div className="col-span-4 h-full">
               {activeAssetData ? (

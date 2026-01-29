@@ -11,6 +11,7 @@ import https from 'https';
 import { initFirebase, loadStateFromCloud, saveStateToCloud, clearCloudState } from './firebase.js';
 import { detectFairValueGap, detectOrderBlock, analyzeMarketStructure, getPreviousDayLevels } from './utils/technicalAnalysis.js';
 import webpush from 'web-push';
+import { Manager } from './Manager.js';
 
 // Load .env file from root
 dotenv.config();
@@ -148,6 +149,8 @@ if (API_KEY) {
   console.warn("[SYSTEM] AI strategies will default to Simulation Mode (Random Walk).");
   console.warn("-----------------------------------------------------------");
 }
+
+const manager = new Manager();
 
 // --- TYPES & CONFIG ---
 const ASSET_CONFIG = {
@@ -391,6 +394,7 @@ function loadState() {
           }
 
           recalculateAccountState();
+          manager.hydrate(parsed);
           console.log(`[SYSTEM] Loaded persisted state: ${trades.length} trades, balance £${account.balance.toFixed(2)}`);
           return;
         }
@@ -420,6 +424,7 @@ function loadState() {
         }
 
         recalculateAccountState();
+        manager.hydrate(parsed);
         console.log(`[SYSTEM] Loaded backup state: ${trades.length} trades`);
       }
     }
@@ -443,7 +448,8 @@ function saveState() {
       }
     }
 
-    const payload = JSON.stringify({ account, trades, pushSubscriptions, assets: assetsConfig }, null, 2);
+    const mgrState = manager.getState();
+    const payload = JSON.stringify({ account, accounts: mgrState.accounts, trades, pushSubscriptions, assets: assetsConfig }, null, 2);
 
     // Create backup of current state if it exists
     if (fs.existsSync(STATE_FILE)) {
@@ -469,7 +475,7 @@ function saveState() {
 
 // --- CLOUD SYNC HELPER ---
 function cloudSaveState() {
-  saveStateToCloud({ account, trades, pushSubscriptions })
+  saveStateToCloud({ account, accounts: manager.getState().accounts, trades, pushSubscriptions })
     .catch(err => console.error('[CLOUD] Async Save Error:', err.message));
 }
 
@@ -1113,7 +1119,7 @@ function updateCandles(symbol, price) {
     lastCandle.isClosed = true;
     lastM5CloseTs[symbol] = now;
     // Candle Close Event - Good time to check AI
-    consultGemini(symbol, assets[symbol]);
+    // consultGemini(symbol, assets[symbol]); // Legacy AI Removed
 
     currentCandles.push({ open: price, high: price, low: price, close: price, time: now, isClosed: false });
     if (currentCandles.length > 200) currentCandles.shift();
@@ -1121,7 +1127,7 @@ function updateCandles(symbol, price) {
 
   // [OPTIMIZATION] If AI has never been checked, check it now (don't wait for candle close)
   if (aiState[symbol] && aiState[symbol].lastCheck === 0) {
-    consultGemini(symbol, assets[symbol]);
+    // consultGemini(symbol, assets[symbol]); // Legacy AI Removed
   }
 }
 
@@ -1305,6 +1311,37 @@ function processTicks(symbol) {
     console.log(`[REGIME] ${symbol} changed from ${asset.regime} to ${regime} (ADX:${adx.toFixed(1)} Slope:${asset.slope.toFixed(4)} BBW:${bbWidth.toFixed(4)})`);
     asset.regime = regime;
   }
+
+  // --- MULTI-AGENT START ---
+  // Tick the manager (Quant, Macro, Risk)
+  const agentData = {
+    price: asset.currentPrice,
+    rsi: asset.rsi,
+    slope: asset.slope,
+    trend: asset.trend,
+    structure: structure,
+    adx: adx,
+    candles: candlesM5[symbol],
+    symbol: symbol
+  };
+  manager.onTick(symbol, agentData);
+
+  // Consume new trades from agents
+  const newAgentTrades = manager.consumeNewTrades();
+  if (newAgentTrades.length > 0) {
+    for (const t of newAgentTrades) {
+      // Ensure unique ID
+      t.id = t.id || uuidv4();
+      // Ensure in global trades list
+      if (!trades.find(ex => ex.id === t.id)) {
+        trades.unshift(t);
+        console.log(`[MANAGER] Added new trade from ${t.agentId}: ${t.type} ${t.symbol}`);
+        notifyAll('Trade Opened', `[${t.agentId.toUpperCase()}] ${t.symbol} ${t.type} @ ${t.entryPrice}`);
+        saveState();
+      }
+    }
+  }
+  // --- MULTI-AGENT END ---
 
   // 1. Manage Trades (TP/SL + AI GUARDIAN + TRAILING)
   for (const trade of openTrades) {
@@ -1495,6 +1532,7 @@ function processTicks(symbol) {
 
   account.totalPnL = trades.reduce((acc, t) => acc + (t.pnl || 0), 0);
   account.equity = account.balance;
+  manager.recalculateState(trades);
   if (closedAnyTrade || closedPnL !== 0) saveState();
 
   // 2. Run Strategies (Only if no open trade)
@@ -1653,16 +1691,20 @@ function processTicks(symbol) {
 
     // NY ORB Removed (NAS100 Specific)
 
-    // D. AI AGENT (Real Gemini)
+    // D. AI AGENT (Legacy Gemini) - REMOVED
+    // Replaced by specific Quant/Macro/Risk agents managed by Manager.js
+    /*
     let minConfidence = 65;
     // NAS100 Check Removed
-
+    
     // XAUUSD Time Restriction: Only trade after 09:00 UTC (Avoid London open volatility)
     const isXauRestrictedAI = symbol === 'XAUUSD' && new Date().getUTCHours() < 9;
 
     const aiAdxMin = Math.min(20, guard.adxThreshold);
-    const adx = calculateADX(candlesM5[symbol]);
-
+    const adx = calculateADX(candlesM5[symbol]); // Note: adx variable shadowed? No, already defined above? 
+                                                 // Actually adx is defined at top of processTicks. 
+                                                 // But here it was re-calculated?
+                                                 // Let's just comment out the block.
     if (adx >= aiAdxMin && !isXauRestrictedAI) {
       if (asset.activeStrategies.includes('AI_AGENT') && aiState[symbol].confidence >= minConfidence) {
         // AI AGENT EXECUTION
@@ -1679,6 +1721,7 @@ function processTicks(symbol) {
       if (isXauRestrictedAI) setSkipReason(asset, 'XAUUSD AI time restriction');
       else if (adx < aiAdxMin) setSkipReason(asset, `ADX ${adx.toFixed(1)} < ${aiAdxMin}`);
     }
+    */
 
     if (asset.activeStrategies.includes('MEAN_REVERT')) {
       if (trades.some(t => t.symbol === symbol && t.status === 'OPEN')) return;
