@@ -24,7 +24,6 @@ export class MacroAgent extends Agent {
 
             const prompt = `
 You are a Global Macro Investor. You care about the 'Why'. 
-Ignore minute-by-minute noise. Only trade if the fundamental story (Inflation, War, Interest Rates) supports the trade.
 
 Current Context:
 - Asset: ${symbol}
@@ -32,8 +31,17 @@ Current Context:
 - Technical Trend (Daily): ${htfTrend}
 - Short Term Trend: ${trend}
 
+BEFORE making any trading decision, you must perform a Google Search for these specific real-time data points:
+1. "Current US Dollar Index (DXY) trend today" (Inverse correlation to Gold).
+2. "Upcoming FOMC meeting date and interest rate probability" (Rates drive Gold).
+3. "Latest geopolitical tensions Middle East Russia Ukraine" (Fear drives Gold).
+4. "Gold price XAUUSD news analysis today".
+
+Step 1: Summarize the "Global Sentiment" as a score from -10 (Extreme Bearish) to +10 (Extreme Bullish).
+Step 2: Only THEN look at the price chart.
+
 Task:
-Assess the global macro environment (inflation, geopolitics, USD strength) based on your internal knowledge and the price trend.
+Assess the global macro environment based on your findings and the price trend.
 Decide if the "Big Picture" supports a position.
 
 Output a JSON object ONLY:
@@ -43,42 +51,14 @@ Output a JSON object ONLY:
   "reason": "String (max 20 words)",
   "stopLoss": number, 
   "takeProfit": number,
-  "timeframe": "2 weeks" (Justification)
+  "timeframe": "2 weeks"
 }
 `;
-            // Start of correct usage of GoogleGenAI SDK (v0.2.0 based on package.json)
-            // The package names recently changed, but standard usage is often:
-            // const model = client.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
-            // But verify import. In bot.js it was: import { GoogleGenAI } from "@google/genai";
-            // This looks like the new Google Gen AI SDK from Google, not @google/generative-ai.
-            // Let's assume standard generateContent method exists or adapt to bot.js usage.
-            // Bot.js used: new GoogleGenAI({ apiKey }). But bot.js didn't show the generate call in the snippet I read.
-
-            // I'll stick to a common pattern or raw fetch if unsure, but let's try standard model access.
-            // "gemini-2.0-flash-exp" or "gemini-1.5-pro"
-
-            // Note: @google/genai might have a different surface than @google/generative-ai
-            // Let's assume it has .generateContent
-
-            // bot.js line 137: aiClient = new GoogleGenAI({ apiKey: API_KEY });
-            // I will assume standard usage.
-
-            // However, to be safe with "Gemini 3.0 Pro" request (doesn't exist yet publicly, user said 3.0 or 1.5).
-            // I will use "gemini-1.5-pro".
-
-            // Wait, I need to know the method. 
-            // If I look at the previous bot.js (I didn't see the generate call in the first 800 lines).
-            // Let's assume standard 'models.generateContent' or similar.
-
-            // Actually, let's use the 'generateContent' from the client directly if possible or get model first.
-            // const model = this.client.getGenerativeModel({ model: "gemini-1.5-pro" }); => this is @google/generative-ai
-
-            // @google/genai (the newer one) usage:
-            // client.models.generateContent(...)
 
             const response = await this.client.models.generateContent({
                 model: 'gemini-1.5-flash',
-                contents: [{ role: 'user', parts: [{ text: prompt }] }]
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                tools: [{ googleSearch: {} }]
             });
 
             const text = response.response.candidates[0].content.parts[0].text;
