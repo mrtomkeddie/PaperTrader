@@ -27,7 +27,7 @@ const App: React.FC = () => {
   const agentList = accounts ? Object.values(accounts) : [];
 
   return (
-    <div className="min-h-screen bg-[#0a0b14] text-white font-sans selection:bg-cyan-500/30 flex flex-col overflow-hidden">
+    <div className="h-screen bg-[#0a0b14] text-white font-sans selection:bg-cyan-500/30 flex flex-col overflow-hidden">
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -76,11 +76,11 @@ const App: React.FC = () => {
 
       <main className="flex-1 overflow-hidden relative">
         {/* --- DESKTOP LAYOUT (GRID) --- */}
-        <div className="hidden md:block h-full p-6 max-w-[1920px] mx-auto">
+        <div className="hidden md:block h-full p-4 max-w-[1920px] mx-auto">
           {!showHistory ? (
-            <div className="grid grid-cols-12 grid-rows-12 gap-6 h-full">
-              {/* ROW 1: AGENT CARDS (Top) - Span 12 */}
-              <div className="col-span-12 row-span-2 grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-12 grid-rows-12 gap-4 h-full">
+              {/* ROW 1: AGENT CARDS (Top) */}
+              <div className="col-span-12 row-span-2 grid grid-cols-3 gap-4">
                 {['quant', 'macro', 'risk'].map(id => {
                   const agent = accounts?.[id];
                   return agent ? <AgentCard key={id} agent={agent} /> : (
@@ -93,7 +93,7 @@ const App: React.FC = () => {
 
               {/* ROW 2: MAIN CONTENT (Chart & Feed) */}
 
-              {/* CHART AREA - Span 9 cols, row span 6 */}
+              {/* CHART AREA - Span 9 cols, row span 7 */}
               <div className="col-span-9 row-span-7 bg-gray-900 rounded-xl overflow-hidden border border-gray-800 shadow-2xl relative group">
                 <div className="absolute top-4 left-4 z-10 bg-black/50 backdrop-blur px-3 py-1 rounded text-xs font-mono text-gray-400 border border-gray-700">
                   XAUUSD [LIVE]
@@ -102,12 +102,12 @@ const App: React.FC = () => {
               </div>
 
               {/* NEURAL FEED - Span 3 cols, row span 10 (Full Height side panel) */}
-              <div className="col-span-3 row-span-10">
+              <div className="col-span-3 row-span-10 min-h-0">
                 <NeuralFeed decisions={decisions || []} />
               </div>
 
               {/* ROW 3: BOTTOM PANEL (Positions / Controls) */}
-              <div className="col-span-9 row-span-3 bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden flex flex-col">
+              <div className="col-span-9 row-span-3 bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden flex flex-col min-h-0">
                 <div className="px-4 py-2 border-b border-gray-800 bg-gray-900/80 flex items-center justify-between">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                     <Activity className="w-3 h-3" />
