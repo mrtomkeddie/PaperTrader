@@ -17,6 +17,11 @@ export class Agent {
         this.lastAction = "WAITING";
         this.newTrades = [];
         this.latestDecision = null; // Store full JSON decision
+
+        // Trade cooldown & limits
+        this.lastTradeTime = 0;
+        this.TRADE_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes between trades
+        this.MAX_OPEN_TRADES = 2; // Max 2 open trades per agent
     }
 
     /**
@@ -26,6 +31,30 @@ export class Agent {
      */
     async onTick(marketData) {
         throw new Error("onTick method must be implemented");
+    }
+
+    /**
+     * Check if agent can trade (cooldown + max trades)
+     */
+    canTrade() {
+        const now = Date.now();
+        const timeSinceLastTrade = now - this.lastTradeTime;
+
+        // Check cooldown
+        if (timeSinceLastTrade < this.TRADE_COOLDOWN_MS) {
+            const remaining = Math.ceil((this.TRADE_COOLDOWN_MS - timeSinceLastTrade) / 1000);
+            console.log(`[AGENT: ${this.name}] COOLDOWN: ${remaining}s remaining`);
+            return false;
+        }
+
+        // Check max open trades
+        const openTrades = this.trades.filter(t => t.status === 'OPEN');
+        if (openTrades.length >= this.MAX_OPEN_TRADES) {
+            console.log(`[AGENT: ${this.name}] MAX TRADES: Already has ${openTrades.length} open trades`);
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -40,6 +69,11 @@ export class Agent {
      * @param {Object} snapshot - specific data points (rsi, sentiment, etc.)
      */
     executeTrade(symbol, type, size, entryPrice, stopLoss, tpLevels, reason, snapshot = {}) {
+        // CHECK COOLDOWN & LIMITS
+        if (!this.canTrade()) {
+            return null;
+        }
+
         // VALIDATION: Reject trades with invalid data
         if (!entryPrice || isNaN(entryPrice) || entryPrice <= 0) {
             console.warn(`[AGENT: ${this.name}] REJECTED TRADE: Invalid entryPrice (${entryPrice})`);
@@ -75,6 +109,7 @@ export class Agent {
         this.trades.push(trade);
         this.newTrades.push(trade);
         this.lastAction = `OPEN ${type} ${symbol}`;
+        this.lastTradeTime = Date.now(); // Update cooldown timer
         console.log(`[AGENT: ${this.name}] Executed Trade: ${type} ${symbol} @ ${entryPrice}`);
         return trade;
     }
