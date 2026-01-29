@@ -41,6 +41,7 @@ export interface TpLevel {
 
 export interface Trade {
   id: string;
+  agentId?: string; // ID of the agent that executed the trade
   symbol: AssetSymbol;
   type: TradeType;
 

@@ -11,7 +11,7 @@ interface DeepDiveModalProps {
 const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, trade }) => {
     if (!isOpen || !trade) return null;
 
-    const data = trade.decisionSnapshot || { error: "No detailed log captured for this trade." };
+    const data: any = trade.decisionSnapshot || { error: "No detailed log captured for this trade." };
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">

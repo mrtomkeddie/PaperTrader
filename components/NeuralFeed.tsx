@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Cpu, ShieldBase, Brain } from 'lucide-react';
+import { Cpu, Shield, Brain, Activity } from 'lucide-react';
 
 interface Decision {
     agentId: string;
@@ -28,7 +28,7 @@ export const NeuralFeed: React.FC<NeuralFeedProps> = ({ decisions }) => {
         switch (id) {
             case 'quant': return <Cpu className="w-4 h-4 text-cyan-400" />;
             case 'macro': return <Brain className="w-4 h-4 text-blue-400" />;
-            case 'risk': return <ShieldBase className="w-4 h-4 text-orange-400" />;
+            case 'risk': return <Shield className="w-4 h-4 text-orange-400" />;
             default: return <Activity className="w-4 h-4 text-gray-400" />;
         }
     };
