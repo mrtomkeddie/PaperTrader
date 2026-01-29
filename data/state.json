@@ -13,9 +13,9 @@
       "role": "Technical Scalper (DeepSeek R1)",
       "balance": 1000,
       "equity": 1000,
-      "isThinking": true,
-      "lastAction": "OPEN BUY XAUUSD",
-      "lastThought": "Extremely oversold RSI 17.62 with price holding above 200 EMA support in uptrend.",
+      "isThinking": false,
+      "lastAction": "WAITING",
+      "lastThought": "",
       "latestDecision": null
     },
     "macro": {
@@ -23,7 +23,7 @@
       "role": "Global Macro (Gemini)",
       "balance": 1000,
       "equity": 1000,
-      "isThinking": true,
+      "isThinking": false,
       "lastAction": "WAITING",
       "lastThought": "",
       "latestDecision": null
@@ -33,7 +33,7 @@
       "role": "Risk Manager (Claude)",
       "balance": 1000,
       "equity": 1000,
-      "isThinking": true,
+      "isThinking": false,
       "lastAction": "WAITING",
       "lastThought": "",
       "latestDecision": null
@@ -70,14 +70,16 @@
           "lower": 5504.538957518432
         }
       },
-      "strategy": "AI_AGENT"
+      "strategy": "AI_AGENT",
+      "floatingPnl": null
     }
   ],
   "pushSubscriptions": [],
   "assets": {
     "XAUUSD": {
       "activeStrategies": [
-        "AI_AGENT"
+        "AI_AGENT",
+        "TREND_FOLLOW"
       ],
       "botActive": true
     }
