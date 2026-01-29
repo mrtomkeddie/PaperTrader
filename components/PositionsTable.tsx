@@ -13,8 +13,9 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
     const [strategyFilter, setStrategyFilter] = useState<string>('ALL');
     const [timeFilter, setTimeFilter] = useState<TimeFilter>('ALL');
 
-    const uniqueAssets = useMemo(() => Array.from(new Set(trades.map(t => t.symbol))).sort(), [trades]);
-    const uniqueStrategies = useMemo(() => Array.from(new Set(trades.map(t => t.strategy || 'MANUAL'))).sort(), [trades]);
+    const safeTrades = trades || [];
+    const uniqueAssets = useMemo(() => Array.from(new Set(safeTrades.map(t => t?.symbol))).filter(Boolean).sort(), [safeTrades]);
+    const uniqueStrategies = useMemo(() => Array.from(new Set(safeTrades.map(t => t?.strategy || 'MANUAL'))).filter(Boolean).sort(), [safeTrades]);
 
     const filteredTrades = useMemo(() => {
         return trades.filter(t => {
@@ -120,13 +121,13 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                                 >
                                     <td className={`py-3 px-4 ${trade.type === 'BUY' ? 'text-green-500' : 'text-red-500'}`}>{trade.type}</td>
                                     <td className="py-3 px-4 text-white font-bold">{trade.symbol}</td>
-                                    <td className="py-3 px-4 text-gray-300">{trade.entryPrice.toFixed(2)}</td>
-                                    <td className="py-3 px-4 text-gray-300">{trade.currentSize.toFixed(2)}</td>
+                                    <td className="py-3 px-4 text-gray-300">{(trade?.entryPrice || 0).toFixed(2)}</td>
+                                    <td className="py-3 px-4 text-gray-300">{(trade?.currentSize || 0).toFixed(2)}</td>
                                     <td className={`py-3 px-4 ${realized >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                         {realized >= 0 ? '+' : ''}{realized.toFixed(2)}
                                     </td>
                                     <td className={`py-3 px-4 ${floating >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                        {trade.status === 'OPEN' ? (floating >= 0 ? '+' : '') + floating.toFixed(2) : '-'}
+                                        {trade?.status === 'OPEN' ? (floating >= 0 ? '+' : '') + floating.toFixed(2) : '-'}
                                     </td>
                                     <td className="py-3 px-4 text-gray-500 text-xs font-mono">
                                         {new Date(trade.openTime).toLocaleString('en-GB', {

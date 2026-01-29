@@ -55,14 +55,14 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
                 <div className="flex justify-between items-end">
                     <div className="text-gray-400 text-xs uppercase">Equity</div>
                     <div className="text-2xl font-mono font-bold text-white tracking-widest">
-                        £{agent.equity.toFixed(2)}
+                        £{(agent?.equity || 0).toFixed(2)}
                     </div>
                 </div>
 
                 <div className="space-y-1">
                     <div className="flex justify-between text-xs text-gray-500">
                         <span>Balance</span>
-                        <span>£{agent.balance.toFixed(2)}</span>
+                        <span>£{(agent?.balance || 0).toFixed(2)}</span>
                     </div>
                     {/* Add chart sparkline here later */}
                 </div>

@@ -103,11 +103,11 @@ const App: React.FC = () => {
                       Active Positions
                     </h3>
                     <div className="text-xs font-mono text-cyan-500 bg-cyan-950/30 px-3 py-1 rounded border border-cyan-900/50">
-                      OPEN PL: £{(trades.filter(t => t.status === 'OPEN').reduce((acc, t) => acc + (t.floatingPnl || 0), 0)).toFixed(2)}
+                      OPEN PL: £{((trades || []).filter(t => t && t.status === 'OPEN').reduce((acc, t) => acc + (t.floatingPnl || 0), 0)).toFixed(2)}
                     </div>
                   </div>
                   <div className="flex-1 min-h-[500px]">
-                    <PositionsTable trades={trades.filter(t => t.status === 'OPEN')} onSelectTrade={() => { }} selectedTradeId={null} />
+                    <PositionsTable trades={(trades || []).filter(t => t && t.status === 'OPEN')} onSelectTrade={() => { }} selectedTradeId={null} />
                   </div>
                 </div>
 
@@ -159,7 +159,7 @@ const App: React.FC = () => {
           {/* TRADES TAB */}
           {activeMobileTab === 'trades' && (
             <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-800 min-h-[50vh]">
-              <PositionsTable trades={trades.filter(t => t.status === 'OPEN')} onSelectTrade={() => { }} selectedTradeId={null} />
+              <PositionsTable trades={(trades || []).filter(t => t && t.status === 'OPEN')} onSelectTrade={() => { }} selectedTradeId={null} />
             </div>
           )}
 

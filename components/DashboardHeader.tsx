@@ -16,12 +16,12 @@ const DashboardHeader: React.FC<Props> = ({ account, accounts, toggleAsset, acti
     const hasAgents = agentValues.length > 0;
 
     const totalBalance = hasAgents
-        ? agentValues.reduce((acc, a) => acc + a.balance, 0)
-        : account.balance;
+        ? agentValues.reduce((acc, a) => acc + (a?.balance || 0), 0)
+        : (account?.balance || 0);
 
     const totalEquity = hasAgents
-        ? agentValues.reduce((acc, a) => acc + a.equity, 0)
-        : account.equity;
+        ? agentValues.reduce((acc, a) => acc + (a?.equity || 0), 0)
+        : (account?.equity || 0);
 
     const totalOpenPnL = totalEquity - totalBalance;
 
