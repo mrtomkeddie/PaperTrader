@@ -1,4 +1,5 @@
-
+import React from 'react';
+import { createPortal } from 'react-dom';
 import { Trade, TradeType, StrategyType } from '../types';
 import { X, Target, AlertTriangle, TrendingUp, TrendingDown, BrainCircuit, Activity, Zap, Repeat, CheckCircle2, Circle } from 'lucide-react';
 import { formatDate, formatNumber } from '../utils/formatters';
@@ -29,11 +30,11 @@ const TradeDetailModal: React.FC<Props> = ({ trade, onClose }) => {
     return "Trade cycle complete.";
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
 
-      <div className="bg-[#1C1C1E]/90 backdrop-blur-xl w-full max-w-sm rounded-[28px] border border-white/10 shadow-2xl relative z-10 animate-fade-in-up max-h-[85vh] flex flex-col">
+      <div className="bg-[#1C1C1E]/90 backdrop-blur-xl w-full max-w-sm rounded-[28px] border border-white/10 shadow-2xl relative z-10 animate-fade-in-up max-h-[85vh] flex flex-col overflow-hidden">
 
         {/* Header - Fixed at top */}
         <div className="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-gradient-to-b from-white/5 to-transparent shrink-0">
@@ -52,7 +53,7 @@ const TradeDetailModal: React.FC<Props> = ({ trade, onClose }) => {
         </div>
 
         {/* Scrollable Content Area */}
-        <div className="p-6 space-y-6 overflow-y-auto">
+        <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
 
           {/* PnL Hero */}
           <div className="text-center">
@@ -114,7 +115,8 @@ const TradeDetailModal: React.FC<Props> = ({ trade, onClose }) => {
 
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

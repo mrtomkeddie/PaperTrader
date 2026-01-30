@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Terminal, CheckCircle2, Circle } from 'lucide-react';
 import { Trade } from '../types';
 
@@ -37,10 +38,10 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, trade })
 
     const currentTheme = themes[trade.agentId as keyof typeof themes] || themes.quant;
 
-    return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    return createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200" onClick={onClose}>
             <div
-                className={`w-full max-w-2xl bg-[#0a0f1e] border ${currentTheme.border} rounded-2xl ${currentTheme.glow} flex flex-col max-h-[95vh] sm:max-h-[90vh] overflow-hidden`}
+                className={`w-full max-w-2xl bg-[#0a0f1e] border ${currentTheme.border} rounded-2xl ${currentTheme.glow} flex flex-col max-h-[90vh] sm:max-h-[85vh] overflow-hidden shadow-2xl relative z-10`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -188,7 +189,8 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, trade })
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
