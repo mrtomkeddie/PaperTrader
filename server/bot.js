@@ -2565,6 +2565,12 @@ async function cloudLoadState() {
     const data = await loadStateFromCloud();
     if (data) {
       const cloudTrades = Array.isArray(data.trades) ? data.trades : [];
+
+      // Update persistent deletion tracking from cloud
+      if (Array.isArray(data.deletedIds)) {
+        data.deletedIds.forEach(id => deletedTradeIds.add(id));
+      }
+
       // [FIX] Remap legacy symbols
       cloudTrades.forEach(t => { if (t.symbol === 'XAU/USD') t.symbol = 'XAUUSD'; });
 

@@ -79,6 +79,10 @@ export async function saveStateToCloud(state, excludeIds = []) {
         const prevTrades = Array.isArray(existing?.trades) ? existing.trades : [];
         const newTrades = Array.isArray(state?.trades) ? state.trades : [];
 
+        // Merge deleted trade IDs to keep them persistent in the cloud
+        const existingDeletedIds = Array.isArray(existing?.deletedIds) ? existing.deletedIds : [];
+        const combinedDeletedIds = Array.from(new Set([...existingDeletedIds, ...excludeIds]));
+
         const keyForTrade = (t) => {
             if (!t) return '';
             if (t.id) return t.id;
@@ -87,8 +91,7 @@ export async function saveStateToCloud(state, excludeIds = []) {
         };
 
         const mergedByKey = new Map();
-        // Skip explicitly excluded IDs
-        const toExclude = new Set(excludeIds);
+        const toExclude = new Set(combinedDeletedIds);
 
         for (const t of prevTrades) {
             const k = keyForTrade(t);
@@ -120,6 +123,7 @@ export async function saveStateToCloud(state, excludeIds = []) {
             account: state.account, // Legacy/Global support
             accounts: state.accounts, // New Multi-Agent support
             trades: Array.from(mergedByKey.values()),
+            deletedIds: combinedDeletedIds,
             pushSubscriptions: Array.from(subsByEndpoint.values()),
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
