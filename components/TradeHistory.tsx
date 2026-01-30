@@ -25,8 +25,8 @@ export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
 
   const isAllSelected = activeAgents.length === AGENT_IDS.length;
 
-  // Sorting: Newest first
-  const sortedTrades = [...trades].sort((a, b) => b.openTime - a.openTime);
+  // Sorting: Newest closed first
+  const sortedTrades = [...trades].sort((a, b) => (b.closeTime || b.openTime) - (a.closeTime || a.openTime));
 
   const filteredTrades = sortedTrades.filter(t => t.status !== 'OPEN' && activeAgents.includes(t.agentId));
 
@@ -105,7 +105,7 @@ export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
                 <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-premium-cyan opacity-0 group-hover:opacity-100 transition-opacity" />
 
                 <div className="col-span-3 sm:col-span-2 text-gray-500 font-light group-hover:text-gray-300 transition-colors">
-                  {new Date(t.openTime).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                  {new Date(t.closeTime || t.openTime).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
                 </div>
 
                 <div className="col-span-5 sm:col-span-1 flex items-center gap-2">
