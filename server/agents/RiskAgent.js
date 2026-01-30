@@ -1,16 +1,15 @@
 import { Agent } from './Agent.js';
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI } from "@google/genai";
 
 export class RiskAgent extends Agent {
     constructor() {
-        super('risk', 'The Skeptic', 'Risk Manager (Claude)', 1000);
+        super('risk', 'The Skeptic', 'Risk Manager (Gemini)', 1000);
 
-        if (process.env.ANTHROPIC_API_KEY) {
-            this.client = new Anthropic({
-                apiKey: process.env.ANTHROPIC_API_KEY,
-            });
+        if (process.env.API_KEY || process.env.GOOGLE_API_KEY) {
+            const key = process.env.API_KEY || process.env.GOOGLE_API_KEY;
+            this.client = new GoogleGenAI({ apiKey: key });
         } else {
-            console.warn('[RISK] Missing ANTHROPIC_API_KEY.');
+            console.warn('[RISK] Missing GOOGLE_API_KEY for Gemini.');
         }
     }
 
@@ -49,14 +48,12 @@ Output a JSON object ONLY:
 }
 `;
 
-            const message = await this.client.messages.create({
-                max_tokens: 1024,
-                messages: [{ role: 'user', content: prompt }],
-                model: 'claude-sonnet-4-20250514',
+            const response = await this.client.models.generateContent({
+                model: 'gemini-2.0-flash',
+                contents: prompt
             });
+            const text = response.text;
 
-            // Anthropic response structure: message.content[0].text
-            const text = message.content[0].text;
             this.processDecision(text, symbol, currentPrice);
 
         } catch (error) {
@@ -77,9 +74,6 @@ Output a JSON object ONLY:
 
             // Risk agent ONLY trades if high confidence "Contrarian" signal
             if (decision.action !== 'HOLD' && decision.confidence > 85) {
-                // Hedge size?
-                // Size is now calculated dynamically by the base Agent class based on Risk/StopLoss
-
                 this.executeTrade(
                     symbol,
                     decision.action,

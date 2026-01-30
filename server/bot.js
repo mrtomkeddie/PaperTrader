@@ -817,10 +817,7 @@ Return ONLY this JSON:
 
     const response = await aiClient.models.generateContent({
       model: 'gemini-2.0-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json"
-      }
+      contents: prompt
     });
 
     const text = response.text;
