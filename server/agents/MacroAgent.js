@@ -85,18 +85,29 @@ Output a JSON object ONLY:
             this.latestDecision = decision; // Save for Manager
 
             if (decision.action !== 'HOLD' && decision.confidence > 80) {
-                // Macro takes larger swings but wider stops? Or maybe just normal sizing.
-                // Size is now calculated dynamically by the base Agent class based on Risk/StopLoss
+                // Calculate Profit Ladder (3-tier)
+                const isBuy = decision.action === 'BUY';
+                const dist = Math.abs(decision.takeProfit - currentPrice);
+
+                // TP1: Original (40%), TP2: 1.5x dist (40%), TP3: 3x dist (20%)
+                const tp2 = isBuy ? currentPrice + (dist * 1.5) : currentPrice - (dist * 1.5);
+                const tp3 = isBuy ? currentPrice + (dist * 3.0) : currentPrice - (dist * 3.0);
+
+                const tpLevels = [
+                    { id: 1, price: decision.takeProfit, percentage: 0.4, hit: false },
+                    { id: 2, price: tp2, percentage: 0.4, hit: false },
+                    { id: 3, price: tp3, percentage: 0.2, hit: false }
+                ];
 
                 this.executeTrade(
                     symbol,
                     decision.action,
-                    0, // Size ignored (calculated dynamically)
+                    0,
                     currentPrice,
                     decision.stopLoss,
-                    [{ id: 1, price: decision.takeProfit, percentage: 1.0, hit: false }],
+                    tpLevels,
                     decision.reason,
-                    this.latestDecision // Pass full decision object as snapshot
+                    this.latestDecision
                 );
             }
         } catch (e) {

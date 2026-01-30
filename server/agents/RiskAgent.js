@@ -74,13 +74,27 @@ Output a JSON object ONLY:
 
             // Risk agent ONLY trades if high confidence "Contrarian" signal
             if (decision.action !== 'HOLD' && decision.confidence > 85) {
+                // Calculate Profit Ladder (3-tier)
+                const isBuy = decision.action === 'BUY';
+                const dist = Math.abs(decision.takeProfit - currentPrice);
+
+                // TP1: Original (40%), TP2: 1.5x dist (40%), TP3: 3x dist (20%)
+                const tp2 = isBuy ? currentPrice + (dist * 1.5) : currentPrice - (dist * 1.5);
+                const tp3 = isBuy ? currentPrice + (dist * 3.0) : currentPrice - (dist * 3.0);
+
+                const tpLevels = [
+                    { id: 1, price: decision.takeProfit, percentage: 0.4, hit: false },
+                    { id: 2, price: tp2, percentage: 0.4, hit: false },
+                    { id: 3, price: tp3, percentage: 0.2, hit: false }
+                ];
+
                 this.executeTrade(
                     symbol,
                     decision.action,
                     0, // Size ignored (calculated dynamically)
                     currentPrice,
                     decision.stopLoss,
-                    [{ id: 1, price: decision.takeProfit, percentage: 1.0, hit: false }],
+                    tpLevels,
                     decision.reason
                 );
             }
