@@ -2520,6 +2520,39 @@ let webpushClient = null;
   }
 })());
 
+
+function recalculateAccountState() {
+  try {
+    const startOfDay = manager.getStartOfDayUtcMs();
+
+    // 1. Calculate Global Day PnL (Settled + Open Realized)
+    // Matches Manager.js logic: Include OPEN trades (realized parts) + CLOSED today
+    account.dayPnL = trades.reduce((acc, t) => {
+      const closedToday = t.status === 'CLOSED' && (t.closeTime || 0) >= startOfDay;
+      if (t.status === 'OPEN' || closedToday) {
+        return acc + (t.pnl || 0);
+      }
+      return acc;
+    }, 0);
+
+    // 2. Calculate Total PnL
+    account.totalPnL = trades.reduce((acc, t) => acc + (t.pnl || 0), 0);
+
+    // 3. Calculate Equity (Balance + Floating PnL of OPEN trades)
+    const floatingPnL = trades
+      .filter(t => t.status === 'OPEN')
+      .reduce((acc, t) => acc + (t.floatingPnl || 0), 0);
+
+    account.equity = account.balance + floatingPnL;
+
+    // 4. Sync Manager/Agents (Crucial for Agent Cards)
+    manager.recalculateState(trades);
+    console.log(`[SYSTEM] State Recalculated. Global Day PnL: £${account.dayPnL.toFixed(2)}`);
+  } catch (e) {
+    console.error('[SYSTEM] Error in recalculateAccountState:', e);
+  }
+}
+
 async function cloudLoadState() {
   try {
     const data = await loadStateFromCloud();
