@@ -62,7 +62,10 @@ Output a JSON object ONLY:
 
             const response = await this.client.models.generateContent({
                 model: 'gemini-2.0-flash',
-                contents: prompt
+                contents: prompt,
+                config: {
+                    tools: [{ googleSearch: {} }]
+                }
             });
             const text = response.text;
             this.processDecision(text, symbol, currentPrice);
