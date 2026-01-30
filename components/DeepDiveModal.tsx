@@ -40,7 +40,7 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, trade })
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
             <div
-                className={`w-full max-w-2xl bg-[#0a0f1e] border ${currentTheme.border} rounded-2xl ${currentTheme.glow} flex flex-col max-h-[90vh] overflow-hidden`}
+                className={`w-full max-w-2xl bg-[#0a0f1e] border ${currentTheme.border} rounded-2xl ${currentTheme.glow} flex flex-col max-h-[95vh] sm:max-h-[90vh] overflow-hidden`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -60,7 +60,7 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, trade })
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-auto p-6 font-mono text-sm relative custom-scrollbar">
+                <div className="flex-1 overflow-auto p-4 sm:p-6 font-mono text-sm relative custom-scrollbar">
                     {/* Grid background */}
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:30px_30px] opacity-20 pointer-events-none"></div>
 
@@ -101,7 +101,7 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, trade })
                             </div>
 
                             {trade.agentId === 'quant' && (
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="p-4 bg-gray-900/30 rounded-xl border border-gray-800 flex justify-between items-center">
                                         <span className="text-gray-500 text-xs">RSI (14)</span>
                                         <span className="text-lg font-bold text-cyan-400">{data.rsi?.toFixed(2) || 'N/A'}</span>
@@ -114,7 +114,7 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, trade })
                             )}
 
                             {trade.agentId === 'macro' && (
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="p-4 bg-gray-900/30 rounded-xl border border-gray-800 flex justify-between items-center">
                                         <span className="text-gray-500 text-xs">Sentiment</span>
                                         <span className={`text-lg font-bold ${data.sentiment_score >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -139,8 +139,8 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, trade })
                         {/* Raw JSON View */}
                         <div className="space-y-2">
                             <div className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">Full Synapse Payload</div>
-                            <div className="bg-black/60 p-5 rounded-xl border border-gray-800/80 max-h-48 overflow-y-auto custom-scrollbar">
-                                <pre className={`${currentTheme.accent} text-[11px] leading-relaxed opacity-80`}>
+                            <div className="bg-black/60 p-4 sm:p-5 rounded-xl border border-gray-800/80 max-h-48 overflow-y-auto custom-scrollbar">
+                                <pre className={`${currentTheme.accent} text-[11px] leading-relaxed opacity-80 whitespace-pre-wrap break-all`}>
                                     {JSON.stringify(data, null, 2)}
                                 </pre>
                             </div>

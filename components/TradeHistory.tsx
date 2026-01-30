@@ -39,7 +39,7 @@ export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
           Trade_History_Log
         </h2>
 
-        <div className="flex items-center gap-2 bg-black/40 p-1 rounded-lg border border-white/10">
+        <div className="flex flex-wrap items-center gap-2 bg-black/40 p-1 rounded-lg border border-white/10">
           <button
             onClick={() => setActiveAgents(AGENT_IDS)}
             className={`px-3 py-1 rounded text-[10px] font-mono transition-all uppercase tracking-wider ${isAllSelected ? 'bg-premium-cyan/20 text-premium-cyan shadow-[0_0_8px_rgba(0,240,255,0.2)]' : 'text-gray-500 hover:text-gray-300'}`}
