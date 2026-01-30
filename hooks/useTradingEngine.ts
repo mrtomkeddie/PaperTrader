@@ -15,8 +15,8 @@ export const useTradingEngine = () => {
       const hasProto = /^https?:\/\//i.test(saved);
       const isLocalhost = saved.includes('localhost') || saved.includes('127.0.0.1');
 
-      // Only accept saved URL if it is valid AND NOT localhost (to enforce production)
-      if (hasProto && saved && !isLocalhost) return saved;
+      // Accept saved URL if it is valid (including localhost for dev)
+      if (hasProto && saved) return saved;
 
       // Force connection to Deployed/Remote Server by default
       return DEFAULT_REMOTE_URL;
@@ -142,7 +142,7 @@ export const useTradingEngine = () => {
         const isLocalhost = saved ? (saved.includes('localhost') || saved.includes('127.0.0.1')) : false;
 
         let preferred = DEFAULT_REMOTE_URL;
-        if (hasProto && saved && !isLocalhost) {
+        if (hasProto && saved) {
           preferred = saved;
         }
         if (typeof window !== 'undefined') localStorage.setItem('remoteUrl', preferred);
