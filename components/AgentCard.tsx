@@ -87,9 +87,9 @@ export const AgentCard: React.FC<AgentCardProps> = ({
 
             <div className="space-y-4">
                 <div className="flex justify-between items-end">
-                    <div className="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Total Realized</div>
+                    <div className="text-gray-500 text-[10px] uppercase font-bold tracking-widest">Account Balance</div>
                     <div className="text-3xl font-mono font-bold text-white tracking-tighter">
-                        £{(balance - 1000).toFixed(2)}
+                        £{(balance).toFixed(2)}
                     </div>
                 </div>
 
