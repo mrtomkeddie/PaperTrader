@@ -2003,7 +2003,8 @@ app.post('/master_toggle', (req, res) => {
           t.status = 'CLOSED';
           t.closeTime = Date.now();
           t.closeReason = 'MASTER_PAUSE';
-          t.pnl = (isBuy ? exitPrice - t.entryPrice : t.entryPrice - exitPrice) * (t.currentSize || t.initialSize || 1);
+          const tradePnL = (isBuy ? exitPrice - t.entryPrice : t.entryPrice - exitPrice) * (t.currentSize || t.initialSize || 1);
+          t.pnl = (t.pnl || 0) + tradePnL;
 
           // Sync with manager agents
           if (manager && manager.agents) {
@@ -2012,13 +2013,15 @@ app.post('/master_toggle', (req, res) => {
               if (agentTrade) {
                 agentTrade.status = 'CLOSED';
                 agentTrade.closeTime = t.closeTime;
-                agentTrade.pnl = t.pnl;
+                agentTrade.pnl = t.pnl; // Agent PnL should match the total accumulated PnL
               }
             });
           }
         }
       }
     });
+
+    recalculateAccountState();
     if (manager) manager.recalculateState(trades);
   }
 

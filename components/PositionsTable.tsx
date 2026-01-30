@@ -16,12 +16,12 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
         <div className="h-full flex flex-col">
             {/* Table Header */}
             <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-black/40 text-[10px] text-gray-500 font-mono uppercase tracking-wider border-b border-white/5 sticky top-0 backdrop-blur-sm z-10">
-                <div className="col-span-4 sm:col-span-2">Agent</div>
-                <div className="col-span-3 sm:col-span-1">Type</div>
+                <div className="col-span-3 sm:col-span-2">Agent</div>
+                <div className="col-span-2 sm:col-span-1">Type</div>
                 <div className="hidden sm:block sm:col-span-2">Entry</div>
                 <div className="hidden sm:block sm:col-span-1">Size</div>
-                <div className="hidden sm:block sm:col-span-2 text-right">Realized</div>
-                <div className="col-span-5 sm:col-span-2 text-right">Floating</div>
+                <div className="col-span-3 sm:col-span-2 text-right">Realized</div>
+                <div className="col-span-4 sm:col-span-2 text-right">Floating</div>
                 <div className="hidden sm:block sm:col-span-2 text-right">Time</div>
             </div>
 
@@ -49,13 +49,13 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                                 <div className={`absolute left-0 top-0 bottom-0 w-[2px] opacity-0 group-hover:opacity-100 transition-opacity ${trade.type === 'BUY' ? 'bg-premium-green' : 'bg-premium-red'}`} />
 
                                 {/* Agent */}
-                                <div className="col-span-4 sm:col-span-2 flex items-center gap-2">
+                                <div className="col-span-3 sm:col-span-2 flex items-center gap-2">
                                     <div className={`w-1.5 h-1.5 rounded-full ${trade.agentId === 'quant' ? 'bg-premium-cyan shadow-[0_0_5px_cyan]' : trade.agentId === 'macro' ? 'bg-premium-gold shadow-[0_0_5px_gold]' : 'bg-premium-red shadow-[0_0_5px_red]'}`} />
                                     <span className="uppercase tracking-wide text-[10px] opacity-80 text-gray-400 group-hover:text-gray-200">{trade.agentId ? trade.agentId.substring(0, 3) : 'MAN'}</span>
                                 </div>
 
                                 {/* Type */}
-                                <div className={`col-span-3 sm:col-span-1 font-bold ${trade.type === 'BUY' ? 'text-premium-green drop-shadow-[0_0_3px_rgba(0,255,163,0.3)]' : 'text-premium-red drop-shadow-[0_0_3px_rgba(255,77,77,0.3)]'}`}>
+                                <div className={`col-span-2 sm:col-span-1 font-bold ${trade.type === 'BUY' ? 'text-premium-green drop-shadow-[0_0_3px_rgba(0,255,163,0.3)]' : 'text-premium-red drop-shadow-[0_0_3px_rgba(255,77,77,0.3)]'}`}>
                                     {trade.type}
                                 </div>
 
@@ -70,13 +70,13 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
                                 </div>
 
                                 {/* Realized */}
-                                <div className={`hidden sm:block sm:col-span-2 text-right ${realized >= 0 ? 'text-premium-green/70' : 'text-premium-red/70'}`}>
-                                    {realized !== 0 ? (realized > 0 ? '+' : '') + formatNumber(realized, 2) : '-'}
+                                <div className={`col-span-3 sm:col-span-2 text-right ${realized >= 0 ? 'text-premium-green/70' : 'text-premium-red/70'}`}>
+                                    {realized !== 0 ? (realized > 0 ? '+' : '') + formatNumber(realized, 1) : '-'}
                                 </div>
 
                                 {/* Floating */}
-                                <div className={`col-span-5 sm:col-span-2 text-right font-bold ${floating >= 0 ? 'text-premium-green' : 'text-premium-red'}`}>
-                                    {floating > 0 ? '+' : ''}{formatNumber(floating, 2)}
+                                <div className={`col-span-4 sm:col-span-2 text-right font-bold ${floating >= 0 ? 'text-premium-green' : 'text-premium-red'}`}>
+                                    {floating > 0 ? '+' : ''}{formatNumber(floating, 1)}
                                 </div>
 
                                 {/* Time */}
