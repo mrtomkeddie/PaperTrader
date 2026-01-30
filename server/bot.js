@@ -2335,11 +2335,18 @@ app.post('/admin/delete-trade', (req, res) => {
       saveState([id]);
       res.json({ success: true, message: `Trade ${id} deleted and state recalculated.` });
     } else {
-      res.status(404).json({ error: 'Trade not found' });
+      res.status(404).json({ error: 'Trade not found', currentTradeIds: trades.map(t => t.id) });
     }
   } catch (e) {
     res.status(500).json({ error: e?.message || 'error' });
   }
+});
+
+app.get('/admin/debug-trades', (req, res) => {
+  res.json({
+    deletedTradeIds: Array.from(deletedTradeIds),
+    trades: trades.map(t => ({ id: t.id, symbol: t.symbol, status: t.status }))
+  });
 });
 
 app.post('/restart', (req, res) => {
