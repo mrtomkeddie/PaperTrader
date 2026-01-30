@@ -1826,7 +1826,7 @@ app.get('/state', (req, res) => {
       }
     }
   } catch { }
-  res.json({ account, trades, assets });
+  res.json({ account, trades, assets, accounts: manager.getState().accounts });
 });
 
 app.get('/events', (req, res) => {
@@ -2486,7 +2486,7 @@ setInterval(() => {
 
 function sseBroadcast() {
   try {
-    const payload = JSON.stringify({ account, trades, assets });
+    const payload = JSON.stringify({ account, trades, assets, accounts: manager.getState().accounts });
     for (const client of sseClients) {
       try {
         client.write(`data: ${payload}\n\n`);

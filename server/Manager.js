@@ -95,6 +95,11 @@ export class Manager {
             agent.balance = 1000 + closedPnL;
             agent.equity = agent.balance + floatingPnL;
             agent.dayPnL = settledToday;
+
+            // Calculate Win Rate
+            const closedTrades = agentTrades.filter(t => t.status === 'CLOSED');
+            const wins = closedTrades.filter(t => t.pnl > 0).length;
+            agent.winRate = closedTrades.length > 0 ? (wins / closedTrades.length) * 100 : 0;
         });
     }
 
@@ -121,6 +126,7 @@ export class Manager {
                 lastAction: agent.lastAction,
                 lastThought: agent.lastThought,
                 dayPnL: agent.dayPnL || 0,
+                winRate: agent.winRate || 0,
                 latestDecision: agent.latestDecision // Include full decision object
             };
             allTrades = allTrades.concat(agent.trades);
@@ -142,7 +148,9 @@ export class Manager {
                 balance: a.balance,
                 equity: a.equity,
                 isThinking: a.isThinking,
-                lastAction: a.lastAction
+                lastAction: a.lastAction,
+                dayPnL: a.dayPnL || 0,
+                winRate: a.winRate || 0
             };
         });
 

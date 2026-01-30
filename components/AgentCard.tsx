@@ -11,9 +11,10 @@ interface AgentCardProps {
         equity: number;
         lastAction: string;
         isThinking: boolean;
-        isHalted?: boolean; // Kept for Margin Call indicator if needed, but UI usage removed
+        isHalted?: boolean;
         lastThought?: string;
         dayPnL?: number;
+        winRate?: number;
     };
     isActive?: boolean;
 }
@@ -22,29 +23,10 @@ export const AgentCard: React.FC<AgentCardProps> = ({
     agent,
     isActive
 }) => {
-    const { id, name, role, balance, equity, isThinking, lastAction, lastThought, dayPnL } = agent;
+    const { id, name, role, balance, equity, isThinking, lastAction, lastThought, dayPnL, winRate } = agent;
     const isProfitable = equity >= 1000;
     const pnl = agent?.dayPnL ?? 0;
-    const pnlPercent = (pnl / 1000) * 100;
-
-    // Agent Color Themes mapped to Premium Colors
-    const themeColor = {
-        quant: 'cyan',
-        macro: 'gold',  // Changing macro to gold for variety/hierarchy
-        risk: 'red'     // Risk is red/orange
-    }[agent.id] || 'gray';
-
-    const glowClass = {
-        quant: 'shadow-glow-cyan/20 border-premium-cyan/30',
-        macro: 'shadow-glow-gold/20 border-premium-gold/30',
-        risk: 'shadow-none border-premium-red/30'
-    }[agent.id] || 'border-premium-border';
-
-    const textGlow = {
-        quant: 'text-premium-cyan drop-shadow-[0_0_5px_rgba(0,240,255,0.5)]',
-        macro: 'text-premium-gold drop-shadow-[0_0_5px_rgba(212,175,55,0.5)]',
-        risk: 'text-premium-red'
-    }[id] || 'text-gray-400';
+    // pnlPercent removed
 
     // Helper to get agent color for dynamic styling (used in the new structure)
     const getAgentColor = (agentId: string) => {
@@ -57,7 +39,6 @@ export const AgentCard: React.FC<AgentCardProps> = ({
     };
 
     // Placeholder for Icon component (assuming it's a dynamic icon based on agent type)
-    // For this change, we'll use a generic Activity icon if a specific one isn't provided
     const Icon = Activity;
 
     const getBorderColor = (agentId: string, thinking: boolean) => {
@@ -93,7 +74,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
                     </div>
                 </div>
                 <div className={`px-2 py-1 rounded text-[10px] font-mono font-bold border backdrop-blur-md ${isProfitable ? 'border-premium-green/30 text-premium-green bg-premium-green/5' : 'border-premium-red/30 text-premium-red bg-premium-red/5'}`}>
-                    {pnl >= 0 ? '+' : ''}{(pnlPercent || 0).toFixed(1)}%
+                    WR: {(winRate || 0).toFixed(1)}%
                 </div>
             </div>
 
