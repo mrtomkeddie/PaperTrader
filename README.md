@@ -1,4 +1,4 @@
-# Paper Trader 2.0 - 24/7 Bot Setup
+# Paper Trader - 24/7 Bot Setup
 
 This project consists of two parts:
 1. **The Scheduler (Server):** Runs 24/7 on your computer, connects to market data, and executes trades.

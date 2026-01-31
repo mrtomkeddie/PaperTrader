@@ -1,5 +1,5 @@
 {
-  "name": "Paper Trader 2.0",
+  "name": "Paper Trader",
   "description": "A professional-grade paper trading simulation for Gold and Nasdaq 100 featuring automated RSI/EMA strategies.",
   "requestFramePermissions": []
 }

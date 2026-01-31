@@ -612,7 +612,7 @@ if (ENABLE_GITHUB_SYNC) {
 }
 async function githubLoadState() {
   try {
-    const url = 'https://raw.githubusercontent.com/mrtomkeddie/Paper-Trader-2.0/main/data/state.json';
+    const url = 'https://raw.githubusercontent.com/mrtomkeddie/PaperTrader/main/data/state.json';
     const raw = await new Promise((resolve) => {
       try {
         const req = https.get(url, (res) => {

@@ -1,6 +1,6 @@
 # AI Trading Agents & Strategies Overview
 
-Paper Trader 2.0 utilizes a multi-agent artificial intelligence architecture. Each agent acts as a specialized trader with a unique role, model, and decision-making logic. 
+Paper Trader utilizes a multi-agent artificial intelligence architecture. Each agent acts as a specialized trader with a unique role, model, and decision-making logic. 
 
 ## 1. Core Agents
 

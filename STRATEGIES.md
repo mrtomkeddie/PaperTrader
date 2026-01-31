@@ -1,6 +1,6 @@
 # Trading Strategies & Execution Logic
 
-This document details the algorithmic strategies, execution triggers, and risk management protocols used in the Paper Trader 2.0 system.
+This document details the algorithmic strategies, execution triggers, and risk management protocols used in the Paper Trader system.
 
 ## 1. Risk Management (Global)
 
