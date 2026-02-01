@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Trade } from '../types';
 import DeepDiveModal from './DeepDiveModal';
-import { Filter, Search, ChevronDown, CheckCircle2, Terminal } from 'lucide-react';
+import { Filter, Search, ChevronDown, CheckCircle2, Terminal, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
 import { GlassCard } from './ui/GlassCard';
 
@@ -14,6 +14,7 @@ const AGENT_IDS = ['quant', 'macro', 'risk'];
 export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
   const [activeAgents, setActiveAgents] = useState<string[]>(['quant', 'macro', 'risk']);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const toggleAgent = (id: string) => {
     setActiveAgents(prev =>
@@ -28,7 +29,34 @@ export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
   // Sorting: Newest closed first
   const sortedTrades = [...trades].sort((a, b) => (b.closeTime || b.openTime) - (a.closeTime || a.openTime));
 
-  const filteredTrades = sortedTrades.filter(t => t.status !== 'OPEN' && activeAgents.includes(t.agentId));
+  const isSameDay = (d1: Date, d2: Date) => {
+    return d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate();
+  };
+
+  const isToday = (date: Date) => isSameDay(date, new Date());
+
+  const handleDateChange = (days: number) => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(selectedDate.getDate() + days);
+
+    // Prevent going into future
+    if (newDate > new Date()) return;
+
+    setSelectedDate(newDate);
+  };
+
+  const formatDateDisplay = (date: Date) => {
+    if (isToday(date)) return "Today";
+    return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  };
+
+  const filteredTrades = sortedTrades.filter(t =>
+    t.status !== 'OPEN' &&
+    activeAgents.includes(t.agentId) &&
+    isSameDay(new Date(t.closeTime || t.openTime), selectedDate)
+  );
 
   return (
     <GlassCard className="h-full flex flex-col p-0 overflow-hidden">
@@ -38,6 +66,28 @@ export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
           <Terminal className="w-4 h-4" />
           Trade_History_Log
         </h2>
+
+        {/* Date Picker */}
+        <div className="flex items-center gap-4 bg-black/40 px-4 py-1.5 rounded-xl border border-white/10 shadow-inner">
+          <button
+            onClick={() => handleDateChange(-1)}
+            className="text-gray-400 hover:text-white hover:scale-110 transition-all active:scale-95"
+          >
+            <ChevronLeft size={18} />
+          </button>
+
+          <span className="text-sm font-bold text-white min-w-[100px] text-center font-mono">
+            {formatDateDisplay(selectedDate)}
+          </span>
+
+          <button
+            onClick={() => handleDateChange(1)}
+            disabled={isToday(selectedDate)}
+            className={`text-gray-400 transition-all ${isToday(selectedDate) ? 'opacity-30 cursor-not-allowed' : 'hover:text-white hover:scale-110 active:scale-95'}`}
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
 
         <div className="flex flex-wrap items-center gap-2 bg-black/40 p-1 rounded-lg border border-white/10">
           <button
@@ -87,9 +137,14 @@ export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
         {filteredTrades.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-600 space-y-2 opacity-50">
             <Search className="w-8 h-8 opacity-20" />
-            <h2 className="text-xs font-mono font-bold text-gray-500 tracking-[0.2em] animate-pulse">
-              NO_LOGS_FOUND
-            </h2>
+            <div className="flex flex-col items-center">
+              <h2 className="text-xs font-mono font-bold text-gray-500 tracking-[0.2em]">
+                NO_LOGS_FOUND
+              </h2>
+              <span className="text-[10px] text-gray-700 mt-1">
+                No trades closed on {formatDateDisplay(selectedDate)}
+              </span>
+            </div>
           </div>
         ) : (
           filteredTrades.map((t) => {
