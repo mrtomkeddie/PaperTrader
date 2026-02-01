@@ -42,7 +42,7 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, trade })
             <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
 
             <div
-                className="bg-[#1C1C1E]/90 backdrop-blur-xl w-full max-w-sm rounded-[28px] border border-white/10 shadow-2xl relative z-10 animate-fade-in-up max-h-[85vh] flex flex-col overflow-hidden"
+                className="bg-[#1C1C1E]/90 backdrop-blur-xl w-full max-w-sm md:max-w-4xl rounded-[28px] border border-white/10 shadow-2xl relative z-10 animate-fade-in-up max-h-[85vh] flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header - Fixed at top */}
@@ -65,83 +65,97 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, trade })
                 </div>
 
                 {/* Scrollable Content Area */}
-                <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar flex-1">
+                <div className="overflow-y-auto custom-scrollbar flex-1">
+                    <div className="p-6 md:grid md:grid-cols-12 md:gap-8 space-y-6 md:space-y-0">
 
-                    {/* PnL Hero */}
-                    <div className="text-center">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-ios-gray block mb-1">
-                            Realized Net Result
-                        </span>
-                        <span className={`text-4xl font-bold tabular-nums tracking-tight ${isProfit ? 'text-ios-green' : 'text-ios-red'}`}>
-                            {isProfit ? '+' : ''}{formatNumber(trade.pnl, 2)}
-                        </span>
-                        <div className="text-[10px] text-ios-gray mt-1 uppercase tracking-tighter">
-                            Closed on {formatDate(trade.closeTime || trade.openTime, 'en-GB', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        {/* LEFT COLUMN (Statistics) */}
+                        <div className="md:col-span-4 space-y-6 md:border-r md:border-white/5 md:pr-8">
+                            {/* PnL Hero */}
+                            <div className="text-center md:text-left">
+                                <span className="text-xs font-semibold uppercase tracking-wider text-ios-gray block mb-1">
+                                    Realized Net Result
+                                </span>
+                                <span className={`text-4xl font-bold tabular-nums tracking-tight ${isProfit ? 'text-ios-green' : 'text-ios-red'}`}>
+                                    {isProfit ? '+' : ''}{formatNumber(trade.pnl, 2)}
+                                </span>
+                                <div className="text-[10px] text-ios-gray mt-1 uppercase tracking-tighter">
+                                    Closed {formatDate(trade.closeTime || trade.openTime, 'en-GB', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                            </div>
+
+                            {/* Entry/Stop Data */}
+                            <div className="grid grid-cols-2 md:grid-cols-1 gap-3 opacity-60">
+                                <div className="bg-black/40 rounded-xl p-3 border border-white/5">
+                                    <div className="flex items-center gap-1.5 text-ios-gray text-[9px] uppercase font-bold mb-1">
+                                        <Target size={10} /> Entry Price
+                                    </div>
+                                    <span className="text-white font-mono text-xs">{formatNumber(trade.entryPrice, 2)}</span>
+                                </div>
+                                <div className="bg-black/40 rounded-xl p-3 border border-white/5">
+                                    <div className="flex items-center gap-1.5 text-ios-gray text-[9px] uppercase font-bold mb-1">
+                                        <AlertTriangle size={10} /> Stop Loss
+                                    </div>
+                                    <span className="text-white font-mono text-xs">{formatNumber(trade.stopLoss, 2)}</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-white/5 rounded-xl p-4 border border-white/5 hidden md:block">
+                                <div className="text-[9px] text-ios-gray font-mono uppercase tracking-tighter mb-2">Trade UUID</div>
+                                <div className="text-[10px] text-gray-500 font-mono break-all">{trade.id}</div>
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Analysis Text */}
-                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
-                        <p className="text-sm text-ios-gray leading-relaxed text-center italic">
-                            {getResultAnalysis()}
-                        </p>
-                    </div>
+                        {/* RIGHT COLUMN (Context & Analysis) */}
+                        <div className="md:col-span-8 space-y-6">
+                            {/* Analysis Text */}
+                            <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                                <p className="text-sm text-ios-gray leading-relaxed italic">
+                                    {getResultAnalysis()}
+                                </p>
+                            </div>
 
-                    {/* 3-Level Profit Ladder */}
-                    <div className="space-y-3">
-                        <h4 className="text-[10px] uppercase font-bold text-ios-gray ml-1">Profit Ladder</h4>
-                        {trade.tpLevels && trade.tpLevels.length > 0 ? trade.tpLevels.map((level, idx) => (
-                            <div key={level.id} className={`flex items-center justify-between p-3 rounded-xl border ${level.hit ? 'bg-ios-green/10 border-ios-green/30' : 'bg-black/40 border-white/5'}`}>
-                                <div className="flex items-center gap-3">
-                                    {level.hit ? <CheckCircle2 size={18} className="text-ios-green" /> : <Circle size={18} className="text-white/20" />}
-                                    <div>
-                                        <div className="text-xs font-bold text-white">
-                                            {idx === 0 ? 'TP 1 (Bank)' : idx === 1 ? 'TP 2 (Target)' : 'TP 3 (Runner)'}
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {/* 3-Level Profit Ladder */}
+                                <div className="space-y-3">
+                                    <h4 className="text-[10px] uppercase font-bold text-ios-gray ml-1">Profit Ladder</h4>
+                                    {trade.tpLevels && trade.tpLevels.length > 0 ? trade.tpLevels.map((level, idx) => (
+                                        <div key={level.id} className={`flex items-center justify-between p-3 rounded-xl border ${level.hit ? 'bg-ios-green/10 border-ios-green/30' : 'bg-black/40 border-white/5'}`}>
+                                            <div className="flex items-center gap-3">
+                                                {level.hit ? <CheckCircle2 size={18} className="text-ios-green" /> : <Circle size={18} className="text-white/20" />}
+                                                <div>
+                                                    <div className="text-xs font-bold text-white">
+                                                        {idx === 0 ? 'TP 1 (Bank)' : idx === 1 ? 'TP 2 (Target)' : 'TP 3 (Runner)'}
+                                                    </div>
+                                                    <div className="text-[10px] text-ios-gray">Close {level.percentage * 100}%</div>
+                                                </div>
+                                            </div>
+                                            <span className={`font-mono text-xs ${level.hit ? 'text-ios-green font-bold line-through' : 'text-white/40'}`}>
+                                                {formatNumber(level.price, 2)}
+                                            </span>
                                         </div>
-                                        <div className="text-[10px] text-ios-gray">Close {level.percentage * 100}%</div>
+                                    )) : (
+                                        <div className="text-center py-4 text-ios-gray text-xs italic border border-dashed border-white/10 rounded-xl">
+                                            No TP levels captured.
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Thinking Process */}
+                                <div className="space-y-2">
+                                    <h4 className="text-[10px] uppercase font-bold text-ios-gray ml-1">Thinking Process</h4>
+                                    <div className="bg-white/5 rounded-2xl p-5 border border-white/5 shadow-inner h-full">
+                                        <p className="text-xs text-gray-300 leading-relaxed italic">
+                                            "{trade.entryReason || 'No reasoning captured for this node event.'}"
+                                        </p>
                                     </div>
                                 </div>
-                                <span className={`font-mono text-xs ${level.hit ? 'text-ios-green font-bold line-through' : 'text-white/40'}`}>
-                                    {formatNumber(level.price, 2)}
-                                </span>
                             </div>
-                        )) : (
-                            <div className="text-center py-4 text-ios-gray text-xs italic border border-dashed border-white/10 rounded-xl">
-                                No TP levels captured.
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Thinking Process */}
-                    <div className="space-y-2">
-                        <h4 className="text-[10px] uppercase font-bold text-ios-gray ml-1">Thinking Process</h4>
-                        <div className="bg-white/5 rounded-2xl p-5 border border-white/5 shadow-inner">
-                            <p className="text-sm text-gray-300 leading-relaxed italic">
-                                "{trade.entryReason || 'No reasoning captured for this node event.'}"
-                            </p>
                         </div>
                     </div>
-
-                    {/* Entry/Stop Data (Reduced) */}
-                    <div className="grid grid-cols-2 gap-3 opacity-60">
-                        <div className="bg-black/40 rounded-xl p-3 border border-white/5">
-                            <div className="flex items-center gap-1.5 text-ios-gray text-[9px] uppercase font-bold mb-1">
-                                <Target size={10} /> Entry
-                            </div>
-                            <span className="text-white font-mono text-xs">{formatNumber(trade.entryPrice, 2)}</span>
-                        </div>
-                        <div className="bg-black/40 rounded-xl p-3 border border-white/5">
-                            <div className="flex items-center gap-1.5 text-ios-gray text-[9px] uppercase font-bold mb-1">
-                                <AlertTriangle size={10} /> Stop Boss
-                            </div>
-                            <span className="text-white font-mono text-xs">{formatNumber(trade.stopLoss, 2)}</span>
-                        </div>
-                    </div>
-
                 </div>
 
-                {/* Footer */}
-                <div className="px-6 py-4 border-t border-white/5 bg-white/[0.02] flex justify-between items-center shrink-0">
+                {/* Footer (Mobile Only basically, but keep for verifying stats) */}
+                <div className="px-6 py-4 border-t border-white/5 bg-white/[0.02] flex justify-between items-center shrink-0 md:hidden">
                     <div className="text-[9px] text-ios-gray font-mono uppercase tracking-tighter">
                         ID: {trade.id.substring(0, 12)}...
                     </div>
