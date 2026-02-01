@@ -2,7 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { Trade, TradeType, StrategyType } from '../types';
 import { X, Target, AlertTriangle, TrendingUp, TrendingDown, BrainCircuit, Activity, Zap, Repeat, CheckCircle2, Circle } from 'lucide-react';
-import { formatDate, formatNumber } from '../utils/formatters';
+import { formatDate, formatNumber, formatCurrency } from '../utils/formatters';
 
 interface Props {
   trade: Trade | null;
@@ -65,7 +65,7 @@ const TradeDetailModal: React.FC<Props> = ({ trade, onClose }) => {
                 </span>
                 <span className={`text-4xl font-bold tabular-nums tracking-tight ${(trade.status === 'OPEN' ? (trade.floatingPnl || 0) : (trade.pnl || 0)) >= 0 ? 'text-ios-green' : 'text-ios-red'}`}>
                   {(trade.status === 'OPEN' ? (trade.floatingPnl || 0) : (trade.pnl || 0)) >= 0 ? '+' : ''}
-                  {formatNumber((trade.status === 'OPEN' ? (trade.floatingPnl || 0) : (trade.pnl || 0)), 2)}
+                  {formatCurrency((trade.status === 'OPEN' ? (trade.floatingPnl || 0) : (trade.pnl || 0)))}
                 </span>
                 {trade.status === 'OPEN' && (
                   <div className="text-xs text-ios-blue font-bold mt-1 animate-pulse">ACTIVE - RUNNING</div>

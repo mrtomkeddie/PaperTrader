@@ -2,7 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, Target, AlertTriangle, TrendingUp, TrendingDown, BrainCircuit, Activity, Zap, Repeat, CheckCircle2, Circle, Terminal } from 'lucide-react';
 import { Trade, TradeType } from '../types';
-import { formatDate, formatNumber } from '../utils/formatters';
+import { formatDate, formatNumber, formatCurrency } from '../utils/formatters';
 
 interface DeepDiveModalProps {
     isOpen: boolean;
@@ -76,7 +76,7 @@ const DeepDiveModal: React.FC<DeepDiveModalProps> = ({ isOpen, onClose, trade })
                                     Realized Net Result
                                 </span>
                                 <span className={`text-4xl font-bold tabular-nums tracking-tight ${isProfit ? 'text-ios-green' : 'text-ios-red'}`}>
-                                    {isProfit ? '+' : ''}{formatNumber(trade.pnl, 2)}
+                                    {isProfit ? '+' : ''}{formatCurrency(trade.pnl)}
                                 </span>
                                 <div className="text-[10px] text-ios-gray mt-1 uppercase tracking-tighter">
                                     Closed {formatDate(trade.closeTime || trade.openTime, 'en-GB', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
