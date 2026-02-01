@@ -17,42 +17,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, onO
     return (
         <div className="hidden md:flex flex-col w-64 h-screen sticky top-0 p-4 border-r border-premium-border bg-black/40 backdrop-blur-xl">
             {/* Logo Area */}
-            <div className="flex items-center justify-center px-4 pb-4 pt-0 mb-6 mt-0">
-                <img src="/bulllogo.svg" alt="Paper Trader" className="h-12 w-auto object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
+            <div className="flex items-center justify-center px-4 pb-8 pt-6 relative group/logo">
+                <div className="absolute inset-0 bg-premium-gold/20 blur-[50px] rounded-full opacity-0 group-hover/logo:opacity-50 transition-opacity duration-700 pointer-events-none" />
+                <img src="/bulllogo.svg" alt="Paper Trader" className="h-16 w-auto object-contain drop-shadow-[0_0_25px_rgba(212,175,55,0.3)] transition-transform duration-500 group-hover/logo:scale-105 relative z-10" />
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 space-y-2">
+            <nav className="flex-1 space-y-3">
                 {navItems.map((item) => {
                     const isActive = activeView === item.view && (item.id === 'terminal' ? false : true);
-                    // Special case: Terminal button logic could be improved, but for now let's simplify.
-                    // Actually, let's just make "Dashboard" show the main view and "Terminal" also show main view but maybe we can rename "Dashboard" to "Overview".
-                    // For this request, I will map:
-                    // Dashboard -> activeView = dashboard
-                    // Terminal -> activeView = dashboard (maybe distinguishing later)
-                    // History -> activeView = history
-
                     const isSelected = activeView === item.view;
 
                     return (
-
                         <div key={item.id} className="relative group">
                             {isSelected && (
-                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-premium-cyan rounded-r-full shadow-[0_0_10px_rgba(0,240,255,0.5)]" />
+                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-premium-gold to-premium-cyan rounded-r-full shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all duration-300" />
                             )}
                             <button
                                 onClick={() => setActiveView(item.view as any)}
-                                className={`w-full flex items-center gap-4 px-6 py-3 transition-all duration-300 ${isSelected
-                                    ? 'text-premium-cyan font-bold tracking-wide'
-                                    : 'text-gray-500 hover:text-gray-300 font-medium'
+                                className={`w-full flex items-center gap-4 px-6 py-3.5 rounded-xl transition-all duration-300 mx-2 w-[calc(100%-16px)] ${isSelected
+                                    ? 'bg-white/5 text-white font-bold tracking-wide shadow-glass'
+                                    : 'text-gray-400 hover:text-white hover:bg-white/5 font-medium'
                                     }`}
                             >
                                 <item.icon
-                                    size={22}
-                                    className={`transition-all duration-300 ${isSelected ? 'drop-shadow-[0_0_8px_rgba(0,240,255,0.4)]' : 'group-hover:text-gray-200'}`}
+                                    size={20}
+                                    className={`transition-all duration-300 ${isSelected ? 'text-premium-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]' : 'group-hover:text-premium-gold'}`}
                                     strokeWidth={isSelected ? 2.5 : 2}
                                 />
-                                <span className={isSelected ? '' : 'text-sm'}>{item.label}</span>
+                                <span className={isSelected ? 'text-sm' : 'text-sm'}>{item.label}</span>
                             </button>
                         </div>
                     );
