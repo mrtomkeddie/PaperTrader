@@ -18,7 +18,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, onO
         <div className="hidden md:flex flex-col w-64 h-screen sticky top-0 p-4 border-r border-premium-border bg-black/40 backdrop-blur-xl">
             {/* Logo Area */}
             <div className="flex items-center justify-center px-4 pb-8 pt-6 relative group/logo">
-                <div className="absolute inset-0 bg-premium-gold/20 blur-[50px] rounded-full opacity-0 group-hover/logo:opacity-50 transition-opacity duration-700 pointer-events-none" />
+                <div className="absolute inset-0 bg-premium-gold/20 blur-[50px] rounded-full opacity-0 transition-opacity duration-700 pointer-events-none" />
                 <img src="/bulllogo.svg" alt="Paper Trader" className="h-16 w-auto object-contain drop-shadow-[0_0_25px_rgba(212,175,55,0.3)] transition-transform duration-500 group-hover/logo:scale-105 relative z-10" />
             </div>
 
