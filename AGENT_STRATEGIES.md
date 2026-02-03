@@ -28,7 +28,9 @@ The system features three distinct agents coordinated by a Central Manager.
     *   **Technical Input:** Analyzes M5 Price Action, RSI, 200 EMA, and Bollinger Bands.
     *   **Trigger:** Operates on a 60-second cycle.
     *   **Confidence Threshold:** Requires **>70%** confidence.
-*   **Why it trades:** when a mathematical setup (like an RSI oversold bounce) occurs **in the direction of the dominant trend** (e.g., buying a dip in an uptrend), filtering out high-risk counter-trend scalp attempts.
+*   **Why it trades:** when a mathematical setup occurs **in the direction of the dominant trend**.
+    *   **Bull Mode (>200 EMA):** Buys dips when RSI < **40**.
+    *   **Bear Mode (<200 EMA):** Sells rallies when RSI > **60**.
 
 ### 🤨 The Skeptic (Risk Agent)
 *   **Model:** `Gemini 2.0 Flash`

@@ -38,26 +38,41 @@ export class QuantAgent extends Agent {
             ).join('\n');
 
             const prompt = `
-You are a Quant Agent specializing in mathematical mean-reversion scalping using Bollinger Bands.
+You are the Quant Agent. Your goal is to capture high-probability moves by aligning momentum with the dominant trend.
 
-## CRITICAL STRATEGY UPDATE
-You must now apply two strict "Guardrails" before executing any trade. These rules override your standard entry signals.
+## 1. THE "GUARDRAILS" (Strict Pre-Trade Checks)
+Before looking for a specific setup, you must pass these checks. If they fail, the trade is rejected.
 
-### Guardrail 1: The "Trend Consensus" Filter (EMA Rule)
-You must never fight the dominant trend. Use the 200 EMA as your compass.
-1.  **Check the 200 EMA:** Compare the Current Price to the 200 EMA.
-2.  **Bull Mode:** If Price > 200 EMA, you are strictly FORBIDDEN from opening SELL positions. You may only look for Long/Buy setups.
-3.  **Bear Mode:** If Price < 200 EMA, you are strictly FORBIDDEN from opening BUY positions. You may only look for Short/Sell setups.
+### Guardrail A: Trend Consensus (The 200 EMA)
+You must never fight the 200 EMA.
+- **Bull Mode:** If Price > 200 EMA, you are **LONG ONLY**. (Reject all Sell signals).
+- **Bear Mode:** If Price < 200 EMA, you are **SHORT ONLY**. (Reject all Buy signals).
 
-*Reasoning: This prevents you from shorting a strong rally or buying a crash.*
+### Guardrail B: The Squeeze Filter (Volatility)
+- **Rule:** Check the Bollinger Band Width.
+- **Action:** If the bands are "squeezed" (tight/horizontal), **WAIT**. Do not enter *during* the quiet period. Wait for the bands to start expanding (opening up) before triggering the trade.
 
-### Guardrail 2: The "Squeeze" Filter (Volatility Rule)
-You must never trade during low-volatility compression.
-1.  **Check Band Width:** Observe the distance between the Upper and Lower Bollinger Bands.
-2.  **The Squeeze:** If the bands are visibly tight, narrow, or moving horizontally (pinched together), this indicates a "Squeeze" is in progress.
-3.  **Action:** DO NOT TRADE inside a Squeeze.
-    - Wait for the bands to "open up" (expand) aggressively before entering.
-    - A Squeeze indicates an imminent breakout. Do not stand in front of it.
+---
+
+## 2. THE SETUP (Dynamic Logic)
+Because you are trading *with* the trend, you do not need to wait for extreme "crash" signals. Use these adjusted thresholds:
+
+### Bull Mode Scenarios (Price > 200 EMA)
+- **Trigger:** Look for "Dip Buys" where RSI drops below **40** (instead of the usual 30).
+- **Confirmation:** Price touching or piercing the Lower Bollinger Band + A bullish candle pattern (Pin bar, Engulfing).
+
+### Bear Mode Scenarios (Price < 200 EMA)
+- **Trigger:** Look for "Rally Sells" where RSI rises above **60** (instead of the usual 70).
+- **Confirmation:** Price touching or piercing the Upper Bollinger Band + A bearish candle pattern.
+
+---
+
+## 3. EXECUTION THRESHOLDS
+- **Confidence:** Output a score > **70%**.
+- **Cooldown:** Wait **60 seconds** between checks.
+- **Risk Management:**
+    - Risk Per Trade: **1%** of account balance.
+    - Min Lot Check: If the calculated stop loss requires a position size < 0.01 lots, reject the trade (Stop Loss is too wide).
 
 ## Market Data for ${symbol}:
 - Price: ${currentPrice}
@@ -69,12 +84,7 @@ You must never trade during low-volatility compression.
 ## Recent Price Action (Last 50 Candles - M5):
 ${ohlcvHistory}
 
-## Math/Logic:
-1. Analyze the OHLCV sequence for hidden patterns (Divergence, Exhaustion, Breakouts).
-2. CHECK GUARDRAIL 1: Is Price > 200 EMA? If so, REJECT all SELL signals. Is Price < 200 EMA? REJECT all BUY signals.
-3. CHECK GUARDRAIL 2: Are bands squeezing? If yes, Output HOLD.
-4. Only if both Guardrails pass, evaluate Mean Reversion logic (RSI > 70/ < 30).
-
+## Output Format
 Output a JSON object ONLY:
 {
   "action": "BUY" | "SELL" | "HOLD",
