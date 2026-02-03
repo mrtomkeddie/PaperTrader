@@ -93,8 +93,24 @@ export const AgentCard: React.FC<AgentCardProps> = ({
                     </div>
                 </div>
 
-                <div className="pt-3 border-t border-white/5">
-                    <div className="flex items-center justify-between">
+                <div className="pt-3 border-t border-white/5 space-y-2">
+                    {/* Status & Last Thought Display */}
+                    <div className="bg-black/20 rounded p-2 border border-white/5 relative">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-[9px] uppercase font-bold tracking-widest text-gray-500">
+                                Current Status
+                            </span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isThinking ? 'bg-premium-cyan/10 text-premium-cyan animate-pulse' : 'bg-gray-800 text-gray-400'}`}>
+                                {isThinking ? 'ANALYZING' : lastAction === 'WAITING' ? 'IDLE' : 'ACTIVE'}
+                            </span>
+                        </div>
+
+                        <p className={`text-xs font-mono leading-relaxed ${isThinking ? 'text-gray-400 italic' : 'text-gray-300'}`}>
+                            {lastThought ? `"${lastThought}"` : "Initializing neural context..."}
+                        </p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
                         <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Today's P&L</span>
                         <span className={`text-sm font-bold font-mono ${pnl >= 0 ? 'text-premium-green' : 'text-premium-red'}`}>
                             {pnl >= 0 ? '+' : ''}£{Math.abs(pnl).toFixed(2)}

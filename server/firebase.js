@@ -30,7 +30,12 @@ export function initFirebase() {
         }
 
         if (!serviceAccount) {
-            console.warn('[FIREBASE] Missing Firebase credentials. Set FIREBASE_SERVICE_ACCOUNT_JSON or (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY)');
+            console.warn('[FIREBASE] Missing Firebase credentials. Checking environment...');
+            const missing = [];
+            if (!process.env.FIREBASE_PROJECT_ID) missing.push('FIREBASE_PROJECT_ID');
+            if (!process.env.FIREBASE_CLIENT_EMAIL) missing.push('FIREBASE_CLIENT_EMAIL');
+            if (!process.env.FIREBASE_PRIVATE_KEY) missing.push('FIREBASE_PRIVATE_KEY');
+            console.warn(`[FIREBASE] Missing keys: ${missing.join(', ')}`);
             return false;
         }
 
