@@ -71,6 +71,9 @@ export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
   const visibleTrades = filteredTrades.slice(0, visibleCount);
   const hasMore = filteredTrades.length > visibleCount;
 
+  // Calculate Daily P&L
+  const dailyPnL = filteredTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+
   const handleShowMore = () => {
     setVisibleCount(prev => prev + TRADES_PER_PAGE);
   };
@@ -104,6 +107,14 @@ export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
           >
             <ChevronRight size={18} />
           </button>
+        </div>
+
+        {/* Daily P&L Display */}
+        <div className="flex items-center gap-2 bg-black/40 px-4 py-1.5 rounded-xl border border-white/10 shadow-inner">
+          <span className="text-[10px] uppercase tracking-wider text-gray-400 font-mono">Daily P&L:</span>
+          <span className={`text-sm font-bold font-mono ${dailyPnL >= 0 ? 'text-premium-green drop-shadow-[0_0_3px_rgba(0,255,163,0.3)]' : 'text-premium-red drop-shadow-[0_0_3px_rgba(255,77,77,0.3)]'}`}>
+            {formatCurrency(dailyPnL)}
+          </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 bg-black/40 p-1 rounded-lg border border-white/10">
