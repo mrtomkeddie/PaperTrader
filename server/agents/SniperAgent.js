@@ -1,5 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import Agent from './Agent.js';
+import { GoogleGenAI } from "@google/genai";
+import { Agent } from './Agent.js';
 import { detectFairValueGap, detectOrderBlock, analyzeMarketStructure, getPreviousDayLevels } from '../utils/technicalAnalysis.js';
 
 /**
@@ -13,8 +13,7 @@ export class SniperAgent extends Agent {
 
         if (process.env.API_KEY || process.env.GOOGLE_API_KEY) {
             const key = process.env.API_KEY || process.env.GOOGLE_API_KEY;
-            const genAI = new GoogleGenerativeAI(key);
-            this.model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+            this.client = new GoogleGenAI({ apiKey: key });
         } else {
             console.warn('[SNIPER] Missing GOOGLE_API_KEY for Gemini.');
         }
@@ -59,9 +58,9 @@ export class SniperAgent extends Agent {
     }
 
     async consultSniper(snapshot, insights) {
-        if (!this.model) return;
+        if (!this.client) return;
 
-        const { symbol, currentPrice, candlesM5 } = snapshot;
+        const { symbol, currentPrice } = snapshot;
         this.isThinking = true;
 
         const prompt = `
@@ -100,9 +99,7 @@ Output a JSON object ONLY:
 `;
 
         try {
-            const result = await this.model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
+            const text = await this.client.generateContent(prompt, "gemini-2.0-flash");
 
             this.processDecision(text, symbol, currentPrice, snapshot);
             this.lastActionTime = Date.now();
