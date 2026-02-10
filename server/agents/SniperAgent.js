@@ -99,12 +99,16 @@ Output a JSON object ONLY:
 `;
 
         try {
-            const text = await this.client.generateContent(prompt, "gemini-2.0-flash");
+            const response = await this.client.models.generateContent({
+                model: 'gemini-2.0-flash',
+                contents: prompt
+            });
 
+            const text = response.text;
             this.processDecision(text, symbol, currentPrice, snapshot);
             this.lastActionTime = Date.now();
         } catch (e) {
-            console.error('[SNIPER] AI Error:', e);
+            console.error('[SNIPER] AI Error:', e.message || e);
         } finally {
             this.isThinking = false;
         }
