@@ -1400,6 +1400,26 @@ function processTicks(symbol) {
       continue;
     }
 
+    // SPECIAL: EOD SAFETY HARD CLOSE (21:55 UTC)
+    // Force close XAUUSD before the 22:00 UTC market pause/gap
+    const nowUtc = new Date();
+    if (symbol === 'XAUUSD' && nowUtc.getUTCHours() === 21 && nowUtc.getUTCMinutes() >= 55) {
+      trade.status = 'CLOSED'; trade.closeReason = 'EOD_SAFETY'; trade.outcomeReason = "EOD Safety Close (21:55 UTC) before market pause.";
+      trade.closeTime = Date.now(); trade.closePrice = price;
+      const exit = isBuy ? bid : ask;
+
+      const pnlUSD = calcPnlUSD(symbol, trade.entryPrice, exit, trade.currentSize, isBuy);
+      const pnlGBP = pnlUSD * usdToGbp;
+
+      trade.pnl += pnlGBP; account.balance += pnlGBP; closedPnL += pnlGBP;
+      trade.floatingPnl = 0;
+      closedAnyTrade = true;
+      console.log(`[EOD] Force Closing ${symbol} trade ${trade.id} at 21:55 UTC`);
+      sendSms(`CLOSE ${symbol} ${trade.type} @ ${exit.toFixed(2)} (EOD_SAFETY) PnL £${pnlGBP.toFixed(2)}`);
+      notifyAll('Trade Closed', `${symbol} ${trade.type} @ ${exit.toFixed(2)} (EOD_SAFETY) PnL £${pnlGBP.toFixed(2)}`);
+      continue;
+    }
+
     const nowMs = Date.now();
     const ageMs = nowMs - Number(trade.openTime || nowMs);
 
@@ -1505,9 +1525,25 @@ function processTicks(symbol) {
           // [OPTIMIZATION] Move SL to Break Even at +0.3% to protect capital.
           const profitPct = isBuy ? (currentPrice / trade.entryPrice - 1) : (trade.entryPrice / currentPrice - 1);
           if (level.id === 1 || profitPct >= 0.003) {
-            // TP1 Hit OR +0.3% reached -> Move SL to Break Even
-            trade.stopLoss = trade.entryPrice;
-            console.log(`[MGMT] ${symbol} Breakeven Triggered. SL moved to entry: ${trade.stopLoss}`);
+            // TP1 Hit OR +0.3% reached -> Move SL to Break Even + BUFFER
+            // Add $0.20 secured buffer to prevent slippage loss
+            const buffer = symbol === 'XAUUSD' ? 0.20 : 0;
+
+            if (isBuy) {
+              // Ensure we don't move SL down if it's already higher
+              const newSL = trade.entryPrice + buffer;
+              if (newSL > trade.stopLoss) {
+                trade.stopLoss = newSL;
+                console.log(`[MGMT] ${symbol} Breakeven Triggered. SL moved to entry + $${buffer}: ${trade.stopLoss}`);
+              }
+            } else {
+              // Ensure we don't move SL up if it's already lower
+              const newSL = trade.entryPrice - buffer;
+              if (newSL < trade.stopLoss) {
+                trade.stopLoss = newSL;
+                console.log(`[MGMT] ${symbol} Breakeven Triggered. SL moved to entry - $${buffer}: ${trade.stopLoss}`);
+              }
+            }
           } else if (level.id === 2) {
             // TP2 Hit -> Start Trailing
             // We flag this trade as 'trailing'
