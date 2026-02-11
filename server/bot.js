@@ -1522,41 +1522,43 @@ function processTicks(symbol) {
           trade.outcomeReason = `Take Profit: Level ${level.id} hit. Locked in profit.`;
 
           // MANAGEMENT RULES
-          // [OPTIMIZATION] Move SL to Break Even at +0.3% to protect capital.
+          // [OPTIMIZATION] Move SL to Break Even at +0.1% to protect capital early.
           const profitPct = isBuy ? (currentPrice / trade.entryPrice - 1) : (trade.entryPrice / currentPrice - 1);
-          if (level.id === 1 || profitPct >= 0.003) {
-            // TP1 Hit OR +0.3% reached -> Move SL to Break Even + BUFFER
+
+          // CRITICAL FIX: Trigger BE at 0.1% (approx $2.60 on Gold) to align with Quant's scalping
+          if (profitPct >= 0.001) {
+            // +0.1% reached -> Move SL to Break Even + BUFFER
             // Add $0.20 secured buffer to prevent slippage loss
             const buffer = symbol === 'XAUUSD' ? 0.20 : 0;
 
             if (isBuy) {
-              // Ensure we don't move SL down if it's already higher
               const newSL = trade.entryPrice + buffer;
               if (newSL > trade.stopLoss) {
                 trade.stopLoss = newSL;
-                console.log(`[MGMT] ${symbol} Breakeven Triggered. SL moved to entry + $${buffer}: ${trade.stopLoss}`);
+                console.log(`[MGMT] ${symbol} Breakeven Triggered (+0.1%). SL moved to entry + $${buffer}: ${trade.stopLoss}`);
               }
             } else {
-              // Ensure we don't move SL up if it's already lower
               const newSL = trade.entryPrice - buffer;
               if (newSL < trade.stopLoss) {
                 trade.stopLoss = newSL;
-                console.log(`[MGMT] ${symbol} Breakeven Triggered. SL moved to entry - $${buffer}: ${trade.stopLoss}`);
+                console.log(`[MGMT] ${symbol} Breakeven Triggered (+0.1%). SL moved to entry - $${buffer}: ${trade.stopLoss}`);
               }
             }
-          } else if (level.id === 2) {
-            // TP2 Hit -> Start Trailing
+          }
+
+          if (level.id === 1 || level.id === 2) {
+            // TP1 OR TP2 Hit -> Start Trailing immediately to lock in run
             // We flag this trade as 'trailing'
             trade.isTrailing = true;
-            console.log(`[MGMT] ${symbol} TP2 Hit. Trailing Stop Activated.`);
+            console.log(`[MGMT] ${symbol} TP${level.id} Hit. Trailing Stop Activated.`);
           }
         }
       }
     }
 
-    // Trailing Stop Logic (Active after TP2)
+    // Trailing Stop Logic (Active after TP1)
     if (trade.isTrailing) {
-      const trailDist = asset.currentPrice * 0.005; // 0.5% Trail
+      const trailDist = asset.currentPrice * 0.001; // Tight 0.1% Trail (approx $2.60)
       if (isBuy) {
         const potentialSL = currentPrice - trailDist;
         if (potentialSL > trade.stopLoss) {

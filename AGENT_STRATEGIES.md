@@ -60,8 +60,8 @@ Regardless of which agent triggers a trade, all execution is governed by a stric
 | **Trade Cooldown** | 5 minutes between trades (hard limit). |
 | **Max Positions** | 2 open trades per agent. |
 | **Profit Ladder** | 3-tier scaling (40% at TP1, 40% at TP2, 20% "runner" at TP3). |
-| **Auto-Breakeven** | SL is moved to entry price at **+0.3% profit** (to protect capital). |
-| **Trailing Stop** | Activated after **TP2 (1.0%)** to lock in gains on the runner. |
+| **Auto-Breakeven** | SL is moved to entry price at **+0.1% profit** (to protect capital early). |
+| **Trailing Stop** | Activated after **TP1 (0.25%)** with a tight **0.1%** trail distance. |
 | **Curfew** | **No new trades** between **10:30 and 12:00 UTC** (Danger Zone). |
 
 ---
