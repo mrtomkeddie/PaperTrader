@@ -10,11 +10,11 @@ interface TradeHistoryProps {
   trades: Trade[];
 }
 
-const AGENT_IDS = ['quant', 'macro', 'risk'];
+const AGENT_IDS = ['quant', 'risk'];
 const TRADES_PER_PAGE = 10;
 
 export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
-  const [activeAgents, setActiveAgents] = useState<string[]>(['quant', 'macro', 'risk']);
+  const [activeAgents, setActiveAgents] = useState<string[]>(['quant', 'risk']);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
@@ -132,7 +132,6 @@ export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
 
             if (isActive) {
               if (id === 'quant') btnClass = 'text-premium-cyan border-premium-cyan/30 bg-premium-cyan/10 shadow-[0_0_8px_rgba(0,240,255,0.15)]';
-              else if (id === 'macro') btnClass = 'text-premium-gold border-premium-gold/30 bg-premium-gold/10 shadow-[0_0_8px_rgba(212,175,55,0.15)]'; // Macro is now Gold/Yellow as per user request (Wait, user said Skeptic is red, Strategist is yellow. Strategist = Macro?)
               else btnClass = 'text-premium-red border-premium-red/30 bg-premium-red/10 shadow-[0_0_8px_rgba(255,77,77,0.15)]'; // Risk is Red
             }
 
@@ -193,7 +192,7 @@ export const TradeHistory: React.FC<TradeHistoryProps> = ({ trades }) => {
                   </div>
 
                   <div className="col-span-2 sm:col-span-1 flex items-center gap-2">
-                    <div className={`w-1.5 h-1.5 rounded-full ${t.agentId === 'quant' ? 'bg-premium-cyan shadow-[0_0_5px_cyan]' : t.agentId === 'macro' ? 'bg-premium-gold shadow-[0_0_5px_gold]' : 'bg-premium-red shadow-[0_0_5px_red]'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full ${t.agentId === 'quant' ? 'bg-premium-cyan shadow-[0_0_5px_cyan]' : 'bg-premium-red shadow-[0_0_5px_red]'}`} />
                     <span className="uppercase tracking-wide text-[10px] opacity-80">{t.agentId.substring(0, 3)}</span>
                   </div>
 

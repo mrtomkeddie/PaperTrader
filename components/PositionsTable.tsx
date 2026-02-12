@@ -50,7 +50,7 @@ const PositionsTable: React.FC<Props> = ({ trades, onSelectTrade, selectedTradeI
 
                                 {/* Agent */}
                                 <div className="col-span-3 sm:col-span-2 flex items-center gap-2">
-                                    <div className={`w-1.5 h-1.5 rounded-full ${trade.agentId === 'quant' ? 'bg-premium-cyan shadow-[0_0_5px_cyan]' : trade.agentId === 'macro' ? 'bg-premium-gold shadow-[0_0_5px_gold]' : 'bg-premium-red shadow-[0_0_5px_red]'}`} />
+                                    <div className={`w-1.5 h-1.5 rounded-full ${trade.agentId === 'quant' ? 'bg-premium-cyan shadow-[0_0_5px_cyan]' : 'bg-premium-red shadow-[0_0_5px_red]'}`} />
                                     <span className="uppercase tracking-wide text-[10px] opacity-80 text-gray-400 group-hover:text-gray-200">{trade.agentId ? trade.agentId.substring(0, 3) : 'MAN'}</span>
                                 </div>
 

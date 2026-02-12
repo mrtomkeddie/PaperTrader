@@ -121,7 +121,7 @@ const AppContent: React.FC = () => {
           {activeView === 'dashboard' ? (
             <>
               {/* ROW 1: AGENT CARDS */}
-              <div className="grid grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 gap-6">
                 {['quant', 'risk'].map(id => {
                   const agent = accounts?.[id];
                   return agent ? <AgentCard key={id} agent={agent} /> : (
