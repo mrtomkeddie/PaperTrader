@@ -6,14 +6,21 @@ async function test() {
     console.log('Manager initialized.');
 
     // Mock Data
+    const mockCandles = Array(250).fill({
+        open: 2000,
+        high: 2010,
+        low: 1990,
+        close: 2000
+    });
+    // Let's modify the end of candles to simulate a drop to trigger oversold RSI
+    for (let i = 240; i < 250; i++) {
+        mockCandles[i] = { open: 1995, high: 2000, low: 1980, close: 1985 };
+    }
+
     const mockData = {
-        currentPrice: 2000,
-        rsi: 30, // Oversold
-        trend: 'UP',
-        ema: 1990,
-        history: Array(50).fill({ close: 2000 }),
-        bollinger: { upper: 2010, lower: 1990 }, // Near lower band
-        macd: { macdLine: 1, signalLine: 0, histogram: 1 }
+        symbol: 'XAUUSD',
+        currentPrice: 1985,
+        candles: mockCandles
     };
 
     console.log('Ticking Manager...');
