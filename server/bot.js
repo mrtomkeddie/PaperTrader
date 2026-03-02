@@ -16,6 +16,10 @@ import { Manager } from './Manager.js';
 // Load .env file from root
 dotenv.config();
 
+console.log("[SYSTEM] BOT HAS BEEN PAUSED BY USER. TRADING IS STOPPED.");
+await new Promise(() => { }); // Halts execution permanently without crashing
+
+
 // --- LOGGING SETUP ---
 
 const LOG_FILE = path.join(process.cwd(), 'server', 'bot.log');
