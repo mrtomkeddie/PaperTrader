@@ -53,10 +53,11 @@ export class QuantAgent extends Agent {
 
             let mathSignal = 'NONE';
 
-            // 3. CHECK THE HARD RULES (EMA 200 trend alignment)
-            if (currentPrice < currentEMA && currentRSI > 70) {
+            // 3. CHECK ENTRY RULES (EMA 200 trend alignment + relaxed RSI bands)
+            // Relaxed from 70/40 to 65/45 to avoid long inactive periods.
+            if (currentPrice < currentEMA && currentRSI > 65) {
                 mathSignal = 'SELL';
-            } else if (currentPrice > currentEMA && currentRSI < 40) {
+            } else if (currentPrice > currentEMA && currentRSI < 45) {
                 mathSignal = 'BUY';
             }
 

@@ -1,6 +1,6 @@
 import { Agent } from './Agent.js';
 import { GoogleGenAI } from "@google/genai";
-import { RSI } from 'technicalindicators';
+import { RSI, ATR } from 'technicalindicators';
 
 export class RiskAgent extends Agent {
     constructor() {
@@ -36,8 +36,12 @@ export class RiskAgent extends Agent {
 
             // 1. SILENT GATEKEEPER (Free Math)
             const closes = candles.map(c => c.close);
+            const highs = candles.map(c => c.high);
+            const lows = candles.map(c => c.low);
             const rsiValues = RSI.calculate({ period: 14, values: closes });
+            const atrValues = ATR.calculate({ high: highs, low: lows, close: closes, period: 14 });
             const currentRSI = rsiValues[rsiValues.length - 1];
+            const currentATR = atrValues[atrValues.length - 1];
 
             let mathSignal = 'NONE';
             if (currentRSI < 20) mathSignal = 'BUY';  // Potential Panic
@@ -103,7 +107,7 @@ export class RiskAgent extends Agent {
             console.log(`[RISK] AI BYPASS: Auto-confirming ${mathSignal} signal.`);
             // ------------------------
 
-            this.processDecision(text, symbol, currentPrice, mathSignal);
+            this.processDecision(text, symbol, currentPrice, mathSignal, currentATR);
 
         } catch (error) {
             console.error('[RISK] Error thinking:', error.message);
@@ -112,7 +116,7 @@ export class RiskAgent extends Agent {
         }
     }
 
-    processDecision(responseText, symbol, currentPrice, mathSignal) {
+    processDecision(responseText, symbol, currentPrice, mathSignal, currentATR = 0) {
         try {
             const jsonMatch = responseText.match(/\{[\s\S]*\}/);
             if (!jsonMatch) return;
@@ -130,9 +134,16 @@ export class RiskAgent extends Agent {
                 // but the existing RiskAgent had it. I'll maintain the robust TP ladder.
 
                 const isBuy = mathSignal === 'BUY';
-                // Fallback TP/SL if AI doesn't provide valid numbers
-                const fallbackDist = currentPrice * 0.01;
-                const targetTP = decision.takeProfit || (isBuy ? currentPrice + fallbackDist : currentPrice - fallbackDist);
+                // Fallback TP/SL if AI doesn't provide valid numbers.
+                // ATR-based fallback avoids oversized stops that force lot size < 0.01 and reject the trade.
+                const atrDist = Number.isFinite(currentATR) && currentATR > 0
+                    ? currentATR
+                    : currentPrice * 0.0015;
+                const fallbackRiskDist = Math.max(atrDist * 1.2, currentPrice * 0.0005);
+                const fallbackTpDist = fallbackRiskDist * 2;
+                const targetTP = Number.isFinite(decision.takeProfit)
+                    ? decision.takeProfit
+                    : (isBuy ? currentPrice + fallbackTpDist : currentPrice - fallbackTpDist);
                 const dist = Math.abs(targetTP - currentPrice);
 
                 // TP1: Original (40%), TP2: 1.5x dist (40%), TP3: 3x dist (20%)
@@ -150,7 +161,9 @@ export class RiskAgent extends Agent {
                     mathSignal,
                     0, // Size ignored (calculated dynamically)
                     currentPrice,
-                    decision.stopLoss || (isBuy ? currentPrice - (dist * 0.5) : currentPrice + (dist * 0.5)),
+                    Number.isFinite(decision.stopLoss)
+                        ? decision.stopLoss
+                        : (isBuy ? currentPrice - fallbackRiskDist : currentPrice + fallbackRiskDist),
                     tpLevels,
                     decision.reason
                 );

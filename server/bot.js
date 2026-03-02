@@ -1738,17 +1738,17 @@ function processTicks(symbol) {
   if (guard.tradesToday >= guard.maxTradesPerDay) { setSkipReason(asset, `Daily limit ${guard.tradesToday}/${guard.maxTradesPerDay}`); return; }
   if (Date.now() - guard.lastTradeMs < guard.cooldownMs) { setSkipReason(asset, 'Cooldown'); return; }
 
-  // A. TREND FOLLOW (Legacy - Disabled)
-  if (false && asset.activeStrategies.includes('TREND_FOLLOW')) {
+  // A. TREND FOLLOW
+  if (asset.activeStrategies.includes('TREND_FOLLOW')) {
     if (asset.regime !== 'TREND') {
       setSkipReason(asset, `Regime ${asset.regime} != TREND`);
     } else {
       const utcHour = new Date().getUTCHours();
 
       // NAS100 Logic Removed
-      // 2. XAUUSD TIME FILTER (12:00 UTC+ only)
-      // Avoid London Sweep conflict
-      const isXauRestricted = symbol === 'XAUUSD' && utcHour < 12;
+      // 2. XAUUSD TIME FILTER (08:00 UTC+)
+      // Avoid thin pre-London conditions while allowing morning participation.
+      const isXauRestricted = symbol === 'XAUUSD' && utcHour < 8;
 
       if (!isXauRestricted) {
         if (false) { // Lunch pause placeholder removed
@@ -2095,7 +2095,7 @@ app.get('/diagnostics/:symbol', (req, res) => {
     if (!asset) return res.status(404).json({ error: 'symbol_not_found' });
     const utcHour = new Date().getUTCHours();
     const isNasRestricted = symbol === 'NAS100' && (utcHour < 8 || utcHour >= 21);
-    const isXauRestricted = symbol === 'XAUUSD' && utcHour < 12;
+    const isXauRestricted = symbol === 'XAUUSD' && utcHour < 8;
     const structure = analyzeMarketStructure(candlesM5[symbol], 48);
     const adxTF = calculateADX(candlesM5[symbol] || [], 14);
     const now = new Date();
